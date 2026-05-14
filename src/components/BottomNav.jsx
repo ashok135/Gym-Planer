@@ -22,8 +22,8 @@ export default function BottomNav({ activeTab, setActiveTab }) {
             onClick={() => setActiveTab(tab.id)}
           >
             <div className="nav-indicator"></div>
-            <Icon className="nav-icon" size={24} style={{ color: isActive ? 'var(--bg)' : '#ffffff' }} />
-            <div className="nav-label" style={{ color: isActive ? 'var(--bg)' : '#ffffff' }}>{tab.label}</div>
+            <Icon className="nav-icon" size={24} style={{stroke: isActive ? 'var(--accent)' : '#ffffff'}} />
+            <div className="nav-label" style={{color: isActive ? 'var(--accent)' : '#ffffff'}}>{tab.label}</div>
           </div>
         );
       })}
