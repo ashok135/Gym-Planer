@@ -848,10 +848,10 @@ function buildReport(){
           ${prEntries.length ? prEntries.map(([ek, v]) => {
             const customKey = Object.keys(NAMES).find(k => k.endsWith('_' + ek));
             const name = customKey ? NAMES[customKey] : (allExercises[ek] || ek);
-            return \`<div class="pr-item">
-              <span class="pr-ex">\${name}</span>
-              <span class="pr-w">\${v.w} kg</span>
-            </div>\`;
+            return `<div class="pr-item">
+              <span class="pr-ex">${name}</span>
+              <span class="pr-w">${v.w} kg</span>
+            </div>`;
           }).join('') : '<div class="pr-item" style="justify-content:center"><span class="pr-ex">Log workouts to see PRs</span></div>'}
         </div>
       </div>
