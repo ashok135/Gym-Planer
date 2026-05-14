@@ -46,8 +46,7 @@ export const DEFAULT_DIET_PLAN = {
     { meal: 'Pre-Workout', items: [{ id: 'pw1', name: 'Rest Day', p: 0 }] },
     { meal: 'Post-Workout (Recovery)', items: [{ id: 'po1', name: '100g Chicken OR 4 Eggs OR 50g Soya Chunks', p: 25 }] },
     { meal: 'Dinner', items: [{ id: 'd1', name: 'Rice or Chapati', p: 6 }, { id: 'd2', name: 'Dal/Sambar + Veg', p: 4 }, { id: 'd3', name: '2 Eggs', p: 12 }] }
-  ]
-};
+  ],
   2: [ // Tuesday
     { meal: 'Morning', items: [{ id: 'm1', name: 'Oats with Milk & Peanut Butter', p: 15 }, { id: 'm2', name: '1 Apple', p: 0 }] },
     { meal: 'Mid-Morning', items: [{ id: 'mm1', name: 'Roasted Channa', p: 18 }] },
