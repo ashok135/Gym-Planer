@@ -45,7 +45,11 @@ export default function Today({ DB, NAMES, META, syncData, FOOD }) {
     const newDB = { ...DB };
     if(!newDB[key]) newDB[key] = {};
     if(!newDB[key][ek]) newDB[key][ek] = {};
-    newDB[key][ek][field] = parseFloat(value) || 0;
+    if(field === 'done') {
+      newDB[key][ek][field] = value;
+    } else {
+      newDB[key][ek][field] = parseFloat(value) || 0;
+    }
     syncData(newDB, NAMES, META, FOOD);
   };
 
@@ -133,11 +137,13 @@ export default function Today({ DB, NAMES, META, syncData, FOOD }) {
             const ek = `${m.name}_${i}`;
             const sv = saved[ek] || {};
             const vol = (sv.s && sv.r && sv.w) ? Math.round(sv.s * sv.r * sv.w) : '';
+            const isDone = sv.done || false;
             return (
-              <div className="exercise-card" key={ek}>
+              <div className={`exercise-card ${isDone ? 'done' : ''}`} key={ek} style={{opacity: isDone ? 0.6 : 1, transition:'opacity 0.2s'}}>
                 <div className="exercise-name-row">
                   <div className="exercise-name-wrap">
-                    <div className="exercise-name">{ex}</div>
+                    <input type="checkbox" className="food-check" checked={isDone} onChange={e => handleInputChange(ek, 'done', e.target.checked)} style={{marginRight:'12px', width:'20px', height:'20px'}} />
+                    <div className="exercise-name" style={{textDecoration: isDone ? 'line-through' : 'none'}}>{ex}</div>
                     <button className="rename-today-btn" onClick={() => toggleRename(ek, ex)}>✏️</button>
                   </div>
                 </div>
