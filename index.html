@@ -51,7 +51,7 @@ input, textarea, select { user-select: auto; -webkit-user-select: auto; }
 /* Bottom nav */
 .nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(17,17,17,0.9);backdrop-filter:blur(10px);border-top:1px solid var(--border);display:flex;z-index:100;padding:8px 0 12px}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;background:none;border:none;padding:6px 0;position:relative}
-.nav-btn .nav-icon{width:22px;height:22px;opacity:.4;transition:opacity .2s;stroke:currentColor}
+.nav-btn .nav-icon{width:22px;height:22px;opacity:.8;transition:opacity .2s;stroke:#ffffff}
 .nav-btn .nav-label{font-size:10px;color:var(--text2);opacity:.4;transition:opacity .2s}
 .nav-btn.active .nav-icon,.nav-btn.active .nav-label{opacity:1;color:var(--accent)}
 .nav-btn.active::after{content:'';position:absolute;top:0;width:30px;height:3px;background:var(--accent);border-radius:0 0 4px 4px;box-shadow:0 0 8px var(--accent)}
@@ -693,44 +693,36 @@ function saveToday(){
   if(ok){ok.style.opacity='1';setTimeout(()=>ok.style.opacity='0',2000);}
 }
 
-const DEFAULT_DIET = [
-  { meal: 'Morning', items: [
-    { id: 'm1', name: '3 Eggs (Boiled/Omelette)', p: 18 },
-    { id: 'm2', name: '2 Bananas', p: 2 },
-    { id: 'm3', name: 'Tea/Coffee (Less sugar)', p: 0 }
-  ]},
-  { meal: 'Mid-Morning', items: [
-    { id: 'mm1', name: 'Peanuts or Boiled Green Gram', p: 12 }
-  ]},
-  { meal: 'Lunch', items: [
-    { id: 'l1', name: '300g Cooked Rice', p: 8 },
-    { id: 'l2', name: '100g Chicken OR 2 Eggs', p: 25 },
-    { id: 'l3', name: 'Dal / Sambar', p: 6 },
-    { id: 'l4', name: 'Veg Poriyal (Bottle gourd/Peerkangai)', p: 2 },
-    { id: 'l5', name: '1 Cup Curd', p: 5 }
-  ]},
-  { meal: 'Pre-Workout', items: [
-    { id: 'pw1', name: '1 Banana', p: 1 },
-    { id: 'pw2', name: 'Black Coffee', p: 0 }
-  ]},
-  { meal: 'Post-Workout (Recovery)', items: [
-    { id: 'po1', name: '100g Chicken OR 4 Eggs OR 50g Soya Chunks', p: 25 }
-  ]},
-  { meal: 'Dinner', items: [
-    { id: 'd1', name: 'Rice or Chapati', p: 6 },
-    { id: 'd2', name: 'Dal/Sambar + Veg', p: 4 },
-    { id: 'd3', name: '2 Eggs', p: 12 }
-  ]}
-];
+const DEFAULT_DIET_PLAN = {
+  1: [ // Monday
+    { meal: 'Morning', items: [{ id: 'm1', name: '3 Eggs (Boiled/Omelette)', p: 18 }, { id: 'm2', name: '2 Bananas', p: 2 }, { id: 'm3', name: 'Tea/Coffee (Less sugar)', p: 0 }] },
+    { meal: 'Mid-Morning', items: [{ id: 'mm1', name: 'Peanuts or Boiled Green Gram', p: 12 }] },
+    { meal: 'Lunch', items: [{ id: 'l1', name: '300g Cooked Rice', p: 8 }, { id: 'l2', name: '100g Chicken OR 2 Eggs', p: 25 }, { id: 'l3', name: 'Dal / Sambar', p: 6 }, { id: 'l4', name: 'Veg Poriyal', p: 2 }, { id: 'l5', name: '1 Cup Curd', p: 5 }] },
+    { meal: 'Pre-Workout', items: [{ id: 'pw1', name: '1 Banana', p: 1 }, { id: 'pw2', name: 'Black Coffee', p: 0 }] },
+    { meal: 'Post-Workout', items: [{ id: 'po1', name: '100g Chicken OR 4 Eggs OR 50g Soya Chunks', p: 25 }] },
+    { meal: 'Dinner', items: [{ id: 'd1', name: 'Rice or Chapati', p: 6 }, { id: 'd2', name: 'Dal/Sambar + Veg', p: 4 }, { id: 'd3', name: '2 Eggs', p: 12 }] }
+  ],
+  0: [ // Sunday (Rest Day)
+    { meal: 'Morning', items: [{ id: 'm1', name: '3 Eggs (Boiled/Omelette)', p: 18 }, { id: 'm2', name: '2 Bananas', p: 2 }, { id: 'm3', name: 'Tea/Coffee (Less sugar)', p: 0 }] },
+    { meal: 'Mid-Morning', items: [{ id: 'mm1', name: 'Peanuts or Boiled Green Gram', p: 12 }] },
+    { meal: 'Lunch', items: [{ id: 'l1', name: '300g Cooked Rice', p: 8 }, { id: 'l2', name: '100g Chicken OR 2 Eggs', p: 25 }, { id: 'l3', name: 'Dal / Sambar', p: 6 }, { id: 'l4', name: 'Veg Poriyal', p: 2 }, { id: 'l5', name: '1 Cup Curd', p: 5 }] },
+    { meal: 'Pre-Workout', items: [{ id: 'pw1', name: 'Rest Day (No Pre-Workout)', p: 0 }] },
+    { meal: 'Post-Workout', items: [{ id: 'po1', name: '100g Chicken OR 4 Eggs OR 50g Soya Chunks', p: 25 }] },
+    { meal: 'Dinner', items: [{ id: 'd1', name: 'Rice or Chapati', p: 6 }, { id: 'd2', name: 'Dal/Sambar + Veg', p: 4 }, { id: 'd3', name: '2 Eggs', p: 12 }] }
+  ]
+};
+for(let i=2; i<=6; i++) DEFAULT_DIET_PLAN[i] = JSON.parse(JSON.stringify(DEFAULT_DIET_PLAN[1]));
 
 function buildFood() {
+  const dow = today.getDay();
+  const dietPlan = DEFAULT_DIET_PLAN[dow] || DEFAULT_DIET_PLAN[1];
   const key = dateKey(today);
   const saved = FOOD[key] || { items: {}, water: false, sleep: false, junk: false, custom: {} };
   
   let totalP = 0;
   let html = '';
   
-  DEFAULT_DIET.forEach(meal => {
+  dietPlan.forEach(meal => {
     html += `<div class="meal-block"><div class="meal-header">${meal.meal}</div>`;
     meal.items.forEach(item => {
       const isChecked = saved.items && saved.items[item.id];
@@ -861,7 +853,8 @@ function buildHistory(){
       
       const savedF = FOOD[dk] || { items: {} };
       let dayP = 0;
-      DEFAULT_DIET.forEach(meal => meal.items.forEach(i => {
+      const dietPlan = DEFAULT_DIET_PLAN[dow] || DEFAULT_DIET_PLAN[1];
+      dietPlan.forEach(meal => meal.items.forEach(i => {
         if(savedF.items && savedF.items[i.id]) dayP += i.p;
       }));
       const hasFood = dayP > 0 || savedF.water || savedF.sleep || savedF.junk;
@@ -894,7 +887,8 @@ function openModal(dk){
   const savedF = FOOD[dk] || { items: {} };
   let dayP = 0;
   const foodHtmlRows = [];
-  DEFAULT_DIET.forEach(m => m.items.forEach(i => {
+  const dietPlan = DEFAULT_DIET_PLAN[dow] || DEFAULT_DIET_PLAN[1];
+  dietPlan.forEach(m => m.items.forEach(i => {
     if(savedF.items && savedF.items[i.id]) {
       dayP += i.p;
       const customName = (savedF.custom && savedF.custom[i.id]) ? savedF.custom[i.id] : i.name;
@@ -1009,7 +1003,10 @@ function buildReport(){
     const f = FOOD[k] || {};
     let dayP = 0;
     if(f.items) {
-      DEFAULT_DIET.forEach(meal => meal.items.forEach(i => {
+      const kd = new Date(k);
+      const kdow = kd.getDay();
+      const dietPlan = DEFAULT_DIET_PLAN[kdow] || DEFAULT_DIET_PLAN[1];
+      dietPlan.forEach(meal => meal.items.forEach(i => {
         if(f.items[i.id]) dayP += i.p;
       }));
     }
@@ -1245,3 +1242,4 @@ function goTo(screen,btn){
 </script>
 </body>
 </html>
+
