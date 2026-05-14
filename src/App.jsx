@@ -13,6 +13,8 @@ import './index.css';
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showNav, setShowNav] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   
   const [activeTab, setActiveTab] = useState('today');
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -114,25 +116,47 @@ export default function App() {
   const todayObj = new Date();
   const dateStr = `${todayObj.getDate().toString().padStart(2, '0')},${(todayObj.getMonth()+1).toString().padStart(2, '0')},${todayObj.getFullYear()}`;
 
+  const handleScroll = (e) => {
+    const currentScrollY = e.target.scrollTop;
+    if (currentScrollY > lastScrollY && currentScrollY > 50) {
+      setShowNav(false);
+    } else {
+      setShowNav(true);
+    }
+    setLastScrollY(currentScrollY);
+  };
+
+  const displayName = user?.email ? user.email.split('@')[0] : 'Athlete';
+
   return (
-    <div>
+    <div style={{height: '100vh', display: 'flex', flexDirection: 'column'}}>
       <div className="header">
         <div className="header-left">
           <div className="greeting">Welcome back</div>
-          <div className="title">LifeTraker</div>
+          <div className="title" style={{textTransform:'capitalize'}}>{displayName}</div>
         </div>
         <div className="header-right">
           <div className="date-chip">{dateStr}</div>
         </div>
       </div>
-      <div className="screen active" style={{paddingBottom:'90px'}}>
+      <div className="screen active" onScroll={handleScroll} style={{paddingBottom:'90px', flex:1, overflowY:'auto'}}>
         {activeTab === 'today' && <Today DB={DB} NAMES={NAMES} META={META} syncData={syncData} FOOD={FOOD} />}
         {activeTab === 'diet' && <Diet FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} />}
         {activeTab === 'history' && <History DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} />}
         {activeTab === 'report' && <Report DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} />}
         {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} />}
       </div>
-      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      <div style={{
+        transform: showNav ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 0.3s ease-in-out',
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000
+      }}>
+        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      </div>
     </div>
   );
 }

@@ -11,7 +11,7 @@ export default function BottomNav({ activeTab, setActiveTab }) {
   ];
 
   return (
-    <div id="bottom-nav" className="nav-container" style={{display: 'flex'}}>
+    <div id="bottom-nav" className="nav" style={{display: 'flex'}}>
       {tabs.map(tab => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
