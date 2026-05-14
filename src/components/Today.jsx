@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { DEFAULT_PLAN, dateKey, DAYS_SHORT, DAYS_FULL, MONTHS } from '../data';
+import { CheckCircle2, Circle } from 'lucide-react';
 
 export default function Today({ DB, NAMES, META, syncData, FOOD }) {
   const today = new Date();
@@ -141,9 +142,15 @@ export default function Today({ DB, NAMES, META, syncData, FOOD }) {
             return (
               <div className={`exercise-card ${isDone ? 'done' : ''}`} key={ek} style={{opacity: isDone ? 0.6 : 1, transition:'opacity 0.2s'}}>
                 <div className="exercise-name-row">
-                  <div className="exercise-name-wrap">
-                    <input type="checkbox" className="food-check" checked={isDone} onChange={e => handleInputChange(ek, 'done', e.target.checked)} style={{marginRight:'12px', width:'20px', height:'20px'}} />
-                    <div className="exercise-name" style={{textDecoration: isDone ? 'line-through' : 'none'}}>{ex}</div>
+                  <div className="exercise-name-wrap" style={{ display: 'flex', alignItems: 'center' }}>
+                    <div onClick={() => handleInputChange(ek, 'done', !isDone)} style={{ cursor: 'pointer', marginRight: '12px', display: 'flex', alignItems: 'center' }}>
+                      {isDone ? (
+                        <CheckCircle2 size={22} color="var(--accent)" />
+                      ) : (
+                        <Circle size={22} color="var(--border2)" />
+                      )}
+                    </div>
+                    <div className="exercise-name" style={{textDecoration: isDone ? 'line-through' : 'none', flex: 1}}>{ex}</div>
                     <button className="rename-today-btn" onClick={() => toggleRename(ek, ex)}>✏️</button>
                   </div>
                 </div>
