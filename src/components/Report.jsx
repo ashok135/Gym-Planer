@@ -3,11 +3,12 @@ import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol, DAYS_S
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 
 export default function Report({ DB, NAMES, META, FOOD }) {
-  const [timeRange, setTimeRange] = useState('Weekly'); // 'Weekly', 'Monthly', 'Yearly'
+  const [timeRange, setTimeRange] = useState('Today'); // 'Today', 'Weekly', 'Monthly', 'Yearly'
   
   // Aggregate data based on time range
   const now = new Date();
-  let daysToLookBack = 7;
+  let daysToLookBack = 1;
+  if(timeRange === 'Weekly') daysToLookBack = 7;
   if(timeRange === 'Monthly') daysToLookBack = 30;
   if(timeRange === 'Yearly') daysToLookBack = 365;
   
@@ -77,8 +78,16 @@ export default function Report({ DB, NAMES, META, FOOD }) {
   const missedDays = totalPossibleDays - totalDaysAttended;
   const pieData = [
     { name: 'Attended', value: totalDaysAttended, color: 'var(--accent)' },
-    { name: 'Missed', value: missedDays, color: 'var(--border2)' }
+    { name: 'Missed', value: missedDays, color: 'var(--red)' }
   ];
+  
+  const pct = totalPossibleDays ? Math.round((totalDaysAttended / totalPossibleDays) * 100) : 0;
+  let pctColor = 'var(--text)';
+  if (timeRange === 'Today') {
+    pctColor = totalDaysAttended > 0 ? 'var(--accent)' : 'var(--red)';
+  } else {
+    pctColor = pct >= 50 ? 'var(--accent)' : 'var(--red)';
+  }
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -102,7 +111,7 @@ export default function Report({ DB, NAMES, META, FOOD }) {
         
         {/* TIME FILTER */}
         <div style={{display: 'flex', background: 'var(--bg3)', borderRadius: '20px', padding: '4px'}}>
-          {['Weekly', 'Monthly', 'Yearly'].map(tr => (
+          {['Today', 'Weekly', 'Monthly', 'Yearly'].map(tr => (
             <div 
               key={tr}
               onClick={() => setTimeRange(tr)}
@@ -144,8 +153,8 @@ export default function Report({ DB, NAMES, META, FOOD }) {
           <div>
             <div className="dash-val" style={{fontSize: '18px'}}>Consistency</div>
             <div className="dash-label">{timeRange} Attendance</div>
-            <div style={{marginTop: '8px', fontSize: '24px', fontWeight: 'bold', color: 'var(--accent)'}}>
-              {Math.round((totalDaysAttended / totalPossibleDays) * 100)}%
+            <div style={{marginTop: '8px', fontSize: '24px', fontWeight: 'bold', color: pctColor}}>
+              {pct}%
             </div>
           </div>
           <div style={{width: '100px', height: '100px'}}>
