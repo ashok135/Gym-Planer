@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DEFAULT_PLAN, DAYS_FULL, DEFAULT_DIET_PLAN } from '../data';
+import { DEFAULT_PLAN, DAYS_FULL, DEFAULT_DIET_PLAN, MONTHS } from '../data';
 
 export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout }) {
   const [localNames, setLocalNames] = useState(NAMES);
@@ -31,7 +31,7 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
     const allKeys = Array.from(new Set([...Object.keys(DB), ...Object.keys(META), ...Object.keys(FOOD)])).sort();
     
     // CSV Header
-    let csv = 'Date,Category,Item_Name,Sets,Reps,Weight_kg,Protein_g,Notes_or_Status\n';
+    let csv = 'Date,Day_Name,Day,Month,Year,Category,Item_Name,Sets,Reps,Weight_kg,Protein_g,Notes_or_Status\n';
     
     const escapeCSV = (str) => {
       if(str === null || str === undefined) return '';
@@ -45,14 +45,20 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
     allKeys.forEach(k => {
       const kd = new Date(k);
       const dow = kd.getDay();
+      const dayName = DAYS_FULL[dow];
+      const dayNum = kd.getDate();
+      const monthName = MONTHS[kd.getMonth()];
+      const year = kd.getFullYear();
+      
+      const dateCols = `${k},${dayName},${dayNum},${monthName},${year}`;
       
       // 1. Meta
       const m = META[k];
       if(m) {
-        if(m.status) csv += `${k},Meta,Daily Status,,,,,"${m.status}"\n`;
-        if(m.bw) csv += `${k},Meta,Bodyweight,,,,,"${m.bw} kg"\n`;
-        if(m.energy) csv += `${k},Meta,Energy,,,,,"${m.energy} stars"\n`;
-        if(m.notes) csv += `${k},Meta,Notes,,,,,${escapeCSV(m.notes)}\n`;
+        if(m.status) csv += `${dateCols},Meta,Daily Status,,,,,"${m.status}"\n`;
+        if(m.bw) csv += `${dateCols},Meta,Bodyweight,,,,,"${m.bw} kg"\n`;
+        if(m.energy) csv += `${dateCols},Meta,Energy,,,,,"${m.energy} stars"\n`;
+        if(m.notes) csv += `${dateCols},Meta,Notes,,,,,${escapeCSV(m.notes)}\n`;
       }
       
       // 2. Gym
@@ -66,7 +72,7 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
             let exName = customKey ? localNames[customKey] : ek;
             if(entry[ek].customName) exName = entry[ek].customName;
             
-            csv += `${k},Workout,${escapeCSV(exName)},${v.s||0},${v.r||0},${v.w||0},,\n`;
+            csv += `${dateCols},Workout,${escapeCSV(exName)},${v.s||0},${v.r||0},${v.w||0},,\n`;
           }
         });
       }
@@ -74,16 +80,16 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
       // 3. Food
       const f = FOOD[k];
       if(f) {
-        if(f.water) csv += `${k},Habit,Water 3-4L,,,,,Completed\n`;
-        if(f.sleep) csv += `${k},Habit,Sleep 7-8h,,,,,Completed\n`;
-        if(f.junk) csv += `${k},Habit,No Junk,,,,,Completed\n`;
+        if(f.water) csv += `${dateCols},Habit,Water 3-4L,,,,,Completed\n`;
+        if(f.sleep) csv += `${dateCols},Habit,Sleep 7-8h,,,,,Completed\n`;
+        if(f.junk) csv += `${dateCols},Habit,No Junk,,,,,Completed\n`;
         
         if(f.items) {
           const dietPlan = DEFAULT_DIET_PLAN[dow] || DEFAULT_DIET_PLAN[1];
           dietPlan.forEach(meal => meal.items.forEach(i => {
             if(f.items[i.id]) {
               const customName = (f.custom && f.custom[i.id]) ? f.custom[i.id] : i.name;
-              csv += `${k},Diet,${escapeCSV(customName)},,,,${i.p},\n`;
+              csv += `${dateCols},Diet,${escapeCSV(customName)},,,,${i.p},\n`;
             }
           }));
         }

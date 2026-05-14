@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DEFAULT_DIET_PLAN, dateKey, DAYS_FULL } from '../data';
+import { DEFAULT_DIET_PLAN, dateKey, DAYS_FULL, MONTHS } from '../data';
 
 export default function Diet({ FOOD, syncData, DB, NAMES, META }) {
   const today = new Date();
@@ -58,7 +58,7 @@ export default function Diet({ FOOD, syncData, DB, NAMES, META }) {
   return (
     <div id="food-content" style={{padding: '20px 0'}}>
       <div style={{textAlign: 'center', marginBottom: '16px'}}>
-        <div style={{fontSize: '20px', fontWeight: 600, color: 'var(--text)'}}>{DAYS_FULL[dow]} Diet Plan</div>
+        <div style={{fontSize: '20px', fontWeight: 600, color: 'var(--text)'}}>{DAYS_FULL[dow]}, {today.getDate()} {MONTHS[today.getMonth()]} {today.getFullYear()}</div>
         <div style={{fontSize: '13px', color: 'var(--text2)'}}>Log your meals and habits for today</div>
       </div>
       <div className="food-ring-container">
