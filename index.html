@@ -220,7 +220,7 @@ select.meta-input { appearance: none; }
 
 <!-- LOADING SCREEN -->
 <div id="screen-loading" class="screen active" style="display:flex;align-items:center;justify-content:center;height:100vh;animation:pulse 1s infinite alternate;">
-  <div style="color:var(--accent);font-weight:600;font-size:24px;letter-spacing:1px;">💪 GYMTRACKER</div>
+  <div style="color:var(--accent);font-weight:600;font-size:24px;letter-spacing:1px;">💪 LIFETRAKER</div>
 </div>
 <style>@keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }</style>
 
@@ -228,7 +228,7 @@ select.meta-input { appearance: none; }
 <div id="screen-auth" class="screen">
   <div class="auth-box">
     <div style="font-size: 40px; margin-bottom: 10px;">💪</div>
-    <div class="auth-title">GymTracker Pro</div>
+    <div class="auth-title">LifeTraker Pro</div>
     <div class="auth-sub">Cloud sync your workouts</div>
     
     <input type="email" id="auth-email" class="auth-input" placeholder="Email address" />
@@ -957,7 +957,9 @@ function openModal(dk){
   document.getElementById('modal-overlay').classList.add('open');
 }
 function closeModal(e){if(e.target===document.getElementById('modal-overlay'))document.getElementById('modal-overlay').classList.remove('open');}
-function closeModalBtn(){document.getElementById('modal-overlay').clfunction buildReport(){
+function closeModalBtn(){document.getElementById('modal-overlay').classList.remove('open');}
+
+function buildReport(){
   let totalVol = 0, totalDays = 0, totalMins = 0;
   let energySum = 0, energyCount = 0;
   let latestBw = null, latestBwDate = '';
@@ -1212,7 +1214,7 @@ function exportCSV() {
   const a = document.createElement('a');
   a.setAttribute('hidden', '');
   a.setAttribute('href', url);
-  a.setAttribute('download', 'GymTracker_Data.csv');
+  a.setAttribute('download', 'LifeTraker_Data.csv');
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

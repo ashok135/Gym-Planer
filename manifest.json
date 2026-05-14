@@ -1,7 +1,7 @@
 {
-  "name": "Gym Tracker",
-  "short_name": "GymTracker",
-  "description": "Personal gym workout tracker with cloud sync",
+  "name": "LifeTraker",
+  "short_name": "LifeTraker",
+  "description": "Personal life and workout tracker with cloud sync",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0a0a0a",
