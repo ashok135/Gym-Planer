@@ -1,0 +1,168 @@
+import React, { useState } from 'react';
+import { DEFAULT_PLAN, dateKey, DAYS_SHORT, DAYS_FULL, MONTHS } from '../data';
+
+export default function Today({ DB, NAMES, META, syncData, FOOD }) {
+  const today = new Date();
+  const dow = today.getDay();
+  const key = dateKey(today);
+  
+  const saved = DB[key] || {};
+  const meta = META[key] || { mood: '', energy: 0, status: 'Completed', bw: '', start: '', end: '', notes: '' };
+  
+  // Create deep copy of plan
+  const plan = JSON.parse(JSON.stringify(DEFAULT_PLAN[dow] || DEFAULT_PLAN[0]));
+  plan.muscles.forEach(m => {
+    m.exercises = m.exercises.map((ex, i) => {
+      const k = `${dow}_${m.name}_${i}`;
+      const ek = `${m.name}_${i}`;
+      return (saved[ek] && saved[ek].customName) ? saved[ek].customName : (NAMES[k] || ex);
+    });
+  });
+
+  const [renameBox, setRenameBox] = useState(null);
+  const [renameInput, setRenameInput] = useState('');
+  const [saveMsg, setSaveMsg] = useState(false);
+
+  const toggleRename = (ek, currentName) => {
+    if(renameBox === ek) setRenameBox(null);
+    else {
+      setRenameBox(ek);
+      setRenameInput(currentName);
+    }
+  };
+
+  const saveRename = (ek) => {
+    if(!renameInput.trim()) return;
+    const newDB = { ...DB };
+    if(!newDB[key]) newDB[key] = {};
+    if(!newDB[key][ek]) newDB[key][ek] = {};
+    newDB[key][ek].customName = renameInput.trim();
+    syncData(newDB, NAMES, META, FOOD);
+    setRenameBox(null);
+  };
+
+  const handleInputChange = (ek, field, value) => {
+    const newDB = { ...DB };
+    if(!newDB[key]) newDB[key] = {};
+    if(!newDB[key][ek]) newDB[key][ek] = {};
+    newDB[key][ek][field] = parseFloat(value) || 0;
+    syncData(newDB, NAMES, META, FOOD);
+  };
+
+  const handleMetaChange = (field, value) => {
+    const newMeta = { ...META };
+    if(!newMeta[key]) newMeta[key] = { ...meta };
+    newMeta[key][field] = value;
+    syncData(DB, NAMES, newMeta, FOOD);
+  };
+
+  const saveToday = () => {
+    setSaveMsg(true);
+    setTimeout(() => setSaveMsg(false), 2000);
+  };
+
+  if(!plan.muscles.length) {
+    return (
+      <div id="today-content">
+        <div className="rest-card">
+          <div className="rest-icon">🛌</div>
+          <div className="rest-title">Rest day</div>
+          <div className="rest-sub">Recovery is part of the process. Come back tomorrow.</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div id="today-content" style={{padding:'20px 0'}}>
+      <div className="workout-hero">
+        <div className="workout-type">{DAYS_FULL[dow]}</div>
+        <div className="workout-name">{plan.label}</div>
+        <div className="workout-meta">
+          <span><strong>{plan.muscles.reduce((s,m)=>s+m.exercises.length,0)}</strong> exercises</span>
+          <span><strong>{plan.muscles.length}</strong> muscle groups</span>
+        </div>
+      </div>
+
+      <div className="session-meta">
+        <div className="meta-grid">
+          <div className="meta-group"><div className="meta-label">Status</div>
+            <select className="meta-input" value={meta.status || 'Completed'} onChange={e => handleMetaChange('status', e.target.value)}>
+              <option value="Completed">Completed</option>
+              <option value="Partial">Partial</option>
+              <option value="Skipped">Skipped</option>
+            </select>
+          </div>
+          <div className="meta-group"><div className="meta-label">Body Weight (kg)</div>
+            <input type="number" step="0.1" className="meta-input" value={meta.bw || ''} onChange={e => handleMetaChange('bw', e.target.value)} placeholder="e.g. 75.5" />
+          </div>
+          <div className="meta-group"><div className="meta-label">Start Time</div>
+            <input type="time" className="meta-input" value={meta.start || ''} onChange={e => handleMetaChange('start', e.target.value)} />
+          </div>
+          <div className="meta-group"><div className="meta-label">End Time</div>
+            <input type="time" className="meta-input" value={meta.end || ''} onChange={e => handleMetaChange('end', e.target.value)} />
+          </div>
+        </div>
+        
+        <div className="meta-grid">
+          <div className="meta-group"><div className="meta-label">Mood</div>
+            <div className="mood-group">
+              {['😴','😐','🙂','🔥','💪'].map(m => (
+                <button key={m} className={`mood-btn ${meta.mood === m ? 'active' : ''}`} onClick={() => handleMetaChange('mood', m)}>{m}</button>
+              ))}
+            </div>
+          </div>
+          <div className="meta-group"><div className="meta-label">Energy</div>
+            <div className="energy-group">
+              {[1,2,3,4,5].map(e => (
+                <span key={e} className={`energy-star ${meta.energy >= e ? 'active' : ''}`} onClick={() => handleMetaChange('energy', e)}>★</span>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        <div className="meta-group" style={{marginTop:'12px'}}><div className="meta-label">Notes</div>
+          <textarea className="notes-input" value={meta.notes || ''} onChange={e => handleMetaChange('notes', e.target.value)} placeholder="How did it feel?"></textarea>
+        </div>
+      </div>
+
+      {plan.muscles.map(m => (
+        <div className="muscle-block" key={m.name}>
+          <div className="muscle-header"><div className="muscle-dot"></div><div className="muscle-name">{m.name}</div></div>
+          {m.exercises.map((ex, i) => {
+            const ek = `${m.name}_${i}`;
+            const sv = saved[ek] || {};
+            const vol = (sv.s && sv.r && sv.w) ? Math.round(sv.s * sv.r * sv.w) : '';
+            return (
+              <div className="exercise-card" key={ek}>
+                <div className="exercise-name-row">
+                  <div className="exercise-name-wrap">
+                    <div className="exercise-name">{ex}</div>
+                    <button className="rename-today-btn" onClick={() => toggleRename(ek, ex)}>✏️</button>
+                  </div>
+                </div>
+                {renameBox === ek && (
+                  <div className="rename-input-box open">
+                    <input type="text" className="rename-input" value={renameInput} onChange={e => setRenameInput(e.target.value)} placeholder="Rename for today only" />
+                    <button className="rename-save" onClick={() => saveRename(ek)}>Apply</button>
+                  </div>
+                )}
+                <div className="exercise-inputs">
+                  <div className="input-group"><div className="input-label">SETS</div><input type="number" min="0" placeholder="0" value={sv.s || ''} onChange={e => handleInputChange(ek, 's', e.target.value)} /></div>
+                  <div className="input-group"><div className="input-label">REPS</div><input type="number" min="0" placeholder="0" value={sv.r || ''} onChange={e => handleInputChange(ek, 'r', e.target.value)} /></div>
+                  <div className="input-group"><div className="input-label">KG</div><input type="number" min="0" step="0.5" placeholder="0" value={sv.w || ''} onChange={e => handleInputChange(ek, 'w', e.target.value)} /></div>
+                </div>
+                <div className="vol-row"><span className="vol-label">Volume</span><span className="vol-val">{vol ? vol+' kg' : '—'}</span></div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+
+      <div className="save-area">
+        <button className="save-btn" onClick={saveToday}>Save workout</button>
+        <span className="save-ok" style={{opacity: saveMsg ? 1 : 0}}>Saved ✓</span>
+      </div>
+    </div>
+  );
+}
