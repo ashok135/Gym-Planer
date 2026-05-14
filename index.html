@@ -139,23 +139,28 @@ select.meta-input { appearance: none; }
 .mini-table td:first-child{color:var(--text2)}
 .mini-section{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin:12px 0 6px}
 
-/* Weekly report */
-.report-header{margin:0 20px 20px;padding:20px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius)}
-.report-week{font-size:12px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
-.report-title{font-size:18px;font-weight:600;margin-bottom:16px}
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.stat-box{background:var(--bg2);border-radius:var(--radius-sm);padding:12px;border:1px solid var(--border)}
-.stat-val{font-size:22px;font-weight:600;font-family:'DM Mono',monospace;color:var(--text)}
-.stat-label{font-size:11px;color:var(--text2);margin-top:2px}
-.day-bars{margin:0 20px 20px}
-.day-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.day-bar-label{font-size:11px;color:var(--text2);width:28px;flex-shrink:0}
-.day-bar-track{flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden}
-.day-bar-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .5s}
-.day-bar-val{font-size:11px;font-family:'DM Mono',monospace;color:var(--text2);width:52px;text-align:right;flex-shrink:0}
-.pr-row{margin:0 20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
-.pr-name{font-size:13px;color:var(--text2)}
-.pr-val{font-size:14px;font-weight:600;font-family:'DM Mono',monospace;color:var(--text)}
+/* Dashboard AI Styles */
+.ai-dash-header { margin: 0 20px 16px; display: flex; justify-content: space-between; align-items: flex-end; }
+.ai-title { font-size: 28px; font-weight: 600; background: linear-gradient(90deg, #c8f135, #4d9fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 20px 20px; }
+.dash-card { background: rgba(26,26,26,0.6); backdrop-filter: blur(10px); border: 1px solid var(--border2); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+.dash-card.full { grid-column: 1 / -1; }
+.dash-icon { font-size: 20px; margin-bottom: 8px; opacity: 0.8; }
+.dash-val { font-size: 24px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--text); z-index: 2; }
+.dash-val.accent { color: var(--accent); }
+.dash-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; z-index: 2; margin-top: 4px; }
+.dash-glow { position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; border-radius: 50%; background: var(--accent); opacity: 0.05; filter: blur(20px); z-index: 1; }
+.dash-glow.blue { background: var(--blue); }
+
+.heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 12px; z-index: 2; }
+.hm-day { aspect-ratio: 1; border-radius: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); }
+.hm-day.active { background: var(--accent); border-color: var(--accent2); box-shadow: 0 0 8px rgba(200, 241, 53, 0.2); }
+.hm-day.skipped { background: var(--red); opacity: 0.3; border-color: transparent; }
+
+.pr-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; z-index: 2; }
+.pr-item { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px; }
+.pr-ex { font-size: 12px; color: var(--text); }
+.pr-w { font-size: 14px; font-weight: 600; color: var(--accent); font-family: 'DM Mono', monospace; }
 
 /* Settings */
 .settings-section{margin:0 20px 24px}
@@ -718,39 +723,142 @@ function closeModalBtn(){document.getElementById('modal-overlay').classList.remo
 
 // REPORT & SETTINGS remains largely similar, just re-rendered on nav
 function buildReport(){
-  const now=new Date();
-  const dow=now.getDay();
-  const monday=new Date(now);monday.setDate(now.getDate()-(dow===0?6:dow-1));
-  const weekDays=[];
-  for(let i=0;i<6;i++){const d=new Date(monday);d.setDate(monday.getDate()+i);weekDays.push(d);}
+  let totalVol = 0, totalDays = 0, totalMins = 0;
+  let energySum = 0, energyCount = 0;
+  let latestBw = null, latestBwDate = '';
+  
+  const prs = {};
+  const allExercises = {};
+  Object.values(DEFAULT_PLAN).forEach(p=>p.muscles.forEach(m=>m.exercises.forEach((ex,i)=>{
+    allExercises[`${m.name}_${i}`] = ex;
+  })));
 
-  const vols=weekDays.map(d=>getDayVol(dateKey(d)));
-  const totalVol=vols.reduce((a,b)=>a+b,0);
-  const sessions=vols.filter(v=>v>0).length;
-  const maxVol=Math.max(...vols,1);
-  const labels=['Mon','Tue','Wed','Thu','Fri','Sat'];
-
-  let html=`<div class="report-header">
-    <div class="report-week">${formatFull(monday)} — ${formatFull(weekDays[5])}</div>
-    <div class="report-title">Weekly summary</div>
-    <div class="stats-grid">
-      <div class="stat-box"><div class="stat-val">${totalVol.toLocaleString()}</div><div class="stat-label">Total volume (kg)</div></div>
-      <div class="stat-box"><div class="stat-val">${sessions}/6</div><div class="stat-label">Sessions done</div></div>
-    </div>
-  </div>
-  <div class="section-title">Volume per day</div>
-  <div class="day-bars">`;
-
-  weekDays.forEach((d,i)=>{
-    const pct=Math.round((vols[i]/maxVol)*100);
-    html+=`<div class="day-bar-row">
-      <div class="day-bar-label">${labels[i]}</div>
-      <div class="day-bar-track"><div class="day-bar-fill" style="width:${pct}%"></div></div>
-      <div class="day-bar-val">${vols[i]?vols[i].toLocaleString()+' kg':'—'}</div>
-    </div>`;
+  const dates = Object.keys(DB).sort();
+  dates.forEach(k => {
+    const e = DB[k];
+    let dayVol = 0;
+    Object.keys(e).filter(ek => !['meta', 'customName'].includes(ek)).forEach(ek => {
+      const v = e[ek];
+      if(v.s && v.r && v.w) {
+        dayVol += v.s * v.r * v.w;
+        if(!prs[ek] || v.w > prs[ek].w) prs[ek] = {w: v.w, date: k};
+      }
+    });
+    totalVol += dayVol;
+    
+    const m = META[k] || {};
+    if(dayVol > 0 || m.status === 'Completed' || m.status === 'Partial') totalDays++;
+    
+    if(m.start && m.end) {
+      const [sH, sM] = m.start.split(':').map(Number);
+      const [eH, eM] = m.end.split(':').map(Number);
+      let mins = (eH*60 + eM) - (sH*60 + sM);
+      if(mins < 0) mins += 24*60;
+      totalMins += mins;
+    }
+    
+    if(m.energy) { energySum += m.energy; energyCount++; }
+    if(m.bw && k >= latestBwDate) { latestBw = m.bw; latestBwDate = k; }
   });
-  html+=`</div><div style="height:20px"></div>`;
-  document.getElementById('report-content').innerHTML=html;
+
+  const avgEnergy = energyCount ? (energySum / energyCount).toFixed(1) : '—';
+  const hours = Math.floor(totalMins / 60);
+  
+  const prEntries = Object.entries(prs).sort((a,b)=>b[1].w - a[1].w).slice(0, 3);
+  
+  const now = new Date();
+  let heatmapHtml = '<div class="heatmap">';
+  for(let i=27; i>=0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const dk = dateKey(d);
+    const vol = getDayVol(dk);
+    const m = META[dk] || {};
+    let c = 'hm-day';
+    if(vol > 0 || m.status === 'Completed' || m.status === 'Partial') c += ' active';
+    else if(m.status === 'Skipped') c += ' skipped';
+    heatmapHtml += `<div class="${c}" title="${formatFull(d)}"></div>`;
+  }
+  heatmapHtml += '</div>';
+
+  let html = `
+    <div class="ai-dash-header">
+      <div>
+        <div class="greeting">Analytics</div>
+        <div class="ai-title">Dashboard</div>
+      </div>
+    </div>
+    
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="dash-glow"></div>
+        <div class="dash-icon">🏋️</div>
+        <div>
+          <div class="dash-val accent">${Math.round(totalVol).toLocaleString()} <span style="font-size:14px">kg</span></div>
+          <div class="dash-label">Lifetime Volume</div>
+        </div>
+      </div>
+      
+      <div class="dash-card">
+        <div class="dash-glow blue"></div>
+        <div class="dash-icon">🔥</div>
+        <div>
+          <div class="dash-val">${totalDays}</div>
+          <div class="dash-label">Workouts Completed</div>
+        </div>
+      </div>
+      
+      <div class="dash-card full">
+        <div>
+          <div class="dash-val" style="font-size:16px;">28-Day Consistency</div>
+          <div class="dash-label">Recent Activity Heatmap</div>
+        </div>
+        ${heatmapHtml}
+      </div>
+      
+      <div class="dash-card">
+        <div class="dash-icon">⏱️</div>
+        <div>
+          <div class="dash-val">${hours} <span style="font-size:14px">hrs</span></div>
+          <div class="dash-label">Total Time</div>
+        </div>
+      </div>
+      
+      <div class="dash-card">
+        <div class="dash-icon">🧬</div>
+        <div style="display:flex; flex-direction:column; gap:4px; margin-top:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+            <div class="dash-label" style="margin:0">Weight</div>
+            <div class="dash-val" style="font-size:14px">${latestBw ? latestBw+'kg' : '—'}</div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+            <div class="dash-label" style="margin:0">Avg Energy</div>
+            <div class="dash-val accent" style="font-size:14px">${avgEnergy} ★</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="dash-card full" style="border-color: rgba(200,241,53,0.3)">
+        <div class="dash-glow"></div>
+        <div>
+          <div class="dash-icon">🏆</div>
+          <div class="dash-val" style="font-size:18px;">All-Time Records</div>
+          <div class="dash-label">Top 3 Heaviest Lifts</div>
+        </div>
+        <div class="pr-list">
+          ${prEntries.length ? prEntries.map(([ek, v]) => {
+            const customKey = Object.keys(NAMES).find(k => k.endsWith('_' + ek));
+            const name = customKey ? NAMES[customKey] : (allExercises[ek] || ek);
+            return \`<div class="pr-item">
+              <span class="pr-ex">\${name}</span>
+              <span class="pr-w">\${v.w} kg</span>
+            </div>\`;
+          }).join('') : '<div class="pr-item" style="justify-content:center"><span class="pr-ex">Log workouts to see PRs</span></div>'}
+        </div>
+      </div>
+    </div>
+    <div style="height:20px"></div>
+  `;
+  document.getElementById('report-content').innerHTML = html;
 }
 
 function buildSettings(){
