@@ -859,13 +859,24 @@ function buildHistory(){
       const meta = META[dk] || {};
       const statusBadge = meta.status && meta.status!=='Skipped' ? `<span class="hday-status">${meta.status} ${meta.mood||''}</span>` : '';
       
-      html+=`<div class="history-day${vol>0?' has-data':''}" onclick="openModal('${dk}')">
+      const savedF = FOOD[dk] || { items: {} };
+      let dayP = 0;
+      DEFAULT_DIET.forEach(meal => meal.items.forEach(i => {
+        if(savedF.items && savedF.items[i.id]) dayP += i.p;
+      }));
+      const hasFood = dayP > 0 || savedF.water || savedF.sleep || savedF.junk;
+      const hasData = vol > 0 || hasFood || (meta.status && meta.status !== 'Skipped');
+      
+      html+=`<div class="history-day${hasData?' has-data':''}" onclick="openModal('${dk}')">
         <div class="hday-top">
           <div class="hday-date">${isToday?'Today — ':''}${DAYS_SHORT[dow]}, ${d} ${MONTHS[mo].slice(0,3)} ${statusBadge}</div>
-          ${vol>0?`<div class="hday-vol">${vol.toLocaleString()} kg</div>`:''}
+          <div style="text-align:right">
+            ${vol>0?`<div class="hday-vol">${vol.toLocaleString()} kg</div>`:''}
+            ${dayP>0?`<div class="hday-vol" style="color:var(--text);font-size:11px;margin-top:2px;">${dayP}g Protein</div>`:''}
+          </div>
         </div>
         ${plan.label!=='Rest Day'?`<div class="hday-focus">${plan.label}</div>`:''}
-        ${vol===0 && (!meta.status || meta.status==='Skipped')?`<div class="hday-empty">No data logged</div>`:''}
+        ${!hasData?`<div class="hday-empty">No data logged</div>`:''}
       </div>`;
     }
   }
@@ -880,6 +891,18 @@ function openModal(dk){
   const meta=META[dk]||{};
   const vol=getDayVol(dk);
   
+  const savedF = FOOD[dk] || { items: {} };
+  let dayP = 0;
+  const foodHtmlRows = [];
+  DEFAULT_DIET.forEach(m => m.items.forEach(i => {
+    if(savedF.items && savedF.items[i.id]) {
+      dayP += i.p;
+      const customName = (savedF.custom && savedF.custom[i.id]) ? savedF.custom[i.id] : i.name;
+      foodHtmlRows.push(`<tr><td>${customName}</td><td style="text-align:right;color:var(--accent)">${i.p}g</td></tr>`);
+    }
+  }));
+  const hasFood = dayP > 0 || savedF.water || savedF.sleep || savedF.junk;
+  
   let html=`<div class="modal-title">${DAYS_FULL[dow]}, ${formatFull(d)}</div>
   <div class="modal-sub">${plan.label} · ${vol?vol.toLocaleString()+' kg total':'No volume logged'}</div>`;
   
@@ -892,33 +915,56 @@ function openModal(dk){
     </div>`;
   }
 
-  if(!Object.keys(entry).length){
-    html+=`<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px 0">No workout data for this day.</div>`;
+  if(!Object.keys(entry).length && !hasFood){
+    html+=`<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px 0">No data logged for this day.</div>`;
   } else {
-    plan.muscles.forEach(m=>{
-      html+=`<div class="mini-section">${m.name}</div>
-      <table class="mini-table"><thead><tr><th>Exercise</th><th>Sets</th><th>Reps</th><th>Kg</th><th>Vol</th></tr></thead><tbody>`;
-      m.exercises.forEach((ex,i)=>{
-        const ek=`${m.name}_${i}`;
-        const sv=entry[ek]||{};
-        if(!sv.s && !sv.r && !sv.w) return; // Hide unlogged in modal
-        const v=(sv.s&&sv.r&&sv.w)?Math.round(sv.s*sv.r*sv.w):'—';
-        html+=`<tr><td>${ex}</td><td>${sv.s||'—'}</td><td>${sv.r||'—'}</td><td>${sv.w||'—'}</td><td style="color:var(--accent)">${v!=='—'?v+'kg':'—'}</td></tr>`;
+    if(Object.keys(entry).length) {
+      plan.muscles.forEach(m=>{
+        let mHtml = '';
+        m.exercises.forEach((ex,i)=>{
+          const ek=`${m.name}_${i}`;
+          const sv=entry[ek]||{};
+          if(!sv.s && !sv.r && !sv.w) return;
+          const v=(sv.s&&sv.r&&sv.w)?Math.round(sv.s*sv.r*sv.w):'—';
+          mHtml+=`<tr><td>${ex}</td><td>${sv.s||'—'}</td><td>${sv.r||'—'}</td><td>${sv.w||'—'}</td><td style="color:var(--accent)">${v!=='—'?v+'kg':'—'}</td></tr>`;
+        });
+        if(mHtml) {
+          html+=`<div class="mini-section">${m.name}</div>
+          <table class="mini-table"><thead><tr><th>Exercise</th><th>Sets</th><th>Reps</th><th>Kg</th><th>Vol</th></tr></thead><tbody>
+          ${mHtml}</tbody></table>`;
+        }
       });
-      html+='</tbody></table>';
-    });
+    }
+    
+    if(hasFood) {
+      html+=`<div class="mini-section" style="color:var(--blue);margin-top:20px;">Diet & Habits</div>`;
+      if(foodHtmlRows.length) {
+        html+=`<table class="mini-table"><thead><tr><th>Food Logged</th><th style="text-align:right">Protein</th></tr></thead><tbody>
+        ${foodHtmlRows.join('')}
+        <tr><td style="font-weight:bold;color:var(--text)">Total</td><td style="text-align:right;font-weight:bold;color:var(--accent)">${dayP}g</td></tr>
+        </tbody></table>`;
+      }
+      if(savedF.water || savedF.sleep || savedF.junk) {
+        html+=`<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+          ${savedF.water?`<span class="hday-status" style="background:rgba(77,159,255,0.1);color:var(--blue);margin:0">💧 3-4L Water</span>`:''}
+          ${savedF.sleep?`<span class="hday-status" style="background:rgba(200,241,53,0.1);color:var(--accent);margin:0">😴 7-8h Sleep</span>`:''}
+          ${savedF.junk?`<span class="hday-status" style="background:rgba(255,77,77,0.1);color:var(--red);margin:0">🚫 No Junk</span>`:''}
+        </div>`;
+      }
+    }
   }
   document.getElementById('modal-content').innerHTML=html;
   document.getElementById('modal-overlay').classList.add('open');
 }
 function closeModal(e){if(e.target===document.getElementById('modal-overlay'))document.getElementById('modal-overlay').classList.remove('open');}
-function closeModalBtn(){document.getElementById('modal-overlay').classList.remove('open');}
-
-// REPORT & SETTINGS remains largely similar, just re-rendered on nav
-function buildReport(){
+function closeModalBtn(){document.getElementById('modal-overlay').clfunction buildReport(){
   let totalVol = 0, totalDays = 0, totalMins = 0;
   let energySum = 0, energyCount = 0;
   let latestBw = null, latestBwDate = '';
+  
+  let totalProteinAllTime = 0, daysWithProtein = 0;
+  let total100gDays = 0;
+  let habitWater = 0, habitSleep = 0, habitJunk = 0, habitDays = 0;
   
   const prs = {};
   const allExercises = {};
@@ -926,9 +972,12 @@ function buildReport(){
     allExercises[`${m.name}_${i}`] = ex;
   })));
 
-  const dates = Object.keys(DB).sort();
+  const allKeys = new Set([...Object.keys(DB), ...Object.keys(FOOD), ...Object.keys(META)]);
+  const dates = Array.from(allKeys).sort();
+  
   dates.forEach(k => {
-    const e = DB[k];
+    // GYM
+    const e = DB[k] || {};
     let dayVol = 0;
     Object.keys(e).filter(ek => !['meta', 'customName'].includes(ek)).forEach(ek => {
       const v = e[ek];
@@ -939,6 +988,7 @@ function buildReport(){
     });
     totalVol += dayVol;
     
+    // META
     const m = META[k] || {};
     if(dayVol > 0 || m.status === 'Completed' || m.status === 'Partial') totalDays++;
     
@@ -952,10 +1002,35 @@ function buildReport(){
     
     if(m.energy) { energySum += m.energy; energyCount++; }
     if(m.bw && k >= latestBwDate) { latestBw = m.bw; latestBwDate = k; }
+    
+    // FOOD
+    const f = FOOD[k] || {};
+    let dayP = 0;
+    if(f.items) {
+      DEFAULT_DIET.forEach(meal => meal.items.forEach(i => {
+        if(f.items[i.id]) dayP += i.p;
+      }));
+    }
+    if(dayP > 0) {
+      totalProteinAllTime += dayP;
+      daysWithProtein++;
+      if(dayP >= 100) total100gDays++;
+    }
+    if(f.water || f.sleep || f.junk) {
+      habitDays++;
+      if(f.water) habitWater++;
+      if(f.sleep) habitSleep++;
+      if(f.junk) habitJunk++;
+    }
   });
 
   const avgEnergy = energyCount ? (energySum / energyCount).toFixed(1) : '—';
   const hours = Math.floor(totalMins / 60);
+  const avgP = daysWithProtein ? Math.round(totalProteinAllTime / daysWithProtein) : 0;
+  
+  const pctWater = habitDays ? Math.round((habitWater / habitDays) * 100) : 0;
+  const pctSleep = habitDays ? Math.round((habitSleep / habitDays) * 100) : 0;
+  const pctJunk = habitDays ? Math.round((habitJunk / habitDays) * 100) : 0;
   
   const prEntries = Object.entries(prs).sort((a,b)=>b[1].w - a[1].w).slice(0, 3);
   
@@ -1026,6 +1101,37 @@ function buildReport(){
           <div style="display:flex; justify-content:space-between; align-items:flex-end;">
             <div class="dash-label" style="margin:0">Avg Energy</div>
             <div class="dash-val accent" style="font-size:14px">${avgEnergy} ★</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- NUTRITION & HABITS -->
+      <div class="dash-card full" style="border-color: rgba(77,159,255,0.3)">
+        <div class="dash-glow blue"></div>
+        <div style="display:flex; align-items:flex-start; justify-content:space-between;">
+          <div>
+            <div class="dash-icon">🥗</div>
+            <div class="dash-val" style="font-size:18px;">Nutrition & Habits</div>
+            <div class="dash-label">Diet Consistency</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="dash-val" style="font-size:20px;color:var(--blue)">${avgP}g</div>
+            <div class="dash-label">Avg Daily Protein</div>
+          </div>
+        </div>
+        
+        <div style="margin-top:16px; display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text2)">
+            <span>100g Protein Goal Hit</span><span style="color:var(--text);font-weight:bold">${total100gDays} days</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text2)">
+            <span>💧 Water Habit</span><span style="color:var(--blue);font-weight:bold">${pctWater}%</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text2)">
+            <span>😴 Sleep Habit</span><span style="color:var(--accent);font-weight:bold">${pctSleep}%</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text2)">
+            <span>🚫 No Junk Habit</span><span style="color:var(--red);font-weight:bold">${pctJunk}%</span>
           </div>
         </div>
       </div>
