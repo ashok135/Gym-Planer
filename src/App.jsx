@@ -14,7 +14,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showNav, setShowNav] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollY = React.useRef(0);
   
   const [activeTab, setActiveTab] = useState('today');
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -118,18 +118,18 @@ export default function App() {
 
   const handleScroll = (e) => {
     const currentScrollY = e.target.scrollTop;
-    if (currentScrollY > lastScrollY && currentScrollY > 50) {
+    if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
       setShowNav(false);
-    } else {
+    } else if (currentScrollY < lastScrollY.current) {
       setShowNav(true);
     }
-    setLastScrollY(currentScrollY);
+    lastScrollY.current = currentScrollY;
   };
 
   const displayName = user?.email ? user.email.split('@')[0] : 'Athlete';
 
   return (
-    <div style={{height: '100vh', display: 'flex', flexDirection: 'column'}}>
+    <div className="app">
       <div className="header">
         <div className="header-left">
           <div className="greeting">Welcome back</div>
@@ -146,17 +146,7 @@ export default function App() {
         {activeTab === 'report' && <Report DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} />}
         {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} />}
       </div>
-      <div style={{
-        transform: showNav ? 'translateY(0)' : 'translateY(100%)',
-        transition: 'transform 0.3s ease-in-out',
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000
-      }}>
-        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
-      </div>
+      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} showNav={showNav} />
     </div>
   );
 }

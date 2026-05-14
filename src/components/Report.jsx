@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol, DAYS_SHORT, MONTHS } from '../data';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
+import { CheckCircle2, XCircle, Trophy } from 'lucide-react';
 
 export default function Report({ DB, NAMES, META, FOOD }) {
   const [timeRange, setTimeRange] = useState('Today'); // 'Today', 'Weekly', 'Monthly', 'Yearly'
@@ -103,7 +104,7 @@ export default function Report({ DB, NAMES, META, FOOD }) {
 
   return (
     <div id="report-content" style={{padding:'20px 0'}}>
-      <div className="ai-dash-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end'}}>
+      <div className="ai-dash-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px'}}>
         <div>
           <div className="greeting">Analytics</div>
           <div className="ai-title">Performance</div>
@@ -130,26 +131,34 @@ export default function Report({ DB, NAMES, META, FOOD }) {
       </div>
       
       <div className="dash-grid">
-        <div className="dash-card">
-          <div className="dash-glow"></div>
-          <div className="dash-icon">🏋️</div>
+        <div className="dash-card full" style={{background: 'linear-gradient(145deg, var(--bg3), var(--bg2))', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden'}}>
+          <div className="dash-glow accent" style={{opacity: 0.15}}></div>
           <div>
-            <div className="dash-val accent">{Math.round(totalVol).toLocaleString()} <span style={{fontSize:'14px'}}>kg</span></div>
-            <div className="dash-label">Volume ({timeRange})</div>
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px'}}>
+              <Trophy size={20} color="var(--accent)" />
+              <div className="dash-val" style={{fontSize:'18px'}}>Hall of Fame</div>
+            </div>
+            <div className="dash-label">Top 3 All-Time Heaviest Lifts</div>
           </div>
-        </div>
-        
-        <div className="dash-card">
-          <div className="dash-glow blue"></div>
-          <div className="dash-icon">🔥</div>
-          <div>
-            <div className="dash-val">{totalDaysAttended} <span style={{fontSize:'14px', color:'var(--text2)'}}>/ {totalPossibleDays}</span></div>
-            <div className="dash-label">Days Trained</div>
+          <div className="pr-list" style={{marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
+            {prEntries.length ? prEntries.map(([ek, v], idx) => {
+              const customKey = Object.keys(NAMES).find(k => k.endsWith('_' + ek));
+              const name = customKey ? NAMES[customKey] : (allExercises[ek] || ek);
+              return (
+                <div key={ek} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)'}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                    <div style={{width: '24px', height: '24px', borderRadius: '50%', background: idx === 0 ? 'rgba(200, 241, 53, 0.2)' : 'var(--bg)', color: idx === 0 ? 'var(--accent)' : 'var(--text2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold'}}>{idx + 1}</div>
+                    <span style={{color: 'var(--text)', fontSize: '14px', fontWeight: 500}}>{name}</span>
+                  </div>
+                  <span style={{fontWeight: 700, color: 'var(--accent)', fontSize: '16px'}}>{v.w} kg</span>
+                </div>
+              );
+            }) : <div style={{textAlign: 'center', color: 'var(--text2)', fontSize: '13px', padding: '20px 0'}}>Log workouts to build your Hall of Fame!</div>}
           </div>
         </div>
 
         {/* ATTENDANCE DONUT CHART */}
-        <div className="dash-card full" style={{background: 'var(--bg3)', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+        <div className="dash-card full" style={{background: 'var(--bg3)', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px'}}>
           <div>
             <div className="dash-val" style={{fontSize: '18px'}}>Consistency</div>
             <div className="dash-label">{timeRange} Attendance</div>
@@ -157,19 +166,27 @@ export default function Report({ DB, NAMES, META, FOOD }) {
               {pct}%
             </div>
           </div>
-          <div style={{width: '100px', height: '100px'}}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={35} outerRadius={50} stroke="none" cornerRadius={10} paddingAngle={5}>
-                  {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
+          <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text)'}}><CheckCircle2 size={16} color="var(--accent)"/> {totalDaysAttended} Present</div>
+              <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text2)'}}><XCircle size={16} color="var(--red)"/> {missedDays} Absent</div>
+            </div>
+            <div style={{width: '90px', height: '90px'}}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={30} outerRadius={45} stroke="none" cornerRadius={10} paddingAngle={5}>
+                    {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
 
-        {/* RECHARTS VOLUME GRAPH */}
-        <div className="dash-card full" style={{background: 'var(--bg3)', padding: '20px', display: 'block'}}>
+        {timeRange !== 'Today' && (
+          <>
+            {/* RECHARTS VOLUME GRAPH */}
+            <div className="dash-card full" style={{background: 'var(--bg3)', padding: '20px', display: 'block'}}>
           <div style={{marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
             <div>
               <div className="dash-val" style={{fontSize: '18px'}}>Progressive Overload</div>
@@ -219,6 +236,8 @@ export default function Report({ DB, NAMES, META, FOOD }) {
             </ResponsiveContainer>
           </div>
         </div>
+        </>
+        )}
         
         <div className="dash-card full" style={{display: 'block'}}>
           <div className="dash-val" style={{fontSize:'18px', marginBottom: '16px'}}>Habit Consistency</div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { DEFAULT_PLAN, dateKey, DAYS_SHORT, DAYS_FULL, MONTHS } from '../data';
-import { CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2, Circle, XCircle, Zap, Smile, Frown, Meh, Flame, Moon } from 'lucide-react';
 
 export default function Today({ DB, NAMES, META, syncData, FOOD }) {
   const today = new Date();
@@ -110,17 +110,18 @@ export default function Today({ DB, NAMES, META, syncData, FOOD }) {
         </div>
         
         <div className="meta-grid">
-          <div className="meta-group"><div className="meta-label">Mood</div>
+          <div className="meta-group"><div className="meta-label" style={{color:'#ddd'}}>Mood</div>
             <div className="mood-group">
-              {['😴','😐','🙂','🔥','💪'].map(m => (
-                <button key={m} className={`mood-btn ${meta.mood === m ? 'active' : ''}`} onClick={() => handleMetaChange('mood', m)}>{m}</button>
-              ))}
+              <button className={`mood-btn ${meta.mood === 'tired' ? 'active' : ''}`} onClick={() => handleMetaChange('mood', 'tired')}><Moon size={20} /></button>
+              <button className={`mood-btn ${meta.mood === 'meh' ? 'active' : ''}`} onClick={() => handleMetaChange('mood', 'meh')}><Meh size={20} /></button>
+              <button className={`mood-btn ${meta.mood === 'good' ? 'active' : ''}`} onClick={() => handleMetaChange('mood', 'good')}><Smile size={20} /></button>
+              <button className={`mood-btn ${meta.mood === 'great' ? 'active' : ''}`} onClick={() => handleMetaChange('mood', 'great')}><Flame size={20} /></button>
             </div>
           </div>
-          <div className="meta-group"><div className="meta-label">Energy</div>
+          <div className="meta-group"><div className="meta-label" style={{color:'#ddd'}}>Energy</div>
             <div className="energy-group">
               {[1,2,3,4,5].map(e => (
-                <span key={e} className={`energy-star ${meta.energy >= e ? 'active' : ''}`} onClick={() => handleMetaChange('energy', e)}>★</span>
+                <span key={e} className={`energy-star ${meta.energy >= e ? 'active' : ''}`} onClick={() => handleMetaChange('energy', e)}><Zap size={18} fill={meta.energy >= e ? 'currentColor' : 'none'} /></span>
               ))}
             </div>
           </div>
@@ -138,19 +139,20 @@ export default function Today({ DB, NAMES, META, syncData, FOOD }) {
             const ek = `${m.name}_${i}`;
             const sv = saved[ek] || {};
             const vol = (sv.s && sv.r && sv.w) ? Math.round(sv.s * sv.r * sv.w) : '';
-            const isDone = sv.done || false;
+            const isDone = sv.done; // true, false, or undefined
             return (
-              <div className={`exercise-card ${isDone ? 'done' : ''}`} key={ek} style={{opacity: isDone ? 0.6 : 1, transition:'opacity 0.2s'}}>
+              <div className={`exercise-card ${isDone === true ? 'done' : ''}`} key={ek} style={{opacity: isDone === false ? 0.4 : (isDone === true ? 0.7 : 1), transition:'opacity 0.2s'}}>
                 <div className="exercise-name-row">
                   <div className="exercise-name-wrap" style={{ display: 'flex', alignItems: 'center' }}>
-                    <div onClick={() => handleInputChange(ek, 'done', !isDone)} style={{ cursor: 'pointer', marginRight: '12px', display: 'flex', alignItems: 'center' }}>
-                      {isDone ? (
-                        <CheckCircle2 size={22} color="var(--accent)" />
-                      ) : (
-                        <Circle size={22} color="var(--border2)" />
-                      )}
+                    <div style={{ display: 'flex', gap: '8px', marginRight: '12px' }}>
+                      <div onClick={() => handleInputChange(ek, 'done', isDone === true ? null : true)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                        {isDone === true ? <CheckCircle2 size={22} color="var(--accent)" /> : <Circle size={22} color="var(--border2)" />}
+                      </div>
+                      <div onClick={() => handleInputChange(ek, 'done', isDone === false ? null : false)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                        {isDone === false ? <XCircle size={22} color="var(--red)" /> : <Circle size={22} color="var(--border2)" />}
+                      </div>
                     </div>
-                    <div className="exercise-name" style={{textDecoration: isDone ? 'line-through' : 'none', flex: 1}}>{ex}</div>
+                    <div className="exercise-name" style={{textDecoration: isDone === false ? 'line-through' : 'none', color: isDone === true ? 'var(--accent)' : 'var(--text)', flex: 1}}>{ex}</div>
                     <button className="rename-today-btn" onClick={() => toggleRename(ek, ex)}>✏️</button>
                   </div>
                 </div>
