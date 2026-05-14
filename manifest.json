@@ -2,7 +2,7 @@
   "name": "Gym Tracker",
   "short_name": "GymTracker",
   "description": "Personal gym workout tracker with cloud sync",
-  "start_url": "./gym_saas_app.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#c8f135",

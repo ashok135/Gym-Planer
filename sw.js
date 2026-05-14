@@ -1,6 +1,6 @@
 const CACHE_NAME = 'gym-tracker-v1';
 const ASSETS = [
-  './gym_saas_app.html',
+  './index.html',
   './manifest.json'
 ];
 
