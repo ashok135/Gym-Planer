@@ -111,8 +111,20 @@ export default function App() {
     );
   }
 
+  const todayObj = new Date();
+  const dateStr = `${todayObj.getDate().toString().padStart(2, '0')},${(todayObj.getMonth()+1).toString().padStart(2, '0')},${todayObj.getFullYear()}`;
+
   return (
     <div>
+      <div className="header">
+        <div className="header-left">
+          <div className="greeting">Welcome back</div>
+          <div className="title">LifeTraker</div>
+        </div>
+        <div className="header-right">
+          <div className="date-chip">{dateStr}</div>
+        </div>
+      </div>
       <div className="screen active" style={{paddingBottom:'90px'}}>
         {activeTab === 'today' && <Today DB={DB} NAMES={NAMES} META={META} syncData={syncData} FOOD={FOOD} />}
         {activeTab === 'diet' && <Diet FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} />}
