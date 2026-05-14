@@ -8,7 +8,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD }) {
   const key = dateKey(today);
   
   const saved = DB[key] || {};
-  const meta = META[key] || { mood: '', energy: 0, status: 'Completed', bw: '', start: '', end: '', notes: '' };
+  const meta = META[key] || { mood: '', energy: 0, status: 'Completed', bw: '', start: '06:30', end: '08:10', notes: '' };
   
   // Create deep copy of plan
   const plan = JSON.parse(JSON.stringify(DEFAULT_PLAN[dow] || DEFAULT_PLAN[0]));
