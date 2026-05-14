@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol, DAYS_SHORT, MONTHS } from '../data';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
-import { CheckCircle2, XCircle, Trophy } from 'lucide-react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 
 export default function Report({ DB, NAMES, META, FOOD }) {
   const [timeRange, setTimeRange] = useState('Today'); // 'Today', 'Weekly', 'Monthly', 'Yearly'
@@ -135,7 +135,7 @@ export default function Report({ DB, NAMES, META, FOOD }) {
           <div className="dash-glow accent" style={{opacity: 0.15}}></div>
           <div>
             <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px'}}>
-              <Trophy size={20} color="var(--accent)" />
+              <span style={{fontSize: '20px'}}>🏆</span>
               <div className="dash-val" style={{fontSize:'18px'}}>Hall of Fame</div>
             </div>
             <div className="dash-label">Top 3 All-Time Heaviest Lifts</div>
