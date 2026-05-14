@@ -18,6 +18,26 @@ export default function Report({ DB, NAMES, META, FOOD }) {
   
   const chartData = [];
   const monthlyDataMap = {}; // For Yearly aggregation
+
+  // PR calculation over all time (independent of time range)
+  const prs = {};
+  const allExercises = {};
+  Object.values(DEFAULT_PLAN).forEach(p => p.muscles.forEach(m => m.exercises.forEach((ex, i) => {
+    allExercises[`${m.name}_${i}`] = ex;
+  })));
+  
+  const allKeys = Array.from(new Set([...Object.keys(DB), ...Object.keys(FOOD), ...Object.keys(META)])).sort();
+  allKeys.forEach(k => {
+    const e = DB[k] || {};
+    Object.keys(e).filter(ek => !['meta', 'customName', 'done'].includes(ek)).forEach(ek => {
+      const v = e[ek];
+      if(v.s && v.r && v.w) {
+        if(!prs[ek] || v.w > prs[ek].w) prs[ek] = { w: v.w, date: k };
+      }
+    });
+  });
+  
+  const prEntries = Object.entries(prs).sort((a,b) => b[1].w - a[1].w).slice(0, 3);
   
   for(let i = daysToLookBack - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
