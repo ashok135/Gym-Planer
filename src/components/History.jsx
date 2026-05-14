@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MONTHS, DAYS_SHORT, DAYS_FULL, DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol } from '../data';
+import { CheckCircle2, XCircle } from 'lucide-react';
 
 export default function History({ DB, NAMES, META, FOOD }) {
   const [modalDk, setModalDk] = useState(null);
@@ -41,7 +42,8 @@ export default function History({ DB, NAMES, META, FOOD }) {
 
   const renderModal = () => {
     if(!modalDk) return null;
-    const d = new Date(modalDk);
+    const [y, m, day] = modalDk.split('-');
+    const d = new Date(y, m - 1, day);
     const dow = d.getDay();
     const plan = DEFAULT_PLAN[dow] || DEFAULT_PLAN[0];
     const entry = DB[modalDk] || {};
@@ -87,11 +89,21 @@ export default function History({ DB, NAMES, META, FOOD }) {
                 const rows = m.exercises.map((ex, i) => {
                   const ek = `${m.name}_${i}`;
                   const sv = entry[ek] || {};
-                  if(!sv.s && !sv.r && !sv.w) return null;
-                  const v = (sv.s && sv.r && sv.w) ? Math.round(sv.s * sv.r * sv.w) : '—';
+                  const isDone = sv.done;
+                  const hasVol = sv.s && sv.r && sv.w;
+                  if(!hasVol && isDone === undefined) return null;
+                  
+                  const v = hasVol ? Math.round(sv.s * sv.r * sv.w) : '—';
+                  const nameStr = NAMES[`${dow}_${m.name}_${i}`] || ex;
+                  
                   return (
                     <tr key={ek}>
-                      <td>{NAMES[`${dow}_${m.name}_${i}`] || ex}</td>
+                      <td>
+                        <div style={{display:'flex', alignItems:'center', gap:'6px'}}>
+                          {isDone === true ? <CheckCircle2 size={14} color="var(--accent)" /> : (isDone === false ? <XCircle size={14} color="var(--red)" /> : null)}
+                          <span style={{textDecoration: isDone === false ? 'line-through' : 'none', color: isDone === false ? 'var(--text3)' : 'var(--text)'}}>{nameStr}</span>
+                        </div>
+                      </td>
                       <td>{sv.s || '—'}</td><td>{sv.r || '—'}</td><td>{sv.w || '—'}</td>
                       <td style={{color:'var(--accent)'}}>{v !== '—' ? v+'kg' : '—'}</td>
                     </tr>
@@ -123,9 +135,9 @@ export default function History({ DB, NAMES, META, FOOD }) {
                     </table>
                   )}
                   <div style={{display:'flex',gap:'8px',marginBottom:'16px',flexWrap:'wrap'}}>
-                    {savedF.water && <span className="hday-status" style={{background:'rgba(77,159,255,0.1)',color:'var(--blue)',margin:0}}>💧 3-4L Water</span>}
-                    {savedF.sleep && <span className="hday-status" style={{background:'rgba(200,241,53,0.1)',color:'var(--accent)',margin:0}}>😴 7-8h Sleep</span>}
-                    {savedF.junk && <span className="hday-status" style={{background:'rgba(255,77,77,0.1)',color:'var(--red)',margin:0}}>🚫 No Junk</span>}
+                    {savedF.water && <div style={{display:'flex', alignItems:'center', gap:'4px', background:'rgba(77,159,255,0.1)', color:'var(--blue)', padding:'4px 8px', borderRadius:'8px', fontSize:'11px'}}><CheckCircle2 size={12}/> 3-4L Water</div>}
+                    {savedF.sleep && <div style={{display:'flex', alignItems:'center', gap:'4px', background:'rgba(200,241,53,0.1)', color:'var(--accent)', padding:'4px 8px', borderRadius:'8px', fontSize:'11px'}}><CheckCircle2 size={12}/> 7-8h Sleep</div>}
+                    {savedF.junk && <div style={{display:'flex', alignItems:'center', gap:'4px', background:'rgba(255,77,77,0.1)', color:'var(--red)', padding:'4px 8px', borderRadius:'8px', fontSize:'11px'}}><CheckCircle2 size={12}/> No Junk</div>}
                   </div>
                 </>
               )}

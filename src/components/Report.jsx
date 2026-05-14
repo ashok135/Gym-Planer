@@ -39,6 +39,9 @@ export default function Report({ DB, NAMES, META, FOOD }) {
   
   const prEntries = Object.entries(prs).sort((a,b) => b[1].w - a[1].w).slice(0, 3);
   
+  let todayTotalExercises = 0;
+  let todayDoneExercises = 0;
+
   for(let i = daysToLookBack - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
     const k = dateKey(d);
@@ -50,6 +53,19 @@ export default function Report({ DB, NAMES, META, FOOD }) {
     const m = META[k] || {};
     let attended = false;
     
+    if(timeRange === 'Today') {
+      const plan = DEFAULT_PLAN[d.getDay()] || DEFAULT_PLAN[0];
+      plan.muscles.forEach(mu => {
+        mu.exercises.forEach((ex, idx) => {
+          todayTotalExercises++;
+          const ek = `${mu.name}_${idx}`;
+          if(entry[ek] && (entry[ek].done || (entry[ek].s && entry[ek].r && entry[ek].w))) {
+            todayDoneExercises++;
+          }
+        });
+      });
+    }
+
     if(vol > 0 || m.status === 'Completed' || m.status === 'Partial') {
       totalDaysAttended++;
       attended = true;
@@ -257,6 +273,49 @@ export default function Report({ DB, NAMES, META, FOOD }) {
           </div>
         </div>
         </>
+        )}
+
+        {timeRange === 'Today' && (
+          <>
+            {todayTotalExercises > 0 ? (
+              <div className="dash-card full" style={{background: 'var(--bg3)', padding: '20px', display: 'block', borderColor: 'var(--accent)'}}>
+                <div className="dash-glow accent" style={{opacity: 0.1}}></div>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <div>
+                    <div className="dash-val" style={{fontSize: '18px'}}>Workout Progress</div>
+                    <div className="dash-label">Completed Exercises</div>
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <div className="dash-val" style={{fontSize:'24px', color:'var(--accent)'}}>{todayDoneExercises} <span style={{fontSize:'16px', color:'var(--text2)'}}>/ {todayTotalExercises}</span></div>
+                  </div>
+                </div>
+                <div style={{width: '100%', height: '8px', background: 'var(--border2)', borderRadius: '10px', overflow: 'hidden', marginTop: '16px'}}>
+                  <div style={{width: `${Math.round((todayDoneExercises/todayTotalExercises)*100)}%`, height: '100%', background: 'var(--accent)', transition: 'width 1s ease-out', borderRadius: '10px'}}></div>
+                </div>
+              </div>
+            ) : (
+              <div className="dash-card full" style={{background: 'var(--bg3)', padding: '20px', display: 'block', textAlign: 'center'}}>
+                <div className="dash-val" style={{fontSize: '18px', color:'var(--text2)'}}>Rest Day</div>
+                <div className="dash-label">No exercises scheduled for today</div>
+              </div>
+            )}
+            
+            <div className="dash-card full" style={{background: 'var(--bg3)', padding: '20px', display: 'block', borderColor: 'rgba(77,159,255,0.2)'}}>
+              <div className="dash-glow blue" style={{opacity: 0.1}}></div>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <div>
+                  <div className="dash-val" style={{fontSize: '18px', color: 'var(--blue)'}}>Protein Goal</div>
+                  <div className="dash-label">Consumed Today</div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <div className="dash-val" style={{fontSize:'24px', color:'var(--blue)'}}>{totalProtein}g <span style={{fontSize:'16px', color:'var(--text2)'}}>/ 100g</span></div>
+                </div>
+              </div>
+              <div style={{width: '100%', height: '8px', background: 'var(--border2)', borderRadius: '10px', overflow: 'hidden', marginTop: '16px'}}>
+                <div style={{width: `${Math.min(100, Math.round((totalProtein/100)*100))}%`, height: '100%', background: 'var(--blue)', transition: 'width 1s ease-out', borderRadius: '10px'}}></div>
+              </div>
+            </div>
+          </>
         )}
         
         <div className="dash-card full" style={{display: 'block'}}>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { DEFAULT_DIET_PLAN, dateKey, DAYS_FULL, MONTHS } from '../data';
+import { DEFAULT_DIET_PLAN, BUDGET_GUIDES, dateKey, DAYS_FULL, MONTHS } from '../data';
+import { CheckCircle2, Circle } from 'lucide-react';
 
 export default function Diet({ FOOD, syncData, DB, NAMES, META }) {
   const today = new Date();
@@ -8,6 +9,7 @@ export default function Diet({ FOOD, syncData, DB, NAMES, META }) {
   
   const saved = FOOD[key] || { items: {}, water: false, sleep: false, junk: false, custom: {} };
   const dietPlan = DEFAULT_DIET_PLAN[dow] || DEFAULT_DIET_PLAN[0];
+  const budgetGuide = BUDGET_GUIDES[dow] || BUDGET_GUIDES[1];
 
   const [renameBox, setRenameBox] = useState(null);
   const [renameInput, setRenameInput] = useState('');
@@ -71,17 +73,21 @@ export default function Diet({ FOOD, syncData, DB, NAMES, META }) {
       </div>
       
       <div className="habit-grid">
-        <div className="habit-card">
+        <div className="habit-card" onClick={() => handleHabit('water', !saved.water)} style={{cursor:'pointer'}}>
           <div className="habit-icon">💧</div>
           <div className="habit-label">3-4L Water</div>
-          <input type="checkbox" className="food-check" checked={saved.water || false} onChange={e => handleHabit('water', e.target.checked)} />
+          <div style={{display:'flex', alignItems:'center'}}>
+            {saved.water ? <CheckCircle2 size={24} color="var(--accent)"/> : <Circle size={24} color="rgba(200, 241, 53, 0.2)"/>}
+          </div>
         </div>
-        <div className="habit-card">
+        <div className="habit-card" onClick={() => handleHabit('sleep', !saved.sleep)} style={{cursor:'pointer'}}>
           <div className="habit-icon">😴</div>
           <div className="habit-label">7-8h Sleep</div>
-          <input type="checkbox" className="food-check" checked={saved.sleep || false} onChange={e => handleHabit('sleep', e.target.checked)} />
+          <div style={{display:'flex', alignItems:'center'}}>
+            {saved.sleep ? <CheckCircle2 size={24} color="var(--accent)"/> : <Circle size={24} color="rgba(200, 241, 53, 0.2)"/>}
+          </div>
         </div>
-        <div className="habit-card" style={{gridColumn: '1 / -1', flexDirection:'row', justifyContent:'space-between', padding:'16px'}}>
+        <div className="habit-card" onClick={() => handleHabit('junk', !saved.junk)} style={{gridColumn: '1 / -1', flexDirection:'row', justifyContent:'space-between', padding:'16px', cursor:'pointer'}}>
           <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
             <div className="habit-icon">🚫</div>
             <div style={{textAlign:'left'}}>
@@ -89,7 +95,9 @@ export default function Diet({ FOOD, syncData, DB, NAMES, META }) {
               <div style={{fontSize:'10px', color:'var(--text3)', marginTop:'2px'}}>Stay focused today</div>
             </div>
           </div>
-          <input type="checkbox" className="food-check" checked={saved.junk || false} onChange={e => handleHabit('junk', e.target.checked)} />
+          <div style={{display:'flex', alignItems:'center'}}>
+            {saved.junk ? <CheckCircle2 size={24} color="var(--accent)"/> : <Circle size={24} color="rgba(200, 241, 53, 0.2)"/>}
+          </div>
         </div>
       </div>
 
@@ -101,8 +109,10 @@ export default function Diet({ FOOD, syncData, DB, NAMES, META }) {
             const customName = (saved.custom && saved.custom[item.id]) ? saved.custom[item.id] : item.name;
             return (
               <React.Fragment key={item.id}>
-                <div className="food-item">
-                  <input type="checkbox" className="food-check" checked={isChecked || false} onChange={e => handleCheck(item.id, e.target.checked)} />
+                <div className="food-item" onClick={() => handleCheck(item.id, !isChecked)} style={{cursor:'pointer'}}>
+                  <div style={{display:'flex', alignItems:'center'}}>
+                    {isChecked ? <CheckCircle2 size={24} color="var(--accent)"/> : <Circle size={24} color="rgba(200, 241, 53, 0.2)"/>}
+                  </div>
                   <div className="food-name-wrap">
                     <div className="food-name">{customName}</div>
                     <button className="rename-today-btn" onClick={() => toggleRename(item.id, customName)}>✏️</button>
@@ -122,13 +132,13 @@ export default function Diet({ FOOD, syncData, DB, NAMES, META }) {
       ))}
 
       <div className="budget-guide">
-        <div className="bg-title">Budget Protein Cheat Sheet</div>
+        <div className="bg-title">Budget Cheat Sheet ({DAYS_FULL[dow]})</div>
         <div className="bg-list">
-          • <strong>Soya Chunks:</strong> 52g P per 100g (Very cheap!)<br/>
-          • <strong>Eggs:</strong> 6g P per egg<br/>
-          • <strong>Green Gram (Moong):</strong> 24g P per 100g<br/>
-          • <strong>Roasted Channa:</strong> 18g P per 100g<br/>
-          • <strong>Peanuts:</strong> 25g P per 100g
+          {budgetGuide.map((g, idx) => (
+            <div key={idx} style={{marginBottom: '8px'}}>
+              • <strong style={{color:'var(--accent)'}}>{g.name}:</strong> <span style={{color:'var(--text2)'}}>{g.desc}</span>
+            </div>
+          ))}
         </div>
       </div>
       <div style={{height:'20px'}}></div>

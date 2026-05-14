@@ -16,7 +16,7 @@ body{
   -webkit-touch-callout:none;
 }
 input, textarea, select { user-select: auto; -webkit-user-select: auto; }
-.app{max-width:420px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative}
+.app{max-width:600px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative}
 .screen{flex:1;padding:0 0 80px;overflow-y:auto;display:none}
 .screen.active{display:block}
 
@@ -56,12 +56,13 @@ input, textarea, select { user-select: auto; -webkit-user-select: auto; }
 .meta-input:focus { border-color: var(--accent); }
 select.meta-input { appearance: none; }
 .notes-input { width: 100%; background: var(--bg3); border: 1px solid var(--border2); color: var(--text); padding: 10px; border-radius: var(--radius-sm); font-size: 14px; outline: none; resize: none; min-height: 60px; font-family: inherit; }
-.mood-group { display: flex; justify-content: space-between; align-items: center; background: var(--bg3); padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border2); }
-.mood-btn { background: none; border: none; font-size: 20px; opacity: 0.4; cursor: pointer; transition: 0.2s; }
-.mood-btn.active { opacity: 1; transform: scale(1.1); }
-.energy-group { display: flex; gap: 4px; }
-.energy-star { color: var(--text3); font-size: 20px; cursor: pointer; }
-.energy-star.active { color: var(--accent); }
+.mood-group { display: flex; justify-content: space-between; align-items: center; background: var(--bg3); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border2); }
+.mood-btn { background: none; border: none; font-size: 24px; opacity: 0.4; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.mood-btn.active { opacity: 1; transform: scale(1.5); filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); }
+.energy-group { display: flex; gap: 6px; }
+.energy-star { color: var(--text3); font-size: 28px; cursor: pointer; transition: transform 0.2s; }
+.energy-star:active { transform: scale(0.8); }
+.energy-star.active { color: var(--accent); text-shadow: 0 0 10px rgba(200, 241, 53, 0.4); }
 
 /* Workout badge */
 .workout-hero{margin:0 20px 20px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
