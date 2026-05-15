@@ -220,31 +220,70 @@ export default function Report({ DB, NAMES, META, FOOD }) {
           </div>
         </div>
 
-        {/* ATTENDANCE DONUT CHART */}
-        <div className="dash-card full" style={{background: 'var(--bg3)', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px'}}>
-          <div>
-            <div className="dash-val" style={{fontSize: '18px'}}>Consistency</div>
-            <div className="dash-label">{timeRange} Attendance</div>
-            <div style={{marginTop: '8px', fontSize: '24px', fontWeight: 'bold', color: pctColor}}>
-              {pct}%
+        {/* SPLIT CONSISTENCY & TIMING DASHBOARD */}
+        <div className="dash-card full" style={{background: 'var(--bg3)', padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', borderColor: 'var(--border2)'}}>
+          
+          {/* LEFT: ATTENDANCE */}
+          <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+              <div>
+                <div className="dash-val" style={{fontSize: '18px'}}>Consistency</div>
+                <div className="dash-label">{timeRange} Attendance</div>
+              </div>
+              <div style={{fontSize: '24px', fontWeight: 'bold', color: pctColor}}>
+                {pct}%
+              </div>
+            </div>
+            
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '16px'}}>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text)'}}><CheckCircle2 size={16} color="var(--accent)"/> {totalDaysAttended} Present</div>
+                <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text2)'}}><XCircle size={16} color="var(--red)"/> {missedDays} Absent</div>
+              </div>
+              <div style={{width: '90px', height: '90px'}}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={30} outerRadius={45} stroke="none" cornerRadius={10} paddingAngle={5}>
+                      {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
-          <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-            <div style={{display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px'}}>
-              <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text)'}}><CheckCircle2 size={16} color="var(--accent)"/> {totalDaysAttended} Present</div>
-              <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text2)'}}><XCircle size={16} color="var(--red)"/> {missedDays} Absent</div>
-              <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--blue)', marginTop: '4px'}}><span style={{fontSize: '16px'}}>⏱️</span> {formatTime(totalMinutesSpent)} Spent</div>
+
+          {/* RIGHT: TIMING */}
+          <div style={{display: 'flex', flexDirection: 'column', position: 'relative'}}>
+            <div className="dash-glow" style={{background: 'var(--orange)', opacity: 0.05, top: 0, right: 0}}></div>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+              <div>
+                <div className="dash-val" style={{fontSize: '18px', color: 'var(--orange)'}}>Workout Time</div>
+                <div className="dash-label">{timeRange} Timing Trend</div>
+              </div>
+              <div style={{textAlign:'right'}}>
+                <div className="dash-val" style={{fontSize:'18px', color: 'var(--orange)'}}>{formatTime(totalDaysAttended > 0 ? Math.round(totalMinutesSpent / totalDaysAttended) : 0)}</div>
+                <div className="dash-label">Avg Session</div>
+              </div>
             </div>
-            <div style={{width: '90px', height: '90px'}}>
+            
+            <div style={{width: '100%', height: '100px', marginTop: '16px'}}>
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={30} outerRadius={45} stroke="none" cornerRadius={10} paddingAngle={5}>
-                    {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                  </Pie>
-                </PieChart>
+                <AreaChart data={finalChartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--orange)" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="var(--orange)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="name" tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                  <YAxis tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="Time" stroke="var(--orange)" strokeWidth={3} fillOpacity={1} fill="url(#colorTime)" activeDot={{r: 6, fill: 'var(--orange)', stroke: '#000', strokeWidth: 2}} />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
+
         </div>
 
         {timeRange !== 'Today' && (
@@ -301,36 +340,7 @@ export default function Report({ DB, NAMES, META, FOOD }) {
           </div>
         </div>
 
-        {/* RECHARTS TIME GRAPH */}
-        <div className="dash-card full" style={{background: 'var(--bg3)', padding: '20px', display: 'block', borderColor: 'rgba(255,149,51,0.2)'}}>
-          <div className="dash-glow" style={{background: 'var(--orange)', opacity: 0.1}}></div>
-          <div style={{marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <div>
-              <div className="dash-val" style={{fontSize: '18px', color: 'var(--orange)'}}>Workout Duration</div>
-              <div className="dash-label">{timeRange} Timing Trend</div>
-            </div>
-            <div style={{textAlign:'right'}}>
-              <div className="dash-val" style={{fontSize:'16px', color: 'var(--orange)'}}>{formatTime(totalDaysAttended > 0 ? Math.round(totalMinutesSpent / totalDaysAttended) : 0)}</div>
-              <div className="dash-label">Avg Session</div>
-            </div>
-          </div>
-          <div style={{width: '100%', height: '180px'}}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={finalChartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--orange)" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="var(--orange)" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="name" tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
-                <YAxis tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="Time" stroke="var(--orange)" strokeWidth={3} fillOpacity={1} fill="url(#colorTime)" activeDot={{r: 6, fill: 'var(--orange)', stroke: '#000', strokeWidth: 2}} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+
         </>
         )}
 
