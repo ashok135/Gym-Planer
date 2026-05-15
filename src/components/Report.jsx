@@ -5,13 +5,17 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 
 export default function Report({ DB, NAMES, META, FOOD }) {
   const [timeRange, setTimeRange] = useState('Today'); // 'Today', 'Weekly', 'Monthly', 'Yearly'
+  const [showAllHistory, setShowAllHistory] = useState(false);
   
   // Aggregate data based on time range
   const now = new Date();
   let daysToLookBack = 1;
   if(timeRange === 'Weekly') daysToLookBack = 7;
   if(timeRange === 'Monthly') daysToLookBack = 30;
-  if(timeRange === 'Yearly') daysToLookBack = 365;
+  if(timeRange === 'Yearly') {
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    daysToLookBack = Math.max(1, Math.ceil(Math.abs(now - startOfYear) / (1000 * 60 * 60 * 24)));
+  }
   
   let totalVol = 0, totalDaysAttended = 0, totalPossibleDays = 0;
   let totalProtein = 0, habitWater = 0, habitSleep = 0, habitJunk = 0;
@@ -72,11 +76,12 @@ export default function Report({ DB, NAMES, META, FOOD }) {
       attended = true;
     }
     
+    let mins = 0;
     if (m.start && m.end) {
       const [sh, sm] = m.start.split(':').map(Number);
       const [eh, em] = m.end.split(':').map(Number);
       if (!isNaN(sh) && !isNaN(eh)) {
-        let mins = (eh * 60 + em) - (sh * 60 + sm);
+        mins = (eh * 60 + em) - (sh * 60 + sm);
         if (mins < 0) mins += 24 * 60;
         totalMinutesSpent += mins;
       }
@@ -101,16 +106,18 @@ export default function Report({ DB, NAMES, META, FOOD }) {
     if(timeRange === 'Yearly') {
       const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
       if(!monthlyDataMap[monthKey]) {
-        monthlyDataMap[monthKey] = { name: MONTHS[d.getMonth()].substring(0,3), date: `${MONTHS[d.getMonth()]} ${d.getFullYear()}`, Volume: 0, Protein: 0 };
+        monthlyDataMap[monthKey] = { name: MONTHS[d.getMonth()].substring(0,3), date: `${MONTHS[d.getMonth()]} ${d.getFullYear()}`, Volume: 0, Protein: 0, Time: 0 };
       }
       monthlyDataMap[monthKey].Volume += vol;
       monthlyDataMap[monthKey].Protein += p;
+      monthlyDataMap[monthKey].Time += mins;
     } else {
       chartData.push({
         name: timeRange === 'Monthly' ? `${d.getDate()}` : DAYS_SHORT[d.getDay()],
         date: formatFull(d),
         Volume: vol,
-        Protein: p
+        Protein: p,
+        Time: mins
       });
     }
   }
@@ -293,6 +300,37 @@ export default function Report({ DB, NAMES, META, FOOD }) {
             </ResponsiveContainer>
           </div>
         </div>
+
+        {/* RECHARTS TIME GRAPH */}
+        <div className="dash-card full" style={{background: 'var(--bg3)', padding: '20px', display: 'block', borderColor: 'rgba(255,149,51,0.2)'}}>
+          <div className="dash-glow" style={{background: 'var(--orange)', opacity: 0.1}}></div>
+          <div style={{marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <div>
+              <div className="dash-val" style={{fontSize: '18px', color: 'var(--orange)'}}>Workout Duration</div>
+              <div className="dash-label">{timeRange} Timing Trend</div>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <div className="dash-val" style={{fontSize:'16px', color: 'var(--orange)'}}>{formatTime(totalDaysAttended > 0 ? Math.round(totalMinutesSpent / totalDaysAttended) : 0)}</div>
+              <div className="dash-label">Avg Session</div>
+            </div>
+          </div>
+          <div style={{width: '100%', height: '180px'}}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={finalChartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--orange)" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="var(--orange)" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                <YAxis tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="Time" stroke="var(--orange)" strokeWidth={3} fillOpacity={1} fill="url(#colorTime)" activeDot={{r: 6, fill: 'var(--orange)', stroke: '#000', strokeWidth: 2}} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
         </>
         )}
 
@@ -373,6 +411,39 @@ export default function Report({ DB, NAMES, META, FOOD }) {
         </div>
         
       </div>
+
+      {/* INLINE TRANSACTION HISTORY */}
+      <div style={{margin: '40px 20px 20px'}}>
+        <div className="dash-val" style={{fontSize: '18px', marginBottom: '16px'}}>Workout History</div>
+        <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+          {Object.keys(DB).sort().reverse().slice(0, showAllHistory ? undefined : 5).map(hk => {
+            const hVol = getDayVol(DB[hk] || {});
+            const hm = META[hk] || {};
+            const [y, m, d] = hk.split('-');
+            const hd = new Date(y, m - 1, d);
+            return (
+              <div key={hk} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg2)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border)'}}>
+                <div>
+                  <div style={{fontSize: '14px', fontWeight: 600, color: 'var(--text)'}}>{formatFull(hd)}</div>
+                  <div style={{fontSize: '11px', color: 'var(--text2)', marginTop: '4px', textTransform: 'uppercase'}}>{DAYS_SHORT[hd.getDay()]} {hm.status ? `• ${hm.status}` : ''}</div>
+                </div>
+                <div style={{textAlign: 'right'}}>
+                  <div style={{fontSize: '16px', fontWeight: 700, color: 'var(--accent)', fontFamily: 'DM Mono, monospace'}}>{hVol > 0 ? hVol + ' kg' : 'Rest'}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {Object.keys(DB).length > 5 && (
+          <button 
+            onClick={() => setShowAllHistory(!showAllHistory)}
+            style={{width: '100%', padding: '14px', marginTop: '12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', transition: '0.2s'}}
+          >
+            {showAllHistory ? 'Show Less' : 'View All History'}
+          </button>
+        )}
+      </div>
+
       <div style={{height:'20px'}}></div>
     </div>
   );
