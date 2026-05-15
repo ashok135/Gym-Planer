@@ -5,7 +5,6 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import BottomNav from './components/BottomNav';
 import Today from './components/Today';
 import Diet from './components/Diet';
-import History from './components/History';
 import Report from './components/Report';
 import Settings from './components/Settings';
 import './index.css';
@@ -142,7 +141,6 @@ export default function App() {
       <div className="screen active" onScroll={handleScroll} style={{paddingBottom:'90px', flex:1, overflowY:'auto'}}>
         {activeTab === 'today' && <Today DB={DB} NAMES={NAMES} META={META} syncData={syncData} FOOD={FOOD} />}
         {activeTab === 'diet' && <Diet FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} />}
-        {activeTab === 'history' && <History DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} />}
         {activeTab === 'report' && <Report DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} />}
         {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} />}
       </div>

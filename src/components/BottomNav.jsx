@@ -1,17 +1,24 @@
 import React from 'react';
-import { Dumbbell, Utensils, History as HistoryIcon, LineChart, Settings as SettingsIcon } from 'lucide-react';
+import { Dumbbell, Utensils, LineChart, Settings as SettingsIcon } from 'lucide-react';
 
-export default function BottomNav({ activeTab, setActiveTab }) {
+export default function BottomNav({ activeTab, setActiveTab, showNav }) {
   const tabs = [
     { id: 'today', label: 'Today', icon: Dumbbell },
     { id: 'diet', label: 'Diet', icon: Utensils },
-    { id: 'history', label: 'History', icon: HistoryIcon },
     { id: 'report', label: 'Report', icon: LineChart },
     { id: 'settings', label: 'Settings', icon: SettingsIcon },
   ];
 
   return (
-    <div id="bottom-nav" className="nav" style={{display: 'flex'}}>
+    <div 
+      id="bottom-nav" 
+      className="nav" 
+      style={{
+        display: 'flex',
+        transform: `translate(-50%, ${showNav ? '0' : '100%'})`,
+        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+      }}
+    >
       {tabs.map(tab => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;

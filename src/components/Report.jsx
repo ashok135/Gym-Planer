@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol, DAYS_SHORT, MONTHS } from '../data';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { CheckCircle2, XCircle } from 'lucide-react';
+import History from './History';
 
 export default function Report({ DB, NAMES, META, FOOD }) {
   const [timeRange, setTimeRange] = useState('Today'); // 'Today', 'Weekly', 'Monthly', 'Yearly'
-  const [showAllHistory, setShowAllHistory] = useState(false);
   
   // Aggregate data based on time range
   const now = new Date();
@@ -412,36 +412,10 @@ export default function Report({ DB, NAMES, META, FOOD }) {
         
       </div>
 
-      {/* INLINE TRANSACTION HISTORY */}
-      <div style={{margin: '40px 20px 20px'}}>
-        <div className="dash-val" style={{fontSize: '18px', marginBottom: '16px'}}>Workout History</div>
-        <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-          {Object.keys(DB).sort().reverse().slice(0, showAllHistory ? undefined : 5).map(hk => {
-            const hVol = getDayVol(DB[hk] || {});
-            const hm = META[hk] || {};
-            const [y, m, d] = hk.split('-');
-            const hd = new Date(y, m - 1, d);
-            return (
-              <div key={hk} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg2)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border)'}}>
-                <div>
-                  <div style={{fontSize: '14px', fontWeight: 600, color: 'var(--text)'}}>{formatFull(hd)}</div>
-                  <div style={{fontSize: '11px', color: 'var(--text2)', marginTop: '4px', textTransform: 'uppercase'}}>{DAYS_SHORT[hd.getDay()]} {hm.status ? `• ${hm.status}` : ''}</div>
-                </div>
-                <div style={{textAlign: 'right'}}>
-                  <div style={{fontSize: '16px', fontWeight: 700, color: 'var(--accent)', fontFamily: 'DM Mono, monospace'}}>{hVol > 0 ? hVol + ' kg' : 'Rest'}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {Object.keys(DB).length > 5 && (
-          <button 
-            onClick={() => setShowAllHistory(!showAllHistory)}
-            style={{width: '100%', padding: '14px', marginTop: '12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', transition: '0.2s'}}
-          >
-            {showAllHistory ? 'Show Less' : 'View All History'}
-          </button>
-        )}
+      {/* FULL HISTORY COMPONENT */}
+      <div style={{marginTop: '40px'}}>
+        <div className="dash-val" style={{fontSize: '18px', padding: '0 20px'}}>Workout History</div>
+        <History DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} />
       </div>
 
       <div style={{height:'20px'}}></div>

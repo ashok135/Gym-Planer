@@ -5,40 +5,54 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 export default function History({ DB, NAMES, META, FOOD }) {
   const [modalDk, setModalDk] = useState(null);
 
-  const now = new Date();
-  const historyData = [];
+  const [limit, setLimit] = useState(20);
 
-  for(let m=0; m<2; m++) {
-    const ref = new Date(now.getFullYear(), now.getMonth()-m, 1);
-    const yr = ref.getFullYear(), mo = ref.getMonth();
-    const daysInMonth = new Date(yr, mo+1, 0).getDate();
-    
-    const monthDays = [];
-    for(let d=daysInMonth; d>=1; d--) {
-      const dd = new Date(yr, mo, d);
-      if(dd > now) continue;
-      
-      const dk = dateKey(dd);
-      const dow = dd.getDay();
-      const plan = DEFAULT_PLAN[dow] || DEFAULT_PLAN[0];
-      const vol = getDayVol(DB[dk]);
-      const isToday = dk === dateKey(now);
-      const meta = META[dk] || {};
-      
-      const savedF = FOOD[dk] || { items: {} };
+  const now = new Date();
+  
+  const allKeys = Array.from(new Set([...Object.keys(DB), ...Object.keys(META), ...Object.keys(FOOD)]))
+    .filter(k => k <= dateKey(now))
+    .filter(k => {
+      const vol = getDayVol(DB[k] || {});
+      const m = META[k] || {};
+      const f = FOOD[k] || {};
       let dayP = 0;
-      const dietPlan = DEFAULT_DIET_PLAN[dow] || DEFAULT_DIET_PLAN[1];
-      dietPlan.forEach(meal => meal.items.forEach(i => {
-        if(savedF.items && savedF.items[i.id]) dayP += i.p;
-      }));
-      
-      const hasFood = dayP > 0 || savedF.water || savedF.sleep || savedF.junk;
-      const hasData = vol > 0 || hasFood || (meta.status && meta.status !== 'Skipped');
-      
-      monthDays.push({ d, dd, dk, dow, plan, vol, isToday, meta, dayP, hasData });
+      if (f.items) {
+        Object.values(f.items).forEach(val => dayP += 1); // just checking existence
+      }
+      return vol > 0 || m.status || f.water || f.sleep || f.junk || dayP > 0;
+    })
+    .sort().reverse();
+
+  const visibleKeys = allKeys.slice(0, limit);
+  const historyDataMap = {};
+
+  visibleKeys.forEach(dk => {
+    const [y, mStr, dStr] = dk.split('-');
+    const yr = parseInt(y);
+    const mo = parseInt(mStr) - 1;
+    const d = parseInt(dStr);
+    const dd = new Date(yr, mo, d);
+    const dow = dd.getDay();
+    const plan = DEFAULT_PLAN[dow] || DEFAULT_PLAN[0];
+    const vol = getDayVol(DB[dk] || {});
+    const isToday = dk === dateKey(now);
+    const meta = META[dk] || {};
+    
+    const savedF = FOOD[dk] || { items: {} };
+    let dayP = 0;
+    const dietPlan = DEFAULT_DIET_PLAN[dow] || DEFAULT_DIET_PLAN[1];
+    dietPlan.forEach(meal => meal.items.forEach(i => {
+      if(savedF.items && savedF.items[i.id]) dayP += i.p;
+    }));
+    
+    const monthKey = `${yr}-${mo}`;
+    if (!historyDataMap[monthKey]) {
+      historyDataMap[monthKey] = { yr, mo, days: [] };
     }
-    historyData.push({ yr, mo, days: monthDays });
-  }
+    historyDataMap[monthKey].days.push({ d, dd, dk, dow, plan, vol, isToday, meta, dayP, hasData: true });
+  });
+
+  const historyData = Object.values(historyDataMap).sort((a, b) => (b.yr - a.yr) || (b.mo - a.mo));
 
   const renderModal = () => {
     if(!modalDk) return null;
@@ -171,6 +185,14 @@ export default function History({ DB, NAMES, META, FOOD }) {
           ))}
         </div>
       ))}
+      {limit < allKeys.length && (
+        <button 
+          onClick={() => setLimit(l => l + 20)}
+          style={{width: '100%', padding: '14px', marginTop: '12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', transition: '0.2s'}}
+        >
+          Load More
+        </button>
+      )}
       {renderModal()}
       <div style={{height:'20px'}}></div>
     </div>
