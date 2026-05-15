@@ -81,6 +81,15 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
           }
         });
       });
+      if (m.absEnabled || Object.keys(entry).some(key => key.startsWith('Abs_'))) {
+        ['Crunches', 'Leg Raises', 'Plank'].forEach((ex, idx) => {
+          todayTotalExercises++;
+          const ek = `Abs_${idx}`;
+          if(entry[ek] && (entry[ek].done || (entry[ek].s && entry[ek].r && entry[ek].w))) {
+            todayDoneExercises++;
+          }
+        });
+      }
     }
 
     if(vol > 0 || m.status === 'Completed' || m.status === 'Partial') {

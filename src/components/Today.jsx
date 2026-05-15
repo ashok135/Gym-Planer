@@ -33,11 +33,17 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
   const [renameInput, setRenameInput] = useState('');
   const [saveMsg, setSaveMsg] = useState(false);
   const [showAbs, setShowAbs] = useState(() => {
-    return Object.keys(saved).some(k => k.startsWith('Abs_'));
+    return meta.absEnabled || Object.keys(saved).some(k => k.startsWith('Abs_'));
   });
+
+  const addAbs = () => {
+    setShowAbs(true);
+    handleMetaChange('absEnabled', true);
+  };
 
   const removeAbs = () => {
     setShowAbs(false);
+    handleMetaChange('absEnabled', false);
     const newDB = { ...DB };
     if (newDB[key]) {
       Object.keys(newDB[key]).forEach(k => {
@@ -166,7 +172,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
       {plan.muscles.map(m => {
         if(m.name === 'Abs' && !showAbs) {
           return (
-            <div className="muscle-block" key={m.name} onClick={() => setShowAbs(true)} style={{cursor: 'pointer', opacity: 0.8, textAlign: 'center', padding: '16px', background: 'var(--bg3)', borderRadius: 'var(--radius)', border: '1px dashed var(--border2)'}}>
+            <div className="muscle-block" key={m.name} onClick={addAbs} style={{cursor: 'pointer', opacity: 0.8, textAlign: 'center', padding: '16px', background: 'var(--bg3)', borderRadius: 'var(--radius)', border: '1px dashed var(--border2)'}}>
               <div style={{fontSize: '12px', fontWeight: 600, color: 'var(--text2)', letterSpacing: '0.1em'}}>+ ADD ABS WORKOUT</div>
             </div>
           );
