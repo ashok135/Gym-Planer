@@ -240,15 +240,17 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE }) {
                 <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text)'}}><CheckCircle2 size={16} color="var(--accent)"/> {totalDaysAttended} Present</div>
                 <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text2)'}}><XCircle size={16} color="var(--red)"/> {missedDays} Absent</div>
               </div>
-              <div style={{width: '90px', height: '90px'}}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={30} outerRadius={45} stroke="none" cornerRadius={10} paddingAngle={5}>
-                      {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+              {timeRange !== 'Today' && (
+                <div style={{width: '90px', height: '90px'}}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={30} outerRadius={45} stroke="none" cornerRadius={10} paddingAngle={5}>
+                        {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
           </div>
 
@@ -265,23 +267,28 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE }) {
                 <div className="dash-label">Avg Session</div>
               </div>
             </div>
-            
-            <div style={{width: '100%', height: '100px', marginTop: '16px'}}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={finalChartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--orange)" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="var(--orange)" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="name" tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
-                  <YAxis tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="Time" stroke="var(--orange)" strokeWidth={3} fillOpacity={1} fill="url(#colorTime)" activeDot={{r: 6, fill: 'var(--orange)', stroke: '#000', strokeWidth: 2}} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            {timeRange !== 'Today' ? (
+              <div style={{width: '100%', height: '100px', marginTop: '16px'}}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={finalChartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--orange)" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="var(--orange)" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="name" tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                    <YAxis tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area type="monotone" dataKey="Time" stroke="var(--orange)" strokeWidth={3} fillOpacity={1} fill="url(#colorTime)" activeDot={{r: 6, fill: 'var(--orange)', stroke: '#000', strokeWidth: 2}} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div style={{fontSize:'32px', fontWeight:'bold', color:'var(--orange)', marginTop:'24px', textAlign:'center'}}>
+                {formatTime(totalMinutesSpent)}
+              </div>
+            )}
           </div>
 
         </div>

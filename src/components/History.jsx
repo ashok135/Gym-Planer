@@ -70,7 +70,8 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
     const meta = META[modalDk] || {};
     const vol = getDayVol(entry);
 
-    if (Object.keys(entry).some(k => k.startsWith('Abs_'))) {
+    const hasAbs = Object.keys(entry).some(k => k.startsWith('Abs_'));
+    if (hasAbs) {
       plan.muscles.push({ name: 'Abs', exercises: ['Crunch', 'Plank', 'Leg Raises'] });
     }
     
@@ -94,7 +95,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
           <button className="modal-close" onClick={() => setModalDk(null)}>×</button>
           
           <div className="modal-title">{DAYS_FULL[dow]}, {formatFull(d)}</div>
-          <div className="modal-sub">{plan.label} · {vol ? vol.toLocaleString()+' kg total' : 'No volume logged'}</div>
+          <div className="modal-sub">{plan.label}{hasAbs ? ' & Abs' : ''} · {vol ? vol.toLocaleString()+' kg total' : 'No volume logged'}</div>
           
           {(meta.notes || meta.bw || meta.start) && (
             <div style={{background:'var(--bg3)',padding:'12px',borderRadius:'8px',marginBottom:'16px',fontSize:'12px',color:'var(--text2)'}}>

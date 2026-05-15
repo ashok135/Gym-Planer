@@ -36,6 +36,17 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
     return Object.keys(saved).some(k => k.startsWith('Abs_'));
   });
 
+  const removeAbs = () => {
+    setShowAbs(false);
+    const newDB = { ...DB };
+    if (newDB[key]) {
+      Object.keys(newDB[key]).forEach(k => {
+        if (k.startsWith('Abs_')) delete newDB[key][k];
+      });
+    }
+    syncData(newDB, NAMES, META, FOOD, SCHEDULE);
+  };
+
   const getPrevStats = (ek) => {
     const keys = Object.keys(DB).filter(k => k < key && DB[k][ek] && DB[k][ek].w).sort();
     if(keys.length === 0) return null;
@@ -100,7 +111,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
     <div id="today-content" style={{padding:'20px 0'}}>
       <div className="workout-hero">
         <div className="workout-type">{DAYS_FULL[dow]}</div>
-        <div className="workout-name">{plan.label}</div>
+        <div className="workout-name">{plan.label}{showAbs ? ' & Abs' : ''}</div>
         <div className="workout-meta">
           <span><strong>{plan.muscles.reduce((s,m)=>s+m.exercises.length,0)}</strong> exercises</span>
           <span><strong>{plan.muscles.length}</strong> muscle groups</span>
@@ -160,7 +171,12 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
 
         return (
         <div className="muscle-block" key={m.name}>
-          <div className="muscle-header"><div className="muscle-dot"></div><div className="muscle-name">{m.name}</div></div>
+          <div className="muscle-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+            <div style={{display:'flex', alignItems:'center'}}><div className="muscle-dot"></div><div className="muscle-name">{m.name}</div></div>
+            {m.name === 'Abs' && (
+              <button onClick={removeAbs} style={{background:'transparent', border:'none', color:'var(--red)', fontSize:'12px', fontWeight:'bold', cursor:'pointer', padding:'4px 8px'}}>REMOVE</button>
+            )}
+          </div>
           {m.exercises.map((ex, i) => {
             const ek = `${m.name}_${i}`;
             const sv = saved[ek] || {};
