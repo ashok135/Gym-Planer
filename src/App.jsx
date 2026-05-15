@@ -152,12 +152,12 @@ export default function App() {
   if(loading) {
     return (
       <div className="screen active" style={{display:'flex', flexDirection: 'column', alignItems:'center', justifyContent:'center', height:'100vh', background: 'var(--bg)'}}>
-        <div style={{color:'var(--accent)', fontWeight:800, fontSize:'32px', letterSpacing:'2px', marginBottom: '8px', animation: 'pulse 2s infinite'}}>LIFETRAKER</div>
-        <div style={{color:'var(--text2)', fontSize:'14px', fontStyle: 'italic', opacity: 0.8, marginBottom: '16px'}}>Trust the process</div>
-        <div style={{display: 'flex', gap: '8px', fontSize: '20px'}}>
-          <span style={{animation: 'pulse 1.5s infinite'}}>✨</span>
-          <span style={{animation: 'pulse 1.5s infinite 0.2s'}}>✨</span>
-          <span style={{animation: 'pulse 1.5s infinite 0.4s'}}>✨</span>
+        <div style={{color:'var(--accent)', fontWeight:800, fontSize:'28px', letterSpacing:'1px', marginBottom: '4px'}}>LIFETRAKER</div>
+        <div style={{color:'var(--text3)', fontSize:'13px', marginBottom: '12px'}}>Trust the process</div>
+        <div style={{display: 'flex', gap: '8px', fontSize: '18px', animation: 'pulse 2s infinite'}}>
+          <span>✨</span>
+          <span>✨</span>
+          <span>✨</span>
         </div>
       </div>
     );
