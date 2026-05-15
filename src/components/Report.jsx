@@ -158,7 +158,10 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE }) {
       return (
         <div style={{background: 'rgba(17,17,17,0.95)', border: '1px solid var(--border)', padding: '10px', borderRadius: '8px', boxShadow: 'var(--shadow)', backdropFilter: 'blur(10px)'}}>
           <p style={{color: 'var(--text)', margin: '0 0 5px 0', fontSize: '12px'}}>{payload[0].payload.date}</p>
-          <p style={{color: payload[0].color, margin: 0, fontWeight: 'bold'}}>{payload[0].name}: {payload[0].value.toLocaleString()} {payload[0].name === 'Volume' ? 'kg' : 'g'}</p>
+          <p style={{color: payload[0].color, margin: 0, fontWeight: 'bold'}}>
+            {payload[0].name}: {payload[0].value.toLocaleString()}
+            {payload[0].name === 'Volume' ? ' kg' : payload[0].name === 'Time' ? ' mins' : 'g'}
+          </p>
         </div>
       );
     }

@@ -79,8 +79,11 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
       newDB[key][ek][field] = value;
     } else {
       newDB[key][ek][field] = parseFloat(value) || 0;
+      if (newDB[key][ek].done === undefined || newDB[key][ek].done === null) {
+        newDB[key][ek].done = true;
+      }
     }
-    syncData(newDB, NAMES, META, FOOD);
+    syncData(newDB, NAMES, META, FOOD, SCHEDULE);
   };
 
   const handleMetaChange = (field, value) => {

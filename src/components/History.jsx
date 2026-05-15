@@ -4,20 +4,27 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 
 export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
   const [modalDk, setModalDk] = useState(null);
-
   const [limit, setLimit] = useState(20);
+  const [historyRange, setHistoryRange] = useState('All');
 
   const now = new Date();
   
   const allKeys = Array.from(new Set([...Object.keys(DB), ...Object.keys(META), ...Object.keys(FOOD)]))
     .filter(k => k <= dateKey(now))
     .filter(k => {
+      if (historyRange !== 'All') {
+        const kd = new Date(k);
+        const diff = (now - kd) / (1000 * 60 * 60 * 24);
+        if (historyRange === 'Weekly' && diff > 7) return false;
+        if (historyRange === 'Monthly' && diff > 30) return false;
+        if (historyRange === 'Yearly' && diff > 365) return false;
+      }
       const vol = getDayVol(DB[k] || {});
       const m = META[k] || {};
       const f = FOOD[k] || {};
       let dayP = 0;
       if (f.items) {
-        Object.values(f.items).forEach(val => dayP += 1); // just checking existence
+        Object.values(f.items).forEach(val => dayP += 1);
       }
       return vol > 0 || m.status || f.water || f.sleep || f.junk || dayP > 0;
     })
@@ -33,8 +40,17 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
     const d = parseInt(dStr);
     const dd = new Date(yr, mo, d);
     const dow = dd.getDay();
-    const plan = DEFAULT_PLAN[dow] || DEFAULT_PLAN[0];
-    const vol = getDayVol(DB[dk] || {});
+    
+    let currentPlanId = dow;
+    if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) currentPlanId = SCHEDULE.fullTime[dow];
+    if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[dk] !== undefined) currentPlanId = SCHEDULE.thisWeek[dk];
+
+    const plan = DEFAULT_PLAN[currentPlanId] || DEFAULT_PLAN[0];
+    const entry = DB[dk] || {};
+    const hasAbs = Object.keys(entry).some(k => k.startsWith('Abs_'));
+    const planLabel = plan.label + (hasAbs ? ' & Abs' : '');
+    
+    const vol = getDayVol(entry);
     const isToday = dk === dateKey(now);
     const meta = META[dk] || {};
     
@@ -49,7 +65,9 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
     if (!historyDataMap[monthKey]) {
       historyDataMap[monthKey] = { yr, mo, days: [] };
     }
-    historyDataMap[monthKey].days.push({ d, dd, dk, dow, plan, vol, isToday, meta, dayP, hasData: true });
+    historyDataMap[monthKey].days.push({
+      dk, d, dow, planLabel, vol, isToday, meta, dayP, hasData: vol > 0 || meta.status || dayP > 0 || savedF.water || savedF.sleep || savedF.junk
+    });
   });
 
   const historyData = Object.values(historyDataMap).sort((a, b) => (b.yr - a.yr) || (b.mo - a.mo));
@@ -176,6 +194,25 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
 
   return (
     <div id="history-content" style={{padding:'20px 0'}}>
+
+      {/* FILTER PILLS */}
+      <div style={{display:'flex', gap:'8px', padding:'0 20px 16px', overflowX:'auto'}}>
+        {['All', 'Weekly', 'Monthly', 'Yearly'].map(r => (
+          <div
+            key={r}
+            onClick={() => { setHistoryRange(r); setLimit(20); }}
+            style={{
+              padding: '6px 16px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: historyRange === r ? 'bold' : 'normal',
+              background: historyRange === r ? 'var(--accent)' : 'var(--bg3)',
+              color: historyRange === r ? '#000' : 'var(--text2)',
+              border: '1px solid var(--border2)',
+              transition: 'all 0.2s'
+            }}
+          >
+            {r}
+          </div>
+        ))}
+      </div>
       {historyData.map(month => (
         <div key={`${month.yr}-${month.mo}`}>
           <div className="month-label">{MONTHS[month.mo]} {month.yr}</div>
@@ -191,7 +228,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                   {day.dayP > 0 && <div className="hday-vol" style={{color:'var(--text)',fontSize:'11px',marginTop:'2px'}}>{day.dayP}g Protein</div>}
                 </div>
               </div>
-              {day.plan.label !== 'Rest Day' && <div className="hday-focus">{day.plan.label}</div>}
+              {day.planLabel !== 'Rest Day' && <div className="hday-focus">{day.planLabel}</div>}
               {!day.hasData && <div className="hday-empty">No data logged</div>}
             </div>
           ))}
