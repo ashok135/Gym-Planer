@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { DEFAULT_PLAN, dateKey, DAYS_SHORT, DAYS_FULL, MONTHS } from '../data';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
-export default function Today({ DB, NAMES, META, syncData, FOOD }) {
+export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
   const today = new Date();
   const dow = today.getDay();
   const key = dateKey(today);
@@ -10,8 +10,12 @@ export default function Today({ DB, NAMES, META, syncData, FOOD }) {
   const saved = DB[key] || {};
   const meta = META[key] || { mood: '', energy: 0, status: 'Completed', bw: '', start: '06:30', end: '08:10', notes: '' };
   
+  let currentPlanId = dow;
+  if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) currentPlanId = SCHEDULE.fullTime[dow];
+  if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[key] !== undefined) currentPlanId = SCHEDULE.thisWeek[key];
+
   // Create deep copy of plan
-  const plan = JSON.parse(JSON.stringify(DEFAULT_PLAN[dow] || DEFAULT_PLAN[0]));
+  const plan = JSON.parse(JSON.stringify(DEFAULT_PLAN[currentPlanId] || DEFAULT_PLAN[0]));
   plan.muscles.push({
     name: 'Abs',
     exercises: ['Crunches', 'Leg Raises', 'Plank']
@@ -19,7 +23,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD }) {
 
   plan.muscles.forEach(m => {
     m.exercises = m.exercises.map((ex, i) => {
-      const k = `${dow}_${m.name}_${i}`;
+      const k = `${currentPlanId}_${m.name}_${i}`;
       const ek = `${m.name}_${i}`;
       return (saved[ek] && saved[ek].customName) ? saved[ek].customName : (NAMES[k] || ex);
     });
@@ -28,7 +32,9 @@ export default function Today({ DB, NAMES, META, syncData, FOOD }) {
   const [renameBox, setRenameBox] = useState(null);
   const [renameInput, setRenameInput] = useState('');
   const [saveMsg, setSaveMsg] = useState(false);
-  const [showAbs, setShowAbs] = useState(false);
+  const [showAbs, setShowAbs] = useState(() => {
+    return Object.keys(saved).some(k => k.startsWith('Abs_'));
+  });
 
   const getPrevStats = (ek) => {
     const keys = Object.keys(DB).filter(k => k < key && DB[k][ek] && DB[k][ek].w).sort();

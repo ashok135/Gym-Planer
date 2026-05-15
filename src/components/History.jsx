@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MONTHS, DAYS_SHORT, DAYS_FULL, DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol } from '../data';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
-export default function History({ DB, NAMES, META, FOOD }) {
+export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
   const [modalDk, setModalDk] = useState(null);
 
   const [limit, setLimit] = useState(20);
@@ -59,7 +59,12 @@ export default function History({ DB, NAMES, META, FOOD }) {
     const [y, m, day] = modalDk.split('-');
     const d = new Date(y, m - 1, day);
     const dow = d.getDay();
-    const basePlan = DEFAULT_PLAN[dow] || DEFAULT_PLAN[0];
+    
+    let currentPlanId = dow;
+    if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) currentPlanId = SCHEDULE.fullTime[dow];
+    if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[modalDk] !== undefined) currentPlanId = SCHEDULE.thisWeek[modalDk];
+
+    const basePlan = DEFAULT_PLAN[currentPlanId] || DEFAULT_PLAN[0];
     const plan = { ...basePlan, muscles: [...basePlan.muscles] };
     const entry = DB[modalDk] || {};
     const meta = META[modalDk] || {};
@@ -113,7 +118,7 @@ export default function History({ DB, NAMES, META, FOOD }) {
                   if(!hasVol && isDone === undefined) return null;
                   
                   const v = hasVol ? Math.round(sv.s * sv.r * sv.w) : '—';
-                  const nameStr = NAMES[`${dow}_${m.name}_${i}`] || ex;
+                  const nameStr = NAMES[`${currentPlanId}_${m.name}_${i}`] || ex;
                   const isTimeBased = nameStr.toLowerCase().includes('plank') || nameStr.toLowerCase().includes('hold') || nameStr.toLowerCase().includes('cardio');
                   
                   return (

@@ -23,6 +23,7 @@ export default function App() {
   const [NAMES, setNAMES] = useState({});
   const [META, setMETA] = useState({});
   const [FOOD, setFOOD] = useState({});
+  const [SCHEDULE, setSCHEDULE] = useState({ fullTime: {}, thisWeek: {} });
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -36,6 +37,7 @@ export default function App() {
             setNAMES(data.names || {});
             setMETA(data.meta || {});
             setFOOD(data.food || {});
+            setSCHEDULE(data.schedule || { fullTime: {}, thisWeek: {} });
           }
         } catch(e) {
           console.error("Cloud fetch failed, using local", e);
@@ -43,6 +45,7 @@ export default function App() {
           setNAMES(JSON.parse(localStorage.getItem('gnames')||'{}'));
           setMETA(JSON.parse(localStorage.getItem('gmeta')||'{}'));
           setFOOD(JSON.parse(localStorage.getItem('gfood')||'{}'));
+          setSCHEDULE(JSON.parse(localStorage.getItem('gschedule')||'{"fullTime":{},"thisWeek":{}}'));
         }
       }
       setLoading(false);
@@ -50,17 +53,18 @@ export default function App() {
     return unsub;
   }, []);
 
-  const syncData = async (newDB, newNAMES, newMETA, newFOOD) => {
-    setDB(newDB); setNAMES(newNAMES); setMETA(newMETA); setFOOD(newFOOD);
+  const syncData = async (newDB, newNAMES, newMETA, newFOOD, newSCHEDULE = SCHEDULE) => {
+    setDB(newDB); setNAMES(newNAMES); setMETA(newMETA); setFOOD(newFOOD); setSCHEDULE(newSCHEDULE);
     localStorage.setItem('gdb', JSON.stringify(newDB));
     localStorage.setItem('gnames', JSON.stringify(newNAMES));
     localStorage.setItem('gmeta', JSON.stringify(newMETA));
     localStorage.setItem('gfood', JSON.stringify(newFOOD));
+    localStorage.setItem('gschedule', JSON.stringify(newSCHEDULE));
     
     if(user) {
       try {
         await setDoc(doc(db, "users", user.uid), {
-          workouts: newDB, names: newNAMES, meta: newMETA, food: newFOOD
+          workouts: newDB, names: newNAMES, meta: newMETA, food: newFOOD, schedule: newSCHEDULE
         });
       } catch(e) { console.error("Cloud save failed", e); }
     }
@@ -113,7 +117,7 @@ export default function App() {
   }
 
   const todayObj = new Date();
-  const dateStr = `${todayObj.getDate().toString().padStart(2, '0')},${(todayObj.getMonth()+1).toString().padStart(2, '0')},${todayObj.getFullYear()}`;
+  const dateStr = `${todayObj.getDate().toString().padStart(2, '0')}-${(todayObj.getMonth()+1).toString().padStart(2, '0')}-${todayObj.getFullYear()}`;
 
   const handleScroll = (e) => {
     const currentScrollY = e.target.scrollTop;
@@ -139,10 +143,10 @@ export default function App() {
         </div>
       </div>
       <div className="screen active" onScroll={handleScroll} style={{paddingBottom:'90px', flex:1, overflowY:'auto'}}>
-        {activeTab === 'today' && <Today DB={DB} NAMES={NAMES} META={META} syncData={syncData} FOOD={FOOD} />}
+        {activeTab === 'today' && <Today DB={DB} NAMES={NAMES} META={META} syncData={syncData} FOOD={FOOD} SCHEDULE={SCHEDULE} />}
         {activeTab === 'diet' && <Diet FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} />}
-        {activeTab === 'report' && <Report DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} />}
-        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} />}
+        {activeTab === 'report' && <Report DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} />}
+        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} />}
       </div>
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} showNav={showNav} />
     </div>

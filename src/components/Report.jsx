@@ -424,8 +424,8 @@ export default function Report({ DB, NAMES, META, FOOD }) {
 
       {/* FULL HISTORY COMPONENT */}
       <div style={{marginTop: '40px'}}>
-        <div className="dash-val" style={{fontSize: '18px', padding: '0 20px'}}>Workout History</div>
-        <History DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} />
+        <div className="dash-val" style={{fontSize: '18px', padding: '0 20px', marginBottom: '16px'}}>Workout History</div>
+        <History DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} />
       </div>
 
       <div style={{height:'20px'}}></div>

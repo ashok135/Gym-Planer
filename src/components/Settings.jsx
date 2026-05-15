@@ -1,9 +1,41 @@
 import React, { useState } from 'react';
-import { DEFAULT_PLAN, DAYS_FULL, DEFAULT_DIET_PLAN, MONTHS } from '../data';
+import { DEFAULT_PLAN, DAYS_FULL, DEFAULT_DIET_PLAN, MONTHS, dateKey } from '../data';
 
-export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout }) {
+export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE }) {
   const [localNames, setLocalNames] = useState(NAMES);
   const [saveMsg, setSaveMsg] = useState(false);
+  
+  const [localSchedule, setLocalSchedule] = useState({ ...SCHEDULE?.fullTime });
+  const [schedMsg, setSchedMsg] = useState(false);
+  const [showSchedModal, setShowSchedModal] = useState(false);
+
+  const SPLITS = [
+    { id: 0, label: 'Rest Day' },
+    { id: 1, label: 'Chest & Triceps' },
+    { id: 2, label: 'Back & Biceps' },
+    { id: 3, label: 'Legs & Shoulders' },
+    { id: 6, label: 'Progressive Overload' },
+  ];
+
+  const saveSchedule = (type) => {
+    const newSched = { fullTime: { ...(SCHEDULE?.fullTime || {}) }, thisWeek: { ...(SCHEDULE?.thisWeek || {}) } };
+    if (type === 'fullTime') {
+      newSched.fullTime = { ...localSchedule };
+    } else {
+      const today = new Date();
+      for(let i=0; i<7; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        const dk = dateKey(d);
+        const dow = d.getDay();
+        newSched.thisWeek[dk] = localSchedule[dow] !== undefined ? localSchedule[dow] : (DEFAULT_PLAN[dow]?.id || dow);
+      }
+    }
+    syncData(DB, NAMES, META, FOOD, newSched);
+    setShowSchedModal(false);
+    setSchedMsg(true);
+    setTimeout(() => setSchedMsg(false), 2000);
+  };
 
   const handleNameChange = (k, val) => {
     setLocalNames(prev => ({ ...prev, [k]: val }));
@@ -107,7 +139,32 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
 
   return (
     <div id="settings-content" style={{padding:'20px 0'}}>
-      <div className="settings-header">Custom Exercises</div>
+      <div className="settings-header">Weekly Schedule Planner</div>
+      <div className="settings-sub">Customize your workout split.</div>
+      
+      <div className="settings-section" style={{display:'flex', flexDirection:'column', gap:'12px'}}>
+        {[1,2,3,4,5,6,0].map(dow => {
+          const currentSplit = localSchedule[dow] !== undefined ? localSchedule[dow] : (dow === 4 ? 1 : dow === 5 ? 2 : dow);
+          return (
+            <div key={dow} style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <div style={{fontWeight:500, color:'var(--text)', width:'100px'}}>{DAYS_FULL[dow]}</div>
+              <select 
+                style={{flex:1, padding:'10px 12px', borderRadius:'8px', background:'var(--bg)', color:'var(--text)', border:'1px solid var(--border)', outline:'none'}}
+                value={currentSplit}
+                onChange={e => setLocalSchedule(prev => ({ ...prev, [dow]: parseInt(e.target.value) }))}
+              >
+                {SPLITS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{display:'flex', alignItems:'center', gap:'12px', marginTop:'16px', marginBottom:'32px'}}>
+        <button className="settings-save" onClick={() => setShowSchedModal(true)} style={{flex:1}}>Save Schedule</button>
+        <span className="save-ok" style={{opacity: schedMsg ? 1 : 0}}>Saved ✓</span>
+      </div>
+
+      <div className="settings-header" style={{marginTop:'32px'}}>Custom Exercises</div>
       <div className="settings-sub">Rename default exercises. Leave blank to reset.</div>
       
       {[1,2,3].map(dow => {
@@ -143,6 +200,20 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
       <button className="settings-save" style={{background:'var(--bg3)', color:'var(--text)', marginBottom:'16px'}} onClick={exportData}>Export Backup (JSON)</button>
       <button className="logout-btn" onClick={handleLogout}>Log Out</button>
       <div style={{height:'20px'}}></div>
+
+      {showSchedModal && (
+        <div className="modal-overlay" onClick={() => setShowSchedModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h3>Save Schedule</h3>
+            <p style={{fontSize:'13px', color:'var(--text2)', marginBottom:'20px', lineHeight: 1.5}}>Do you want to save this permanently or just for this week?</p>
+            <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
+              <button className="settings-save" onClick={() => saveSchedule('fullTime')} style={{background:'var(--accent)', color:'#000'}}>Full Time (Permanent)</button>
+              <button className="settings-save" onClick={() => saveSchedule('thisWeek')} style={{background:'var(--bg3)', color:'var(--text)'}}>This Week Only</button>
+              <button className="settings-save" onClick={() => setShowSchedModal(false)} style={{background:'transparent', color:'var(--text3)', border:'1px solid var(--border)'}}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
