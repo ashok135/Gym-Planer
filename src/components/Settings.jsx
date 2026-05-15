@@ -59,6 +59,7 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
   const [localAiKey, setLocalAiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [localAiModel, setLocalAiModel] = useState(() => localStorage.getItem('ai_model') || 'gemini-1.5-flash');
   const [localAiPersona, setLocalAiPersona] = useState(() => localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
+  const [devMode, setDevMode] = useState(() => localStorage.getItem('dev_mode') === 'true');
 
   const addCategory = () => {
     if (!newCatLabel.trim()) return;
@@ -431,20 +432,63 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
 
       {/* DEVELOPER OPTIONS */}
       <Accordion title="🧪 Developer Options" subtitle="Tools for testing and debugging">
-        <p style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '12px', lineHeight: 1.4 }}>
-          Seed your account with dummy data from January to April. This will overwrite existing data for those dates.
-        </p>
-        <button className="settings-save" style={{ background: 'var(--bg3)', color: 'var(--text)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-          onClick={() => {
-            const seed = generateSeedData();
-            // Sync all modules
-            syncData({ ...DB, ...seed.DB }, NAMES, { ...META, ...seed.META }, FOOD, SCHEDULE);
-            syncBudget({ ...BUDGET, ...seed.BUDGET });
-            syncStudy({ ...STUDY, ...seed.STUDY });
-            alert('Dummy data for Jan-Apr generated successfully!');
-          }}>
-          <Beaker size={16} /> Seed Dummy Data (Jan-Apr)
-        </button>
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600 }}>Developer Mode</div>
+            <div onClick={() => {
+              const newVal = !devMode;
+              setDevMode(newVal);
+              localStorage.setItem('dev_mode', newVal);
+              
+              if (!newVal) {
+                // Clear Jan-Apr data
+                const monthsToClear = [0, 1, 2, 3]; // Jan, Feb, Mar, Apr
+                const clearData = (obj) => {
+                  const newObj = { ...obj };
+                  Object.keys(newObj).forEach(k => {
+                    const date = new Date(k);
+                    if (monthsToClear.includes(date.getMonth()) && date.getFullYear() === 2026) {
+                      delete newObj[k];
+                    }
+                  });
+                  return newObj;
+                };
+
+                const newDB = clearData(DB);
+                const newMETA = clearData(META);
+                const newFOOD = clearData(FOOD);
+                const newBUDGET = { ...BUDGET };
+                ['2026-01', '2026-02', '2026-03', '2026-04'].forEach(m => delete newBUDGET[m]);
+                const newSTUDY = clearData(STUDY);
+
+                syncData(newDB, localNames, newMETA, newFOOD, SCHEDULE);
+                syncBudget(newBUDGET);
+                syncStudy(newSTUDY);
+                alert('Developer Mode disabled. Jan-Apr dummy data cleared.');
+              }
+            }} style={{ width: '44px', height: '24px', background: devMode ? 'var(--accent)' : 'var(--bg3)', borderRadius: '12px', position: 'relative', cursor: 'pointer', transition: 'all 0.3s', border: '1px solid var(--border2)' }}>
+              <div style={{ width: '18px', height: '18px', background: devMode ? '#000' : 'var(--text3)', borderRadius: '50%', position: 'absolute', top: '2px', left: devMode ? '22px' : '3px', transition: 'all 0.3s' }}></div>
+            </div>
+          </div>
+        </div>
+
+        {devMode && (
+          <>
+            <p style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '12px', lineHeight: 1.4 }}>
+              Seed your account with dummy data from January to April. This will overwrite existing data for those dates.
+            </p>
+            <button className="settings-save" style={{ background: 'var(--bg3)', color: 'var(--text)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              onClick={() => {
+                const seed = generateSeedData();
+                syncData({ ...DB, ...seed.DB }, localNames, { ...META, ...seed.META }, FOOD, SCHEDULE);
+                syncBudget({ ...BUDGET, ...seed.BUDGET });
+                syncStudy({ ...STUDY, ...seed.STUDY });
+                alert('Dummy data for Jan-Apr generated successfully!');
+              }}>
+              <Beaker size={16} /> Seed Dummy Data (Jan-Apr)
+            </button>
+          </>
+        )}
       </Accordion>
 
       <div style={{ height: '20px' }} />
