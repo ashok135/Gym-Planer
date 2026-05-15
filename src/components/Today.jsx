@@ -185,8 +185,8 @@ export default function Today({ DB, NAMES, META, syncData, FOOD }) {
                 )}
                 <div className="exercise-inputs">
                   <div className="input-group"><div className="input-label">SETS</div><input type="number" min="0" placeholder={prev.s || "0"} value={sv.s || ''} onChange={e => handleInputChange(ek, 's', e.target.value)} /></div>
-                  <div className="input-group"><div className="input-label">REPS</div><input type="number" min="0" placeholder={prev.r || "0"} value={sv.r || ''} onChange={e => handleInputChange(ek, 'r', e.target.value)} /></div>
-                  <div className="input-group"><div className="input-label">KG</div><input type="number" min="0" step="0.5" placeholder={prev.w || "0"} value={sv.w || ''} onChange={e => handleInputChange(ek, 'w', e.target.value)} /></div>
+                  <div className="input-group"><div className="input-label">{ex.toLowerCase().includes('plank') || ex.toLowerCase().includes('hold') || ex.toLowerCase().includes('cardio') ? 'TIME (s)' : 'REPS'}</div><input type="number" min="0" placeholder={prev.r || "0"} value={sv.r || ''} onChange={e => handleInputChange(ek, 'r', e.target.value)} /></div>
+                  <div className="input-group"><div className="input-label">{ex.toLowerCase().includes('plank') || ex.toLowerCase().includes('hold') || ex.toLowerCase().includes('cardio') ? 'LEVEL' : 'KG'}</div><input type="number" min="0" step="0.5" placeholder={prev.w || "0"} value={sv.w || ''} onChange={e => handleInputChange(ek, 'w', e.target.value)} /></div>
                 </div>
                 <div className="vol-row"><span className="vol-label">Volume</span><span className="vol-val">{vol ? vol+' kg' : '—'}</span></div>
               </div>

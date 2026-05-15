@@ -59,10 +59,15 @@ export default function History({ DB, NAMES, META, FOOD }) {
     const [y, m, day] = modalDk.split('-');
     const d = new Date(y, m - 1, day);
     const dow = d.getDay();
-    const plan = DEFAULT_PLAN[dow] || DEFAULT_PLAN[0];
+    const basePlan = DEFAULT_PLAN[dow] || DEFAULT_PLAN[0];
+    const plan = { ...basePlan, muscles: [...basePlan.muscles] };
     const entry = DB[modalDk] || {};
     const meta = META[modalDk] || {};
     const vol = getDayVol(entry);
+
+    if (Object.keys(entry).some(k => k.startsWith('Abs_'))) {
+      plan.muscles.push({ name: 'Abs', exercises: ['Crunch', 'Plank', 'Leg Raises'] });
+    }
     
     const savedF = FOOD[modalDk] || { items: {} };
     let dayP = 0;
@@ -109,6 +114,7 @@ export default function History({ DB, NAMES, META, FOOD }) {
                   
                   const v = hasVol ? Math.round(sv.s * sv.r * sv.w) : '—';
                   const nameStr = NAMES[`${dow}_${m.name}_${i}`] || ex;
+                  const isTimeBased = nameStr.toLowerCase().includes('plank') || nameStr.toLowerCase().includes('hold') || nameStr.toLowerCase().includes('cardio');
                   
                   return (
                     <tr key={ek}>
@@ -118,7 +124,7 @@ export default function History({ DB, NAMES, META, FOOD }) {
                           <span style={{textDecoration: isDone === false ? 'line-through' : 'none', color: isDone === false ? 'var(--text3)' : 'var(--text)'}}>{nameStr}</span>
                         </div>
                       </td>
-                      <td>{sv.s || '—'}</td><td>{sv.r || '—'}</td><td>{sv.w || '—'}</td>
+                      <td>{sv.s || '—'}</td><td>{sv.r ? (sv.r + (isTimeBased ? 's' : '')) : '—'}</td><td>{sv.w || '—'}</td>
                       <td style={{color:'var(--accent)'}}>{v !== '—' ? v+'kg' : '—'}</td>
                     </tr>
                   );
@@ -129,7 +135,7 @@ export default function History({ DB, NAMES, META, FOOD }) {
                   <div key={m.name}>
                     <div className="mini-section">{m.name}</div>
                     <table className="mini-table">
-                      <thead><tr><th>Exercise</th><th>Sets</th><th>Reps</th><th>Kg</th><th>Vol</th></tr></thead>
+                      <thead><tr><th>Exercise</th><th>Sets</th><th>Reps/Secs</th><th>Kg/Lvl</th><th>Vol</th></tr></thead>
                       <tbody>{rows}</tbody>
                     </table>
                   </div>
