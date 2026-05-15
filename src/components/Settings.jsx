@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DEFAULT_PLAN, DAYS_FULL, DEFAULT_DIET_PLAN, MONTHS, dateKey } from '../data';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Beaker } from 'lucide-react';
+import { generateSeedData } from '../utils/seeder';
 
 function Accordion({ title, subtitle, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -53,6 +54,11 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
   const [newCatEmoji, setNewCatEmoji] = useState('📦');
   const [catMsg, setCatMsg] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+
+  const [localAiEnabled, setLocalAiEnabled] = useState(() => localStorage.getItem('ai_enabled') === 'true');
+  const [localAiKey, setLocalAiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+  const [localAiModel, setLocalAiModel] = useState(() => localStorage.getItem('ai_model') || 'gemini-1.5-flash');
+  const [localAiPersona, setLocalAiPersona] = useState(() => localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
 
   const addCategory = () => {
     if (!newCatLabel.trim()) return;
@@ -365,11 +371,80 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
         </div>
       </Accordion>
 
+      {/* AI COACH */}
+      <Accordion title="🤖 AI Coach Settings" subtitle="Configure your personal AI assistant">
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600 }}>Enable AI Coach</div>
+            <div onClick={() => {
+              const newVal = !localAiEnabled;
+              setLocalAiEnabled(newVal);
+              localStorage.setItem('ai_enabled', newVal);
+              window.dispatchEvent(new Event('storage'));
+            }} style={{ width: '44px', height: '24px', background: localAiEnabled ? 'var(--accent)' : 'var(--bg3)', borderRadius: '12px', position: 'relative', cursor: 'pointer', transition: 'all 0.3s', border: '1px solid var(--border2)' }}>
+              <div style={{ width: '18px', height: '18px', background: localAiEnabled ? '#000' : 'var(--text3)', borderRadius: '50%', position: 'absolute', top: '2px', left: localAiEnabled ? '22px' : '3px', transition: 'all 0.3s' }}></div>
+            </div>
+          </div>
+        </div>
+        
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Gemini API Key</div>
+          <input type="password" value={localAiKey} onChange={e => {
+            setLocalAiKey(e.target.value);
+            localStorage.setItem('gemini_api_key', e.target.value);
+          }} placeholder="Paste your API key here"
+            style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
+        </div>
+
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Coach Persona (Free Models)</div>
+          <select value={localAiModel} onChange={e => {
+            setLocalAiModel(e.target.value);
+            localStorage.setItem('ai_model', e.target.value);
+          }} style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }}>
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fastest/Free)</option>
+            <option value="gemini-2.0-flash">Gemini 2.0 Flash (Advanced/Free)</option>
+            <option value="gemini-pro">Gemini Pro (Legacy/Stable)</option>
+          </select>
+        </div>
+
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Coach Personality / Instructions</div>
+          <input type="text" value={localAiPersona} onChange={e => {
+            setLocalAiPersona(e.target.value);
+            localStorage.setItem('ai_persona', e.target.value);
+          }} placeholder="e.g. Aggressive Drill Sergeant, Helpful Friend"
+            style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
+        </div>
+
+        <div style={{ fontSize: '10px', color: 'var(--accent)', marginTop: '8px', opacity: 0.8 }}>
+          Settings are saved locally on this device.
+        </div>
+      </Accordion>
+
       {/* DATA */}
       <Accordion title="📦 Data &amp; Export" subtitle="Choose what to export">
         <button className="settings-save" style={{ background: 'var(--accent)', color: '#000', marginBottom: '10px', width: '100%' }} onClick={() => setShowExportModal(true)}>Export Data</button>
         <button className="settings-save" style={{ background: 'var(--bg3)', color: 'var(--text)', marginBottom: '10px', width: '100%' }} onClick={exportData}>Full Backup (JSON)</button>
         <button className="logout-btn" onClick={handleLogout} style={{ width: '100%' }}>Log Out</button>
+      </Accordion>
+
+      {/* DEVELOPER OPTIONS */}
+      <Accordion title="🧪 Developer Options" subtitle="Tools for testing and debugging">
+        <p style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '12px', lineHeight: 1.4 }}>
+          Seed your account with dummy data from January to April. This will overwrite existing data for those dates.
+        </p>
+        <button className="settings-save" style={{ background: 'var(--bg3)', color: 'var(--text)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          onClick={() => {
+            const seed = generateSeedData();
+            // Sync all modules
+            syncData({ ...DB, ...seed.DB }, NAMES, { ...META, ...seed.META }, FOOD, SCHEDULE);
+            syncBudget({ ...BUDGET, ...seed.BUDGET });
+            syncStudy({ ...STUDY, ...seed.STUDY });
+            alert('Dummy data for Jan-Apr generated successfully!');
+          }}>
+          <Beaker size={16} /> Seed Dummy Data (Jan-Apr)
+        </button>
       </Accordion>
 
       <div style={{ height: '20px' }} />

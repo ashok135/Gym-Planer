@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
-import { PlusCircle, Trash2, BookOpen, Clock, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { PlusCircle, Trash2, BookOpen, Clock, CheckCircle, ChevronLeft, ChevronRight, BarChart as BarChartIcon, Calendar, X } from 'lucide-react';
+import { MONTHS, DAYS_SHORT } from '../data';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, Cell, PieChart, Pie, ReferenceLine } from 'recharts';
 
 const DEFAULT_SUBJECTS = [
-  { id: 'dsa',   label: 'DSA',    emoji: '🧠', color: '#A78BFA' },
-  { id: 'js',    label: 'JavaScript', emoji: '⚡', color: '#FBBF24' },
-  { id: 'react', label: 'React',  emoji: '⚛️',  color: '#4D9FFF' },
+  { id: 'dsa',      label: 'DSA',             emoji: '🧠', color: '#A78BFA' },
+  { id: 'js',       label: 'JavaScript',      emoji: '⚡', color: '#FBBF24' },
+  { id: 'react',    label: 'React',           emoji: '⚛️',  color: '#4D9FFF' },
+  { id: 'interview',label: 'Interview Prep', emoji: '🤝', color: '#34D399' },
 ];
 
 const dateKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 
-export default function Study({ STUDY, syncStudy, STUDY_SETTINGS }) {
+export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, activeRange: propRange }) {
   const now = new Date();
   const todayKey = dateKey(now);
 
@@ -17,107 +21,313 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS }) {
   const dailyTarget = STUDY_SETTINGS?.dailyTarget || 4;
 
   const todayData = STUDY[todayKey] || {};
+  const [activeRange, setActiveRange] = useState(propRange || 'Weekly');
+  const [selectedMonth, setSelectedMonth] = useState(monthKey(now));
+  const [showAllHistory, setShowAllHistory] = useState(true);
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  
+  useEffect(() => {
+    if (propRange) setActiveRange(propRange);
+  }, [propRange]);
+
+  const changeMonth = (offset) => {
+    const [y, m] = selectedMonth.split('-').map(Number);
+    const d = new Date(y, m - 1 + offset, 1);
+    setSelectedMonth(monthKey(d));
+  };
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState({ subjectId: subjects[0]?.id || 'dsa', hours: '1', learned: '' });
-  const [expandedDay, setExpandedDay] = useState(null);
-  const [historyFilter, setHistoryFilter] = useState('All');
+  const [historyStart, setHistoryStart] = useState('');
+  const [historyEnd, setHistoryEnd] = useState('');
+  const [modalDay, setModalDay] = useState(null);
+  const [limit, setLimit] = useState(20);
 
-  // Today stats
-  const todaySessions = todayData.sessions || [];
-  const todayHours = todaySessions.reduce((s, e) => s + Number(e.hours), 0);
-  const progressPct = Math.min(100, Math.round((todayHours / dailyTarget) * 100));
+  const formatDuration = (hours) => {
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
 
-  // Subject breakdown for today
+  // Range-based stats for Dashboard
+  const getRangeStats = (range) => {
+    let hrs = 0, count = 0;
+    Object.entries(STUDY).forEach(([dk, dayData]) => {
+      const d = new Date(dk);
+      const diff = (now - d) / (1000 * 60 * 60 * 24);
+      const mk = monthKey(d);
+      const [selY, selM] = selectedMonth.split('-').map(Number);
+      
+      if (range === 'Today' && dk !== todayKey) return;
+      if (range === 'Weekly' && diff > 7) return;
+      if (range === 'Monthly' && mk !== selectedMonth) return;
+      if (range === 'Yearly' && d.getFullYear() !== selY) return;
+      
+      const sessions = dayData.sessions || [];
+      hrs += sessions.reduce((s, e) => s + Number(e.hours), 0);
+      count += sessions.length;
+    });
+    return { hrs, count };
+  };
+
+  const stats = getRangeStats(activeRange);
+  const rangeHours = stats.hrs;
+  const rangeSessions = stats.count;
+  
+  const targetHrs = activeRange === 'Today' ? dailyTarget : (activeRange === 'Weekly' ? dailyTarget * 7 : (activeRange === 'Monthly' ? dailyTarget * 30 : dailyTarget * 365));
+  const progressPct = Math.min(100, Math.round((rangeHours / targetHrs) * 100));
+
+
   const subjectHours = {};
   subjects.forEach(s => { subjectHours[s.id] = 0; });
-  todaySessions.forEach(s => { subjectHours[s.subjectId] = (subjectHours[s.subjectId] || 0) + Number(s.hours); });
+  
+  Object.entries(STUDY).forEach(([dk, dayData]) => {
+    const d = new Date(dk);
+    const diff = (now - d) / (1000 * 60 * 60 * 24);
+    const mk = monthKey(d);
+    
+    let include = false;
+    if (activeRange === 'Today' && dk === todayKey) include = true;
+    if (activeRange === 'Weekly' && diff <= 7) include = true;
+    if (activeRange === 'Monthly' && mk === selectedMonth) include = true;
+    if (activeRange === 'Yearly' && d.getFullYear() === now.getFullYear()) include = true;
+
+    if (include) {
+      (dayData.sessions || []).forEach(s => {
+        subjectHours[s.subjectId] = (subjectHours[s.subjectId] || 0) + Number(s.hours);
+      });
+    }
+  });
 
   const addSession = () => {
     if (!addForm.hours || isNaN(addForm.hours) || Number(addForm.hours) <= 0) return;
+    const d = new Date();
+    const dk = dateKey(d);
+    const tm = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const ts = d.getTime();
+
     const newSession = {
-      id: Date.now().toString(),
+      id: ts.toString(),
       subjectId: addForm.subjectId,
       hours: Number(addForm.hours),
       learned: addForm.learned.trim(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: tm,
+      timestamp: ts
     };
-    const newStudy = { ...STUDY, [todayKey]: { ...todayData, sessions: [...todaySessions, newSession] } };
+
+    const targetDayData = STUDY[dk] || { sessions: [] };
+    const newStudy = { ...STUDY, [dk]: { ...targetDayData, sessions: [...(targetDayData.sessions || []), newSession] } };
     syncStudy(newStudy);
     setAddForm({ subjectId: subjects[0]?.id || 'dsa', hours: '1', learned: '' });
     setShowAdd(false);
   };
 
-  const deleteSession = (id) => {
-    const newStudy = { ...STUDY, [todayKey]: { ...todayData, sessions: todaySessions.filter(s => s.id !== id) } };
+  const deleteSession = (id, dk) => {
+    const targetDay = STUDY[dk];
+    if (!targetDay) return;
+    const newStudy = { 
+      ...STUDY, 
+      [dk]: { 
+        ...targetDay, 
+        sessions: (targetDay.sessions || []).filter(s => s.id !== id) 
+      } 
+    };
     syncStudy(newStudy);
   };
 
-  // Last 7 days streak
-  const last7 = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    const dk = dateKey(d);
-    const hrs = ((STUDY[dk]?.sessions || []).reduce((s, e) => s + Number(e.hours), 0));
-    last7.push({ dk, d, hrs, isToday: dk === todayKey });
+  // Full 12-Month GitHub-style Activity Grid logic
+  const monthsData = [];
+  for (let m = 0; m < 12; m++) {
+    const d = new Date(now.getFullYear(), m, 1);
+    const monthDays = [];
+    const daysInMonth = new Date(now.getFullYear(), m + 1, 0).getDate();
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dk = `${now.getFullYear()}-${String(m + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      const hrs = ((STUDY[dk]?.sessions || []).reduce((s, e) => s + Number(e.hours), 0));
+      monthDays.push({ dk, hrs });
+    }
+    monthsData.push({ name: MONTHS[m].slice(0, 3), days: monthDays });
   }
 
-  // All history keys with filter
-  const allHistoryKeys = Object.keys(STUDY).sort().reverse();
-  const filteredHistoryKeys = allHistoryKeys.filter(dk => {
-    if (dk === todayKey) return false;
-    if (historyFilter === 'All') return true;
-    const diff = (now - new Date(dk)) / (1000 * 60 * 60 * 24);
-    if (historyFilter === 'Weekly')  return diff <= 7;
-    if (historyFilter === 'Monthly') return diff <= 30;
-    if (historyFilter === 'Yearly')  return diff <= 365;
-    return true;
+  // History Data logic
+  const historyDataMap = {};
+  Object.entries(STUDY).forEach(([dk, dayData]) => {
+    const sessions = dayData.sessions || [];
+    if (sessions.length === 0) return;
+
+    const [y, mStr, dStr] = dk.split('-');
+    const yr = parseInt(y);
+    const mo = parseInt(mStr) - 1;
+    const mk = `${y}-${mStr}`;
+
+    // Filter logic: Respect range and selection
+    let include = false;
+    if (historyStart || historyEnd) {
+      include = (!historyStart || dk >= historyStart) && (!historyEnd || dk <= historyEnd);
+    } else if (showAllHistory) {
+      include = true;
+    } else {
+      if (activeRange === 'Today' && dk === todayKey) include = true;
+      if (activeRange === 'Weekly') {
+        const diff = (now - new Date(dk)) / (1000 * 60 * 60 * 24);
+        if (diff <= 7) include = true;
+      }
+      if (activeRange === 'Monthly' && mk === selectedMonth) include = true;
+      if (activeRange === 'Yearly' && y === selectedMonth.split('-')[0]) include = true;
+    }
+
+    if (!include) return;
+
+    if (!historyDataMap[mk]) {
+      historyDataMap[mk] = { yr, mo, days: {} };
+    }
+
+    const totalHrs = sessions.reduce((s, e) => s + Number(e.hours), 0);
+    historyDataMap[mk].days[dk] = { 
+      dk, 
+      totalHrs, 
+      sessions: sessions.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0)) 
+    };
   });
 
+  const sortedHistory = Object.values(historyDataMap).sort((a, b) => (b.yr - a.yr) || (b.mo - a.mo));
+  sortedHistory.forEach(month => {
+    month.dayList = Object.values(month.days).sort((a, b) => b.dk.localeCompare(a.dk));
+  });
+
+  // Analytics for Report
+  const chartData = [];
+  if (isReport) {
+    const [selY, selM] = selectedMonth.split('-').map(Number);
+    const rollingDays = activeRange === 'Today' ? 1 : activeRange === 'Weekly' ? 7 : activeRange === 'Monthly' ? 30 : 365;
+    
+    for (let i = rollingDays - 1; i >= 0; i--) {
+      const d = new Date(now); d.setDate(now.getDate() - i);
+      const dk = dateKey(d);
+      const dayStats = STUDY[dk] || { sessions: [] };
+      const totalHrs = (dayStats.sessions || []).reduce((s, e) => s + Number(e.hours), 0);
+      
+      chartData.push({
+        name: activeRange === 'Weekly' ? DAYS_SHORT[d.getDay()] : `${d.getDate()}/${d.getMonth()+1}`,
+        hours: totalHrs,
+        date: dk
+      });
+    }
+  }
+
+  const pieData = subjects.map(s => ({
+    name: s.label,
+    value: subjectHours[s.id] || 0,
+    color: s.color
+  })).filter(d => d.value > 0);
 
   const statusEmoji = progressPct >= 100 ? '🔥' : progressPct >= 50 ? '⚡' : '📚';
   const statusColor = progressPct >= 100 ? 'var(--accent)' : progressPct >= 50 ? 'var(--orange)' : 'var(--blue)';
 
+  const renderModal = () => {
+    if (!modalDay) return null;
+    const d = new Date(modalDay.dk);
+    const sessions = modalDay.sessions.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    return (
+      <div className="modal-overlay open" onClick={(e) => { if(e.target.className.includes('modal-overlay')) setModalDay(null); }}>
+        <div className="modal">
+          <div className="modal-handle"></div>
+          <button className="modal-close" onClick={() => setModalDay(null)}>×</button>
+          <div className="modal-title">{modalDay.dk === todayKey ? 'Today' : DAYS_SHORT[d.getDay()]}, {d.getDate()} {MONTHS[d.getMonth()]}</div>
+          <div className="modal-sub">Total Study: {modalDay.totalHrs.toFixed(1)} hrs</div>
+          
+          <div style={{ marginTop: '20px' }}>
+            {sessions.map(s => {
+              const sub = subjects.find(x => x.id === s.subjectId) || subjects[0];
+              return (
+                <div key={s.id} style={{ padding: '12px', background: 'var(--bg3)', borderRadius: '12px', marginBottom: '10px', border: '1px solid var(--border2)', borderLeft: `3px solid ${sub.color}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                        <span>{sub.emoji}</span>
+                        <span style={{ fontWeight: 600, fontSize: '13px', color: sub.color }}>{sub.label}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--text3)', marginLeft: 'auto' }}>{s.time}</span>
+                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{s.hours}h session</div>
+                      {s.learned && <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '4px', fontStyle: 'italic' }}>💡 {s.learned}</div>}
+                    </div>
+                    <button onClick={() => { deleteSession(s.id, modalDay.dk); setModalDay(prev => ({...prev, sessions: prev.sessions.filter(x => x.id !== s.id), totalHrs: prev.totalHrs - s.hours})); }} style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} /></button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div id="study-content" style={{ padding: '20px 0' }}>
-      {/* Header */}
-      <div className="ai-dash-header" style={{ marginBottom: '8px' }}>
-        <div>
-          <div className="greeting">Daily</div>
-          <div className="ai-title">Study Plan</div>
+      <div style={{ padding: '0 20px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }} className="hide-scroll">
+          {(() => {
+            const months = [];
+            for (let i = 0; i < 6; i++) {
+              const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+              const mk = monthKey(d);
+              months.push({ mk, label: `${MONTHS[d.getMonth()].slice(0, 3)} ${String(d.getFullYear()).slice(2)}` });
+            }
+            return months.map(m => (
+              <div key={m.mk} onClick={() => { setSelectedMonth(m.mk); setActiveRange('Monthly'); }}
+                style={{ padding: '8px 16px', borderRadius: '20px', fontSize: '12px', whiteSpace: 'nowrap', cursor: 'pointer',
+                  background: selectedMonth === m.mk ? 'var(--accent)' : 'var(--bg3)',
+                  color: selectedMonth === m.mk ? '#000' : 'var(--text3)',
+                  border: '1px solid var(--border2)', fontWeight: selectedMonth === m.mk ? 700 : 400 }}>
+                {m.label}
+              </div>
+            ));
+          })()}
         </div>
       </div>
 
-      {/* Today Progress Card */}
-      <div style={{ margin: '0 20px 16px', background: 'linear-gradient(145deg, var(--bg3), var(--bg2))', borderRadius: '16px', padding: '20px', border: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+      <div style={{ padding: '0 20px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', background: 'var(--bg3)', borderRadius: '20px', padding: '4px', width: 'fit-content' }}>
+          {['Today', 'Weekly', 'Monthly', 'Yearly'].map(tr => (
+            <div key={tr} onClick={() => setActiveRange(tr)}
+              style={{ padding: '4px 12px', fontSize: '11px', borderRadius: '16px', cursor: 'pointer',
+                background: activeRange === tr ? 'var(--accent)' : 'transparent',
+                color: activeRange === tr ? '#000' : 'var(--text2)',
+                fontWeight: activeRange === tr ? 'bold' : 'normal', transition: 'all 0.2s' }}>
+              {tr}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ margin: '0 20px 20px', background: 'var(--bg2)', borderRadius: '24px', padding: '24px', border: '1px solid var(--border2)', position: 'relative' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
           <div>
-            <div style={{ fontSize: '12px', color: 'var(--text2)' }}>Today's Progress {statusEmoji}</div>
-            <div style={{ fontSize: '28px', fontWeight: 'bold', color: statusColor }}>{todayHours.toFixed(1)} hrs</div>
-            <div style={{ fontSize: '11px', color: 'var(--text3)' }}>Target: {dailyTarget} hrs/day</div>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '8px' }}>{activeRange} Progress</div>
+            <div style={{ fontSize: '32px', fontWeight: 900, color: statusColor }}>{formatDuration(rangeHours)} <span style={{fontSize:'14px', color:'var(--text3)', fontWeight: 400}}>/ {targetHrs}h</span></div>
+            <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '4px' }}>{rangeSessions} total sessions • {progressPct}% complete</div>
           </div>
-          <div style={{ width: '64px', height: '64px', position: 'relative' }}>
+          <div style={{ width: '60px', height: '60px', position: 'relative' }}>
             <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
-              <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--border2)" strokeWidth="3" />
+              <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
               <circle cx="18" cy="18" r="15.9" fill="none" stroke={statusColor} strokeWidth="3"
-                strokeDasharray={`${progressPct} 100`} strokeLinecap="round" />
+                strokeDasharray={`${progressPct} 100`} strokeLinecap="round" style={{ transition: 'stroke-dasharray 1s ease' }} />
             </svg>
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold', color: statusColor }}>{progressPct}%</div>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 900, color: statusColor }}>{progressPct}%</div>
           </div>
         </div>
-
-        {/* Subject Bars */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {subjects.map(sub => {
             const hrs = subjectHours[sub.id] || 0;
-            const pct = Math.min(100, Math.round((hrs / dailyTarget) * 100));
+            const subPct = Math.min(100, Math.round((hrs / (targetHrs / subjects.length || 1)) * 100));
             return (
               <div key={sub.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                   <span>{sub.emoji} {sub.label}</span>
-                  <span style={{ color: sub.color, fontWeight: 600 }}>{hrs.toFixed(1)}h</span>
+                  <span style={{ color: sub.color, fontWeight: 700 }}>{formatDuration(hrs)}</span>
                 </div>
-                <div style={{ background: 'var(--border2)', borderRadius: '6px', height: '6px', overflow: 'hidden' }}>
-                  <div style={{ width: `${pct}%`, height: '100%', background: sub.color, borderRadius: '6px', transition: 'width 0.8s ease' }} />
+                <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '4px', height: '4px', overflow: 'hidden' }}>
+                  <div style={{ width: `${subPct}%`, height: '100%', background: sub.color, borderRadius: '4px', transition: 'width 1s ease' }} />
                 </div>
               </div>
             );
@@ -125,139 +335,190 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS }) {
         </div>
       </div>
 
-      {/* 7-Day Streak */}
-      <div style={{ margin: '0 20px 16px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '10px' }}>📅 This Week</div>
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between' }}>
-          {last7.map(({ dk, d, hrs, isToday }) => (
-            <div key={dk} style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>
-                {d.toLocaleString('default', { weekday: 'narrow' })}
-              </div>
-              <div style={{
-                width: '100%', aspectRatio: '1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: hrs >= dailyTarget ? 'var(--accent)' : hrs > 0 ? 'rgba(200,241,53,0.2)' : 'var(--bg3)',
-                border: isToday ? '2px solid var(--accent)' : '2px solid transparent',
-                fontSize: '10px', fontWeight: 'bold',
-                color: hrs >= dailyTarget ? '#000' : hrs > 0 ? 'var(--accent)' : 'var(--text3)',
-              }}>
-                {hrs > 0 ? `${hrs.toFixed(0)}h` : '—'}
+      <div style={{ margin: '0 20px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 700 }}>Activity Heatmap</div>
+          <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{now.getFullYear()} Calendar</div>
+        </div>
+        <div style={{ display: 'flex', gap: '12px', background: 'var(--bg3)', padding: '12px', borderRadius: '16px', border: '1px solid var(--border2)', overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {monthsData.map(m => (
+            <div key={m.name} style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 'fit-content' }}>
+              <div style={{ fontSize: '8px', color: 'var(--text3)', textAlign: 'center' }}>{m.name}</div>
+              <div style={{ display: 'grid', gridTemplateRows: 'repeat(7, 1fr)', gridAutoFlow: 'column', gap: '2px' }}>
+                {m.days.map(d => (
+                  <div key={d.dk} style={{ 
+                    width: '6px', height: '6px', borderRadius: '1px', 
+                    background: d.hrs > 0 ? `rgba(200, 241, 53, ${Math.min(1, 0.2 + (d.hrs/dailyTarget))})` : 'rgba(255,255,255,0.05)',
+                    border: d.dk === todayKey ? '1px solid var(--accent)' : 'none'
+                  }} title={`${d.dk}: ${d.hrs}h`} />
+                ))}
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Add Session Button */}
-      <div style={{ margin: '0 20px 16px' }}>
-        <button onClick={() => setShowAdd(!showAdd)}
-          style={{ width: '100%', padding: '12px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '12px', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-          <PlusCircle size={18} /> Log Study Session
-        </button>
-      </div>
+      {!isReport && (
+        <>
+          <div style={{ padding: '0 20px', marginBottom: '24px' }}>
+            <button onClick={() => setShowAdd(!showAdd)}
+              style={{ width: '100%', padding: '14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '16px', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(200,241,53,0.2)' }}>
+              <PlusCircle size={18} /> Log Study Session
+            </button>
+          </div>
 
-      {/* Add Session Form */}
-      {showAdd && (
-        <div style={{ margin: '0 20px 16px', background: 'var(--bg3)', borderRadius: '14px', padding: '16px', border: '1px solid var(--border2)' }}>
-          <div style={{ fontWeight: 600, marginBottom: '12px' }}>New Session</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-            {subjects.map(s => (
-              <div key={s.id} onClick={() => setAddForm(f => ({ ...f, subjectId: s.id }))}
-                style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer', background: addForm.subjectId === s.id ? s.color : 'var(--bg)', color: addForm.subjectId === s.id ? '#000' : 'var(--text2)', fontWeight: addForm.subjectId === s.id ? 700 : 400, border: `1px solid ${addForm.subjectId === s.id ? s.color : 'var(--border2)'}`, transition: 'all 0.15s' }}>
-                {s.emoji} {s.label}
+          {showAdd && (
+            <div style={{ margin: '0 20px 24px', background: 'var(--bg3)', borderRadius: '20px', padding: '20px', border: '1px solid var(--border2)' }}>
+              <div style={{ fontWeight: 700, marginBottom: '16px', fontSize: '15px' }}>New Session</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+                {subjects.map(s => (
+                  <div key={s.id} onClick={() => setAddForm(f => ({ ...f, subjectId: s.id }))}
+                    style={{ padding: '8px 16px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer', background: addForm.subjectId === s.id ? s.color : 'var(--bg)', color: addForm.subjectId === s.id ? '#000' : 'var(--text2)', fontWeight: 700, border: `1px solid ${addForm.subjectId === s.id ? s.color : 'var(--border2)'}`, transition: 'all 0.2s' }}>
+                    {s.emoji} {s.label}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div style={{ marginBottom: '8px' }}>
-            <div style={{ fontSize: '11px', color: 'var(--text2)', marginBottom: '6px' }}>Hours Studied</div>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {[0.5, 1, 1.5, 2, 2.5, 3].map(h => (
-                <div key={h} onClick={() => setAddForm(f => ({ ...f, hours: h.toString() }))}
-                  style={{ padding: '6px 12px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer', background: addForm.hours == h ? 'var(--accent)' : 'var(--bg)', color: addForm.hours == h ? '#000' : 'var(--text2)', border: `1px solid ${addForm.hours == h ? 'var(--accent)' : 'var(--border2)'}`, transition: 'all 0.15s', fontWeight: addForm.hours == h ? 700 : 400 }}>
-                  {h}h
-                </div>
-              ))}
-            </div>
-          </div>
-          <textarea placeholder="What did you learn today? (optional)" value={addForm.learned} onChange={e => setAddForm(f => ({ ...f, learned: e.target.value }))}
-            rows={2}
-            style={{ width: '100%', padding: '10px 12px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', marginBottom: '12px', boxSizing: 'border-box', resize: 'none', fontFamily: 'inherit' }} />
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={addSession} style={{ flex: 1, padding: '10px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>Save Session</button>
-            <button onClick={() => setShowAdd(false)} style={{ flex: 1, padding: '10px', background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border2)', borderRadius: '8px', cursor: 'pointer' }}>Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {/* Today's Sessions */}
-      {todaySessions.length > 0 && (
-        <div style={{ margin: '0 20px 16px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>Today's Sessions</div>
-          {todaySessions.map(s => {
-            const sub = subjects.find(x => x.id === s.subjectId) || subjects[0];
-            return (
-              <div key={s.id} style={{ background: 'var(--bg3)', borderRadius: '10px', padding: '12px', marginBottom: '8px', border: `1px solid var(--border2)`, borderLeft: `3px solid ${sub.color}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                      <span>{sub.emoji}</span>
-                      <span style={{ fontWeight: 600, fontSize: '13px', color: sub.color }}>{sub.label}</span>
-                      <span style={{ fontSize: '11px', color: 'var(--text3)', marginLeft: 'auto' }}>{s.time}</span>
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Select Hours</div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {[0.5, 1, 1.5, 2, 2.5, 3, 4].map(h => (
+                    <div key={h} onClick={() => setAddForm(f => ({ ...f, hours: h.toString() }))}
+                      style={{ padding: '8px 14px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer', background: addForm.hours == h ? 'var(--accent)' : 'var(--bg)', color: addForm.hours == h ? '#000' : 'var(--text2)', border: `1px solid ${addForm.hours == h ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700 }}>
+                      {h}h
                     </div>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{s.hours}h studied</div>
-                    {s.learned && <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '4px', fontStyle: 'italic' }}>💡 {s.learned}</div>}
-                  </div>
-                  <button onClick={() => deleteSession(s.id)} style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: '4px', marginLeft: '8px' }}><Trash2 size={15} /></button>
+                  ))}
                 </div>
               </div>
-            );
-          })}
+              <textarea placeholder="What topic did you cover?" value={addForm.learned} onChange={e => setAddForm(f => ({ ...f, learned: e.target.value }))}
+                rows={2} style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '14px', marginBottom: '20px', boxSizing: 'border-box', resize: 'none', fontFamily: 'inherit' }} />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={addSession} style={{ flex: 1, padding: '12px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' }}>Save Entry</button>
+                <button onClick={() => setShowAdd(false)} style={{ flex: 1, padding: '12px', background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border2)', borderRadius: '12px', cursor: 'pointer' }}>Cancel</button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {isReport && (
+        <div style={{ padding: '0 20px', marginBottom: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+          <div className="dash-card full" style={{ background: 'var(--bg3)', padding: '20px', display: 'block' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <BarChartIcon size={18} color="var(--blue)" />
+              <div style={{ fontSize: '15px', fontWeight: 700 }}>Study Trend</div>
+            </div>
+            <div style={{ width: '100%', height: '180px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorHrs" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--blue)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--blue)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="name" tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                  <YAxis tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: '#111', border: '1px solid var(--border2)', borderRadius: '8px', fontSize: '12px' }} />
+                  <Area type="monotone" dataKey="hours" stroke="var(--blue)" strokeWidth={3} fillOpacity={1} fill="url(#colorHrs)" />
+                  <ReferenceLine y={dailyTarget} label={{ position: 'right', value: 'GOAL', fill: 'var(--accent)', fontSize: 8 }} stroke="var(--accent)" strokeDasharray="3 3" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div className="dash-card full" style={{ background: 'var(--bg3)', padding: '20px', display: 'block' }}>
+            <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Subject Mix</div>
+            <div style={{ width: '100%', height: '180px', display: 'flex', alignItems: 'center' }}>
+              <ResponsiveContainer width="50%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={5} dataKey="value">
+                    {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', maxHeight: '160px' }}>
+                {pieData.map(d => (
+                  <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color }}></div>
+                    <span style={{ fontSize: '10px', color: 'var(--text2)', whiteSpace: 'nowrap' }}>{d.name}: {d.value.toFixed(1)}h</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* HISTORY WITH FILTER */}
-      <div style={{ margin: '0 20px 16px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '10px' }}>📋 Study History</div>
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-          {['All', 'Weekly', 'Monthly', 'Yearly'].map(f => (
-            <div key={f} onClick={() => setHistoryFilter(f)}
-              style={{ padding: '5px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer', fontWeight: historyFilter === f ? 700 : 400, background: historyFilter === f ? 'var(--accent)' : 'var(--bg3)', color: historyFilter === f ? '#000' : 'var(--text2)', border: '1px solid var(--border2)', transition: 'all 0.2s' }}>
-              {f}
+      <div style={{ padding: '0 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ fontSize: '16px', fontWeight: 700 }}>History</div>
+            <div onClick={() => setShowAllHistory(!showAllHistory)} 
+              style={{ fontSize: '11px', padding: '4px 12px', borderRadius: '12px', cursor: 'pointer', 
+                background: showAllHistory ? 'var(--accent)' : 'var(--bg3)', 
+                color: showAllHistory ? '#000' : 'var(--text2)', 
+                border: '1px solid var(--border2)', fontWeight: showAllHistory ? 'bold' : 'normal' }}>
+              {showAllHistory ? 'Showing All' : 'Show All Time'}
             </div>
-          ))}
-        </div>
-        {filteredHistoryKeys.length === 0 && <div style={{ color: 'var(--text3)', fontSize: '12px', textAlign: 'center', padding: '20px 0' }}>No study sessions in this period</div>}
-        {filteredHistoryKeys.map(dk => {
-          const sessions = STUDY[dk]?.sessions || [];
-          const hrs = sessions.reduce((s, e) => s + Number(e.hours), 0);
-          const subs = [...new Set(sessions.map(s => s.subjectId))].map(id => subjects.find(x => x.id === id)?.emoji || '📚').join(' ');
-          return (
-            <div key={dk} onClick={() => setExpandedDay(expandedDay === dk ? null : dk)}
-              style={{ background: 'var(--bg3)', borderRadius: '10px', padding: '12px', marginBottom: '6px', border: '1px solid var(--border2)', cursor: 'pointer' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: '12px', color: 'var(--text2)' }}>{dk}</div>
-                  <div style={{ fontSize: '13px', fontWeight: 600 }}>{subs} {hrs.toFixed(1)}h</div>
-                </div>
-                <div style={{ background: hrs >= dailyTarget ? 'rgba(200,241,53,0.1)' : 'var(--bg)', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', color: hrs >= dailyTarget ? 'var(--accent)' : 'var(--text3)', fontWeight: 600 }}>
-                  {hrs >= dailyTarget ? '✅ Done' : `${Math.round((hrs/dailyTarget)*100)}%`}
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {showDateFilter ? (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'var(--bg3)', padding: '2px 6px', borderRadius: '20px', border: '1px solid var(--border2)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+                <div style={{display:'flex', alignItems:'center', background:'var(--bg)', borderRadius:'18px', padding:'4px 10px', gap:'8px'}}>
+                  <Calendar size={12} color="var(--accent)" />
+                  <input type="date" value={historyStart} onChange={e => setHistoryStart(e.target.value)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text)', fontSize: '10px', outline: 'none', width: '85px', cursor:'pointer' }} />
+                  <div style={{width:'1px', height:'12px', background:'var(--border2)'}}></div>
+                  <input type="date" value={historyEnd} onChange={e => setHistoryEnd(e.target.value)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text)', fontSize: '10px', outline: 'none', width: '85px', cursor:'pointer' }} />
+                  <X size={12} onClick={() => setShowDateFilter(false)} style={{cursor:'pointer', color:'var(--text3)'}} />
                 </div>
               </div>
-              {expandedDay === dk && sessions.map(s => {
-                const sub = subjects.find(x => x.id === s.subjectId) || subjects[0];
-                return (
-                  <div key={s.id} style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border2)', fontSize: '12px', color: 'var(--text2)' }}>
-                    <span style={{ color: sub?.color }}>{sub?.emoji} {sub?.label}</span> — {s.hours}h
-                    {s.learned && <div style={{ fontStyle: 'italic', color: 'var(--text3)', marginTop: '2px' }}>💡 {s.learned}</div>}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
-      </div>
+            ) : (
+              <div onClick={() => setShowDateFilter(true)} style={{ display: 'flex', gap: '6px', alignItems: 'center', background: 'var(--bg3)', padding: '8px 16px', borderRadius: '16px', border: '1px solid var(--border2)', cursor: 'pointer', fontSize: '12px', color: 'var(--text2)' }}>
+                <Calendar size={14} /> <span>Filter Dates</span>
+              </div>
+            )}
+          </div>
+        </div>
 
-      <div style={{ height: '20px' }} />
+        {sortedHistory.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '40px 20px', background: 'var(--bg3)', borderRadius: '20px', border: '1px dashed var(--border2)', color: 'var(--text3)', fontSize: '14px' }}>
+            No study sessions recorded.
+          </div>
+        )}
+
+        {sortedHistory.map(month => (
+          <div key={`${month.yr}-${month.mo}`} style={{ marginBottom: '24px' }}>
+            <div className="month-label" style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              {MONTHS[month.mo]} {month.yr}
+            </div>
+            {month.dayList.map(day => {
+              const d = new Date(day.dk);
+              return (
+                <div key={day.dk} className="history-day has-data" onClick={() => setModalDay(day)} style={{ marginBottom: '12px' }}>
+                  <div className="hday-top" style={{ marginBottom: '0' }}>
+                    <div className="hday-date" style={{ fontSize: '13px', fontWeight: 700 }}>
+                      {day.dk === todayKey ? 'Today — ' : ''}{DAYS_SHORT[d.getDay()]}, {d.getDate()} {MONTHS[month.mo].slice(0,3)}
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '15px', fontWeight: 800, color: day.totalHrs >= dailyTarget ? 'var(--accent)' : 'var(--blue)' }}>
+                        {day.totalHrs.toFixed(1)}h
+                      </div>
+                    </div>
+                  </div>
+                  <div className="hday-focus" style={{ marginTop: '8px' }}>
+                    {day.sessions.length} Sessions • {day.sessions.map(s => subjects.find(x => x.id === s.subjectId)?.emoji).slice(0, 5).join(' ')}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+
+        {renderModal()}
+      </div>
+      <div style={{ height: '40px' }} />
     </div>
   );
 }

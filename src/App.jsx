@@ -16,9 +16,10 @@ const DEFAULT_BUDGET_SETTINGS = { income: 22400, currency: '₹' };
 const DEFAULT_STUDY_SETTINGS = {
   dailyTarget: 4,
   subjects: [
-    { id: 'dsa',   label: 'DSA',        emoji: '🧠', color: '#A78BFA' },
-    { id: 'js',    label: 'JavaScript',  emoji: '⚡', color: '#FBBF24' },
-    { id: 'react', label: 'React',       emoji: '⚛️',  color: '#4D9FFF' },
+    { id: 'dsa',       label: 'DSA',             emoji: '🧠', color: '#A78BFA' },
+    { id: 'js',        label: 'JavaScript',      emoji: '⚡', color: '#FBBF24' },
+    { id: 'react',     label: 'React',           emoji: '⚛️',  color: '#4D9FFF' },
+    { id: 'interview', label: 'Interview Prep', emoji: '🤝', color: '#34D399' },
   ]
 };
 
@@ -41,6 +42,16 @@ export default function App() {
   const [BUDGET_SETTINGS, setBUDGET_SETTINGS] = useState(DEFAULT_BUDGET_SETTINGS);
   const [STUDY, setSTUDY] = useState({});
   const [STUDY_SETTINGS, setSTUDY_SETTINGS] = useState(DEFAULT_STUDY_SETTINGS);
+
+  const [aiEnabled, setAiEnabled] = useState(() => localStorage.getItem('ai_enabled') === 'true');
+
+  useEffect(() => {
+    const handleStorage = () => {
+      setAiEnabled(localStorage.getItem('ai_enabled') === 'true');
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -199,7 +210,7 @@ export default function App() {
         {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} />}
       </div>
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} showNav={showNav} />
-      <AIChat DB={DB} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} />
+      {aiEnabled && <AIChat DB={DB} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} />}
     </div>
   );
 }

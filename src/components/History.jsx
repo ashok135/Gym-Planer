@@ -1,23 +1,21 @@
 import React, { useState } from 'react';
 import { MONTHS, DAYS_SHORT, DAYS_FULL, DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol } from '../data';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Calendar } from 'lucide-react';
 
 export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
   const [modalDk, setModalDk] = useState(null);
   const [limit, setLimit] = useState(20);
-  const [historyRange, setHistoryRange] = useState('All');
+  const [historyStart, setHistoryStart] = useState('');
+  const [historyEnd, setHistoryEnd] = useState('');
 
   const now = new Date();
   
   const allKeys = Array.from(new Set([...Object.keys(DB), ...Object.keys(META), ...Object.keys(FOOD)]))
     .filter(k => k <= dateKey(now))
     .filter(k => {
-      if (historyRange !== 'All') {
-        const kd = new Date(k);
-        const diff = (now - kd) / (1000 * 60 * 60 * 24);
-        if (historyRange === 'Weekly' && diff > 7) return false;
-        if (historyRange === 'Monthly' && diff > 30) return false;
-        if (historyRange === 'Yearly' && diff > 365) return false;
+      if (historyStart || historyEnd) {
+        if (historyStart && k < historyStart) return false;
+        if (historyEnd && k > historyEnd) return false;
       }
       const vol = getDayVol(DB[k] || {});
       const m = META[k] || {};
@@ -193,43 +191,35 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
   };
 
   return (
-    <div id="history-content" style={{padding:'20px 0'}}>
+    <div id="history-content" style={{padding:'10px 0'}}>
 
-      {/* FILTER PILLS */}
-      <div style={{display:'flex', gap:'8px', padding:'0 20px 16px', overflowX:'auto'}}>
-        {['All', 'Weekly', 'Monthly', 'Yearly'].map(r => (
-          <div
-            key={r}
-            onClick={() => { setHistoryRange(r); setLimit(20); }}
-            style={{
-              padding: '6px 16px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: historyRange === r ? 'bold' : 'normal',
-              background: historyRange === r ? 'var(--accent)' : 'var(--bg3)',
-              color: historyRange === r ? '#000' : 'var(--text2)',
-              border: '1px solid var(--border2)',
-              transition: 'all 0.2s'
-            }}
-          >
-            {r}
-          </div>
-        ))}
+      <div style={{ padding: '0 10px 16px' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'var(--bg3)', padding: '6px 12px', borderRadius: '12px', border: '1px solid var(--border2)' }}>
+          <Calendar size={14} color="var(--text3)" />
+          <input type="date" value={historyStart} onChange={e => setHistoryStart(e.target.value)}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text)', fontSize: '12px', outline: 'none', flex: 1 }} />
+          <span style={{ color: 'var(--text3)', fontSize: '11px' }}>to</span>
+          <input type="date" value={historyEnd} onChange={e => setHistoryEnd(e.target.value)}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text)', fontSize: '12px', outline: 'none', flex: 1 }} />
+        </div>
       </div>
       {historyData.map(month => (
         <div key={`${month.yr}-${month.mo}`}>
-          <div className="month-label">{MONTHS[month.mo]} {month.yr}</div>
+          <div className="month-label" style={{ fontSize: '13px', color: 'var(--accent)', fontWeight: 700, marginBottom: '16px' }}>{MONTHS[month.mo]} {month.yr}</div>
           {month.days.map(day => (
-            <div key={day.dk} className={`history-day ${day.hasData ? 'has-data' : ''}`} onClick={() => setModalDk(day.dk)}>
-              <div className="hday-top">
-                <div className="hday-date">
+            <div key={day.dk} className={`history-day ${day.hasData ? 'has-data' : ''}`} onClick={() => setModalDk(day.dk)} style={{ padding: '20px', marginBottom: '16px', borderRadius: '20px' }}>
+              <div className="hday-top" style={{ marginBottom: '10px' }}>
+                <div className="hday-date" style={{ fontSize: '16px', fontWeight: 800 }}>
                   {day.isToday ? 'Today — ' : ''}{DAYS_SHORT[day.dow]}, {day.d} {MONTHS[month.mo].slice(0,3)}
-                  {day.meta.status && day.meta.status !== 'Skipped' && <span className="hday-status">{day.meta.status} {day.meta.mood||''}</span>}
+                  {day.meta.status && day.meta.status !== 'Skipped' && <span className="hday-status" style={{ fontSize: '11px', marginLeft: '8px' }}>{day.meta.status} {day.meta.mood||''}</span>}
                 </div>
                 <div style={{textAlign:'right'}}>
-                  {day.vol > 0 && <div className="hday-vol">{day.vol.toLocaleString()} kg</div>}
-                  {day.dayP > 0 && <div className="hday-vol" style={{color:'var(--text)',fontSize:'11px',marginTop:'2px'}}>{day.dayP}g Protein</div>}
+                  {day.vol > 0 && <div className="hday-vol" style={{ fontSize: '18px', fontWeight: 900 }}>{day.vol.toLocaleString()} <span style={{fontSize:'12px', fontWeight: 400}}>kg</span></div>}
+                  {day.dayP > 0 && <div className="hday-vol" style={{color:'var(--text)', fontSize:'13px', fontWeight: 700, marginTop:'4px'}}>{day.dayP}g <span style={{fontSize:'10px', fontWeight: 400}}>Protein</span></div>}
                 </div>
               </div>
-              {day.planLabel !== 'Rest Day' && <div className="hday-focus">{day.planLabel}</div>}
-              {!day.hasData && <div className="hday-empty">No data logged</div>}
+              {day.planLabel !== 'Rest Day' && <div className="hday-focus" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text2)' }}>{day.planLabel}</div>}
+              {!day.hasData && <div className="hday-empty" style={{ fontSize: '13px' }}>No data logged</div>}
             </div>
           ))}
         </div>

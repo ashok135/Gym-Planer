@@ -11,15 +11,19 @@ export default function AIChat({ DB, META, FOOD, BUDGET, STUDY, SCHEDULE }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(GEMINI_KEY_STORAGE) || '');
+  const [model, setModel] = useState(() => localStorage.getItem('ai_model') || 'gemini-1.5-flash');
+  const [persona, setPersona] = useState(() => localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
   const [showKeyInput, setShowKeyInput] = useState(false);
-  const [tempKey, setTempKey] = useState('');
-  const bottomRef = useRef(null);
 
   useEffect(() => {
-    if (open && bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, open]);
+    const handleStorage = () => {
+      setApiKey(localStorage.getItem(GEMINI_KEY_STORAGE) || '');
+      setModel(localStorage.getItem('ai_model') || 'gemini-1.5-flash');
+      setPersona(localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const buildContext = () => {
     const now = new Date();
@@ -31,7 +35,8 @@ export default function AIChat({ DB, META, FOOD, BUDGET, STUDY, SCHEDULE }) {
     const budgetMonth = BUDGET?.[monthKey] || {};
     const todayStudy = STUDY?.[todayKey] || {};
 
-    return `You are an AI fitness and life coach embedded in a personal tracking app called LifeTraker.
+    return `You are an AI coach acting as: ${persona}.
+Embedded in a personal tracking app called LifeTraker.
 The user's data:
 - Today: ${todayKey}
 - Today workout meta: start=${todayMeta.start}, end=${todayMeta.end}, energy=${todayMeta.energy}/5, status=${todayMeta.status}
@@ -40,8 +45,17 @@ The user's data:
 - Study today: ${JSON.stringify(todayStudy.sessions||[])}
 - Habits today: water=${FOOD[todayKey]?.water||0}, sleep=${FOOD[todayKey]?.sleep||0}, junk=${FOOD[todayKey]?.junk||0}
 
-Answer the user's question concisely (2-4 sentences max). Be motivating and specific. Use emojis. Speak in a friendly coaching tone.`;
+Answer the user's question concisely (2-4 sentences max). Be motivating and specific. Use emojis. Speak in the tone of your defined persona.`;
   };
+
+  const [tempKey, setTempKey] = useState('');
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    if (open && bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, open]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -54,7 +68,7 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
 
     try {
       const context = buildContext();
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
