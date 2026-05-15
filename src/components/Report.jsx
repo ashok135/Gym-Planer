@@ -3,9 +3,12 @@ import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol, DAYS_S
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import History from './History';
+import Budget from './Budget';
+import Study from './Study';
 
-export default function Report({ DB, NAMES, META, FOOD, SCHEDULE }) {
-  const [timeRange, setTimeRange] = useState('Today'); // 'Today', 'Weekly', 'Monthly', 'Yearly'
+export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET_SETTINGS, syncBudget, STUDY, STUDY_SETTINGS, syncStudy }) {
+  const [activeSection, setActiveSection] = useState('gym');
+  const [timeRange, setTimeRange] = useState('Today');
   
   // Aggregate data based on time range
   const now = new Date();
@@ -170,10 +173,39 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE }) {
 
   return (
     <div id="report-content" style={{padding:'20px 0'}}>
+      {/* SECTION TABS */}
+      <div style={{padding:'0 20px 4px'}}>
+        <div className="greeting">Analytics</div>
+        <div className="ai-title" style={{marginBottom:'16px'}}>Reports</div>
+        <div style={{display:'flex', gap:'10px', marginBottom:'8px'}}>
+          {[
+            { id:'gym',    label:'🏋️ Gym & Diet' },
+            { id:'budget', label:'💰 Budget' },
+            { id:'study',  label:'📚 Study' },
+          ].map(s => (
+            <div key={s.id} onClick={() => setActiveSection(s.id)}
+              style={{ flex:1, textAlign:'center', padding:'10px 4px', borderRadius:'12px', cursor:'pointer', fontSize:'12px', fontWeight: activeSection === s.id ? 700 : 400,
+                background: activeSection === s.id ? 'var(--accent)' : 'var(--bg3)',
+                color: activeSection === s.id ? '#000' : 'var(--text2)',
+                border: '1px solid var(--border2)', transition:'all 0.2s' }}>
+              {s.label}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* BUDGET SECTION */}
+      {activeSection === 'budget' && <Budget BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} />}
+
+      {/* STUDY SECTION */}
+      {activeSection === 'study' && <Study STUDY={STUDY} syncStudy={syncStudy} STUDY_SETTINGS={STUDY_SETTINGS} />}
+
+      {/* GYM & DIET SECTION */}
+      {activeSection === 'gym' && <>
       <div className="ai-dash-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px'}}>
         <div>
-          <div className="greeting">Analytics</div>
-          <div className="ai-title">Performance</div>
+          <div className="greeting">Performance</div>
+          <div className="ai-title">Gym & Diet</div>
         </div>
         
         {/* TIME FILTER */}
@@ -439,6 +471,7 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE }) {
       </div>
 
       <div style={{height:'20px'}}></div>
+      </>}
     </div>
   );
 }

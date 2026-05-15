@@ -1,5 +1,23 @@
 import React, { useState } from 'react';
 import { DEFAULT_PLAN, DAYS_FULL, DEFAULT_DIET_PLAN, MONTHS, dateKey } from '../data';
+import { ChevronDown } from 'lucide-react';
+
+function Accordion({ title, subtitle, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ marginBottom: '12px', borderRadius: '14px', border: '1px solid var(--border2)', overflow: 'hidden' }}>
+      <div onClick={() => setOpen(o => !o)}
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', background: 'var(--bg3)', cursor: 'pointer', userSelect: 'none' }}>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>{title}</div>
+          {subtitle && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{subtitle}</div>}
+        </div>
+        <ChevronDown size={18} color="var(--text3)" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }} />
+      </div>
+      {open && <div style={{ padding: '16px 18px', background: 'var(--bg)' }}>{children}</div>}
+    </div>
+  );
+}
 
 export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, BUDGET, STUDY }) {
   const [localNames, setLocalNames] = useState(NAMES);
@@ -171,126 +189,128 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
   };
 
   return (
-    <div id="settings-content" style={{padding:'20px 0'}}>
-      <div className="settings-header">Weekly Schedule Planner</div>
-      <div className="settings-sub">Customize your workout split.</div>
-      
-      <div className="settings-section" style={{display:'flex', flexDirection:'column', gap:'12px'}}>
-        {[1,2,3,4,5,6,0].map(dow => {
-          const currentSplit = localSchedule[dow] !== undefined ? localSchedule[dow] : (dow === 4 ? 1 : dow === 5 ? 2 : dow);
+    <div id="settings-content" style={{ padding: '20px' }}>
+      <div style={{ marginBottom: '20px' }}>
+        <div className="greeting">Configuration</div>
+        <div className="ai-title">Settings</div>
+      </div>
+
+      {/* WORKOUT SCHEDULE */}
+      <Accordion title="🗓️ Weekly Schedule Planner" subtitle="Customize your workout split per day" defaultOpen={true}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {[1,2,3,4,5,6,0].map(dow => {
+            const currentSplit = localSchedule[dow] !== undefined ? localSchedule[dow] : (dow === 4 ? 1 : dow === 5 ? 2 : dow);
+            return (
+              <div key={dow} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                <div style={{ fontWeight: 500, color: 'var(--text)', width: '90px', fontSize: '13px' }}>{DAYS_FULL[dow]}</div>
+                <select style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', outline: 'none', fontSize: '13px' }}
+                  value={currentSplit} onChange={e => setLocalSchedule(prev => ({ ...prev, [dow]: parseInt(e.target.value) }))}>
+                  {SPLITS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
+          <button className="settings-save" onClick={() => setShowSchedModal(true)} style={{ flex: 1 }}>Save Schedule</button>
+          <span className="save-ok" style={{ opacity: schedMsg ? 1 : 0 }}>Saved ✓</span>
+        </div>
+      </Accordion>
+
+      {/* CUSTOM EXERCISES */}
+      <Accordion title="🏋️ Custom Exercises" subtitle="Rename default exercises">
+        {[1,2,3].map(dow => {
+          const p = DEFAULT_PLAN[dow];
           return (
-            <div key={dow} style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-              <div style={{fontWeight:500, color:'var(--text)', width:'100px'}}>{DAYS_FULL[dow]}</div>
-              <select 
-                style={{flex:1, padding:'10px 12px', borderRadius:'8px', background:'var(--bg)', color:'var(--text)', border:'1px solid var(--border)', outline:'none'}}
-                value={currentSplit}
-                onChange={e => setLocalSchedule(prev => ({ ...prev, [dow]: parseInt(e.target.value) }))}
-              >
-                {SPLITS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-              </select>
+            <div className="settings-section" key={dow} style={{ marginBottom: '16px' }}>
+              <div className="settings-label">{p.label} — {DAYS_FULL[dow]}</div>
+              {p.muscles.map(m => (
+                <div key={m.name}>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', margin: '8px 0 6px', letterSpacing: '.05em' }}>{m.name}</div>
+                  {m.exercises.map((ex, i) => {
+                    const k = `${dow}_${m.name}_${i}`;
+                    const val = localNames[k] !== undefined ? localNames[k] : ex;
+                    return (
+                      <div className="exercise-edit-row" key={k}>
+                        <div className="exercise-idx">{i+1}</div>
+                        <input type="text" value={val} onChange={e => handleNameChange(k, e.target.value)} placeholder={ex} />
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           );
         })}
-      </div>
-      <div style={{display:'flex', alignItems:'center', gap:'12px', marginTop:'16px', marginBottom:'32px'}}>
-        <button className="settings-save" onClick={() => setShowSchedModal(true)} style={{flex:1}}>Save Schedule</button>
-        <span className="save-ok" style={{opacity: schedMsg ? 1 : 0}}>Saved ✓</span>
-      </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+          <button className="settings-save" onClick={saveNames} style={{ flex: 1 }}>Save Exercise Names</button>
+          <span className="save-ok" style={{ opacity: saveMsg ? 1 : 0 }}>Saved ✓</span>
+        </div>
+      </Accordion>
 
-      <div className="settings-header" style={{marginTop:'32px'}}>Custom Exercises</div>
-      <div className="settings-sub">Rename default exercises. Leave blank to reset.</div>
-      
-      {[1,2,3].map(dow => {
-        const p = DEFAULT_PLAN[dow];
-        return (
-          <div className="settings-section" key={dow}>
-            <div className="settings-label">{p.label} — {DAYS_FULL[dow]}</div>
-            {p.muscles.map(m => (
-              <div key={m.name}>
-                <div style={{fontSize:'11px',color:'var(--text3)',margin:'8px 0 6px',letterSpacing:'.05em'}}>{m.name}</div>
-                {m.exercises.map((ex, i) => {
-                  const k = `${dow}_${m.name}_${i}`;
-                  const val = localNames[k] !== undefined ? localNames[k] : ex;
-                  return (
-                    <div className="exercise-edit-row" key={k}>
-                      <div className="exercise-idx">{i+1}</div>
-                      <input type="text" value={val} onChange={e => handleNameChange(k, e.target.value)} placeholder={ex} />
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        );
-      })}
+      {/* BUDGET */}
+      <Accordion title="💰 Budget Defaults" subtitle="Set monthly income and categories">
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Monthly Income (₹)</div>
+          <input type="number" value={localIncome} onChange={e => setLocalIncome(e.target.value)}
+            style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '16px', fontWeight: 'bold', boxSizing: 'border-box' }} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
+          <button className="settings-save" onClick={saveBudgetSettings} style={{ flex: 1 }}>Save Income</button>
+          <span className="save-ok" style={{ opacity: budgetMsg ? 1 : 0 }}>Saved ✓</span>
+        </div>
+      </Accordion>
 
-      <div style={{display:'flex', alignItems:'center', gap:'12px', marginTop:'24px', marginBottom:'16px'}}>
-        <button className="settings-save" onClick={saveNames} style={{flex:1}}>Save changes</button>
-        <span className="save-ok" style={{opacity: saveMsg ? 1 : 0}}>Saved ✓</span>
-      </div>
-      
-      <button className="settings-save" style={{background:'var(--accent)', color:'#000', marginBottom:'16px'}} onClick={exportCSV}>Download Full Export (CSV / Excel)</button>
-      <button className="settings-save" style={{background:'var(--bg3)', color:'var(--text)', marginBottom:'16px'}} onClick={exportData}>Export Backup (JSON)</button>
-
-      {/* BUDGET DEFAULTS */}
-      <div className="settings-header" style={{marginTop:'32px'}}>💰 Budget Defaults</div>
-      <div className="settings-sub">Set your monthly take-home income.</div>
-      <div className="settings-section">
-        <div style={{fontSize:'12px', color:'var(--text2)', marginBottom:'6px'}}>Monthly Income (₹)</div>
-        <input type="number" value={localIncome} onChange={e => setLocalIncome(e.target.value)}
-          style={{width:'100%', padding:'10px 12px', background:'var(--bg)', border:'1px solid var(--border2)', borderRadius:'8px', color:'var(--text)', fontSize:'16px', fontWeight:'bold', boxSizing:'border-box'}} />
-      </div>
-      <div style={{display:'flex', alignItems:'center', gap:'12px', marginTop:'12px', marginBottom:'24px'}}>
-        <button className="settings-save" onClick={saveBudgetSettings} style={{flex:1}}>Save Income</button>
-        <span className="save-ok" style={{opacity: budgetMsg ? 1 : 0}}>Saved ✓</span>
-      </div>
-
-      {/* STUDY DEFAULTS */}
-      <div className="settings-header" style={{marginTop:'8px'}}>📚 Study Defaults</div>
-      <div className="settings-sub">Set daily target and manage subjects.</div>
-      <div className="settings-section">
-        <div style={{fontSize:'12px', color:'var(--text2)', marginBottom:'6px'}}>Daily Target (hours)</div>
-        <div style={{display:'flex', gap:'8px', flexWrap:'wrap', marginBottom:'16px'}}>
+      {/* STUDY */}
+      <Accordion title="📚 Study Defaults" subtitle="Daily target & subjects">
+        <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Daily Target (hours)</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
           {[2, 3, 4, 5, 6, 8].map(h => (
             <div key={h} onClick={() => setLocalDailyTarget(h)}
-              style={{padding:'6px 16px', borderRadius:'20px', fontSize:'13px', cursor:'pointer', background: localDailyTarget === h ? 'var(--accent)' : 'var(--bg)', color: localDailyTarget === h ? '#000' : 'var(--text2)', border:`1px solid ${localDailyTarget === h ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: localDailyTarget === h ? 700 : 400}}>
+              style={{ padding: '6px 16px', borderRadius: '20px', fontSize: '13px', cursor: 'pointer', background: localDailyTarget === h ? 'var(--accent)' : 'var(--bg3)', color: localDailyTarget === h ? '#000' : 'var(--text2)', border: `1px solid ${localDailyTarget === h ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: localDailyTarget === h ? 700 : 400 }}>
               {h}h
             </div>
           ))}
         </div>
-        <div style={{fontSize:'12px', color:'var(--text2)', marginBottom:'8px'}}>Subjects</div>
+        <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Subjects</div>
         {localSubjects.map(s => (
-          <div key={s.id} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid var(--border2)'}}>
-            <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
-              <span style={{fontSize:'18px'}}>{s.emoji}</span>
-              <span style={{fontSize:'13px', color: s.color, fontWeight:600}}>{s.label}</span>
+          <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '18px' }}>{s.emoji}</span>
+              <span style={{ fontSize: '13px', color: s.color, fontWeight: 600 }}>{s.label}</span>
             </div>
-            <button onClick={() => removeSubject(s.id)} style={{background:'transparent', border:'none', color:'var(--red)', cursor:'pointer', fontSize:'12px'}}>Remove</button>
+            <button onClick={() => removeSubject(s.id)} style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: '12px', padding: '4px 8px' }}>Remove</button>
           </div>
         ))}
-        <div style={{display:'flex', gap:'8px', marginTop:'12px'}}>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
           <input type="text" placeholder="New subject (e.g. Python)" value={newSubjectLabel} onChange={e => setNewSubjectLabel(e.target.value)}
-            style={{flex:1, padding:'8px 12px', background:'var(--bg)', border:'1px solid var(--border2)', borderRadius:'8px', color:'var(--text)', fontSize:'13px'}} />
-          <button onClick={addSubject} style={{padding:'8px 14px', background:'var(--bg3)', border:'1px solid var(--border2)', borderRadius:'8px', color:'var(--text)', fontWeight:600, cursor:'pointer', fontSize:'13px'}}>+ Add</button>
+            style={{ flex: 1, padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px' }} />
+          <button onClick={addSubject} style={{ padding: '8px 14px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>+ Add</button>
         </div>
-      </div>
-      <div style={{display:'flex', alignItems:'center', gap:'12px', marginTop:'12px', marginBottom:'24px'}}>
-        <button className="settings-save" onClick={saveStudySettings} style={{flex:1}}>Save Study Settings</button>
-        <span className="save-ok" style={{opacity: studyMsg ? 1 : 0}}>Saved ✓</span>
-      </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px' }}>
+          <button className="settings-save" onClick={saveStudySettings} style={{ flex: 1 }}>Save Study Settings</button>
+          <span className="save-ok" style={{ opacity: studyMsg ? 1 : 0 }}>Saved ✓</span>
+        </div>
+      </Accordion>
 
-      <button className="logout-btn" onClick={handleLogout}>Log Out</button>
-      <div style={{height:'20px'}}></div>
+      {/* DATA */}
+      <Accordion title="📦 Data & Export" subtitle="Backup, export, and account">
+        <button className="settings-save" style={{ background: 'var(--accent)', color: '#000', marginBottom: '10px', width: '100%' }} onClick={exportCSV}>Download Full Export (CSV / Excel)</button>
+        <button className="settings-save" style={{ background: 'var(--bg3)', color: 'var(--text)', marginBottom: '10px', width: '100%' }} onClick={exportData}>Export Backup (JSON)</button>
+        <button className="logout-btn" onClick={handleLogout} style={{ width: '100%' }}>Log Out</button>
+      </Accordion>
+
+      <div style={{ height: '20px' }} />
 
       {showSchedModal && (
         <div className="modal-overlay" onClick={() => setShowSchedModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h3>Save Schedule</h3>
-            <p style={{fontSize:'13px', color:'var(--text2)', marginBottom:'20px', lineHeight: 1.5}}>Do you want to save this permanently or just for this week?</p>
-            <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
-              <button className="settings-save" onClick={() => saveSchedule('fullTime')} style={{background:'var(--accent)', color:'#000'}}>Full Time (Permanent)</button>
-              <button className="settings-save" onClick={() => saveSchedule('thisWeek')} style={{background:'var(--bg3)', color:'var(--text)'}}>This Week Only</button>
-              <button className="settings-save" onClick={() => setShowSchedModal(false)} style={{background:'transparent', color:'var(--text3)', border:'1px solid var(--border)'}}>Cancel</button>
+            <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '20px', lineHeight: 1.5 }}>Do you want to save this permanently or just for this week?</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button className="settings-save" onClick={() => saveSchedule('fullTime')} style={{ background: 'var(--accent)', color: '#000' }}>Full Time (Permanent)</button>
+              <button className="settings-save" onClick={() => saveSchedule('thisWeek')} style={{ background: 'var(--bg3)', color: 'var(--text)' }}>This Week Only</button>
+              <button className="settings-save" onClick={() => setShowSchedModal(false)} style={{ background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border)' }}>Cancel</button>
             </div>
           </div>
         </div>
