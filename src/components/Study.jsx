@@ -20,6 +20,7 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS }) {
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState({ subjectId: subjects[0]?.id || 'dsa', hours: '1', learned: '' });
   const [expandedDay, setExpandedDay] = useState(null);
+  const [historyFilter, setHistoryFilter] = useState('All');
 
   // Today stats
   const todaySessions = todayData.sessions || [];
@@ -40,26 +41,14 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS }) {
       learned: addForm.learned.trim(),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
-    const newStudy = {
-      ...STUDY,
-      [todayKey]: {
-        ...todayData,
-        sessions: [...todaySessions, newSession],
-      }
-    };
+    const newStudy = { ...STUDY, [todayKey]: { ...todayData, sessions: [...todaySessions, newSession] } };
     syncStudy(newStudy);
     setAddForm({ subjectId: subjects[0]?.id || 'dsa', hours: '1', learned: '' });
     setShowAdd(false);
   };
 
   const deleteSession = (id) => {
-    const newStudy = {
-      ...STUDY,
-      [todayKey]: {
-        ...todayData,
-        sessions: todaySessions.filter(s => s.id !== id),
-      }
-    };
+    const newStudy = { ...STUDY, [todayKey]: { ...todayData, sessions: todaySessions.filter(s => s.id !== id) } };
     syncStudy(newStudy);
   };
 
@@ -72,8 +61,18 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS }) {
     last7.push({ dk, d, hrs, isToday: dk === todayKey });
   }
 
-  // History: last 10 days with data
-  const allHistoryKeys = Object.keys(STUDY).sort().reverse().slice(0, 10);
+  // All history keys with filter
+  const allHistoryKeys = Object.keys(STUDY).sort().reverse();
+  const filteredHistoryKeys = allHistoryKeys.filter(dk => {
+    if (dk === todayKey) return false;
+    if (historyFilter === 'All') return true;
+    const diff = (now - new Date(dk)) / (1000 * 60 * 60 * 24);
+    if (historyFilter === 'Weekly')  return diff <= 7;
+    if (historyFilter === 'Monthly') return diff <= 30;
+    if (historyFilter === 'Yearly')  return diff <= 365;
+    return true;
+  });
+
 
   const statusEmoji = progressPct >= 100 ? '🔥' : progressPct >= 50 ? '⚡' : '📚';
   const statusColor = progressPct >= 100 ? 'var(--accent)' : progressPct >= 50 ? 'var(--orange)' : 'var(--blue)';
@@ -216,40 +215,47 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS }) {
         </div>
       )}
 
-      {/* History */}
-      {allHistoryKeys.filter(k => k !== todayKey).length > 0 && (
-        <div style={{ margin: '0 20px 16px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--text2)' }}>Recent History</div>
-          {allHistoryKeys.filter(k => k !== todayKey).map(dk => {
-            const sessions = STUDY[dk]?.sessions || [];
-            const hrs = sessions.reduce((s, e) => s + Number(e.hours), 0);
-            const subs = [...new Set(sessions.map(s => s.subjectId))].map(id => subjects.find(x => x.id === id)?.emoji || '📚').join(' ');
-            return (
-              <div key={dk} onClick={() => setExpandedDay(expandedDay === dk ? null : dk)}
-                style={{ background: 'var(--bg3)', borderRadius: '10px', padding: '12px', marginBottom: '6px', border: '1px solid var(--border2)', cursor: 'pointer' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: '12px', color: 'var(--text2)' }}>{dk}</div>
-                    <div style={{ fontSize: '13px', fontWeight: 600 }}>{subs} {hrs.toFixed(1)}h</div>
-                  </div>
-                  <div style={{ background: hrs >= dailyTarget ? 'rgba(200,241,53,0.1)' : 'var(--bg)', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', color: hrs >= dailyTarget ? 'var(--accent)' : 'var(--text3)', fontWeight: 600 }}>
-                    {hrs >= dailyTarget ? '✅ Done' : `${Math.round((hrs/dailyTarget)*100)}%`}
-                  </div>
-                </div>
-                {expandedDay === dk && sessions.map(s => {
-                  const sub = subjects.find(x => x.id === s.subjectId) || subjects[0];
-                  return (
-                    <div key={s.id} style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border2)', fontSize: '12px', color: 'var(--text2)' }}>
-                      <span style={{ color: sub.color }}>{sub.emoji} {sub.label}</span> — {s.hours}h
-                      {s.learned && <div style={{ fontStyle: 'italic', color: 'var(--text3)', marginTop: '2px' }}>💡 {s.learned}</div>}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+      {/* HISTORY WITH FILTER */}
+      <div style={{ margin: '0 20px 16px' }}>
+        <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '10px' }}>📋 Study History</div>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+          {['All', 'Weekly', 'Monthly', 'Yearly'].map(f => (
+            <div key={f} onClick={() => setHistoryFilter(f)}
+              style={{ padding: '5px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer', fontWeight: historyFilter === f ? 700 : 400, background: historyFilter === f ? 'var(--accent)' : 'var(--bg3)', color: historyFilter === f ? '#000' : 'var(--text2)', border: '1px solid var(--border2)', transition: 'all 0.2s' }}>
+              {f}
+            </div>
+          ))}
         </div>
-      )}
+        {filteredHistoryKeys.length === 0 && <div style={{ color: 'var(--text3)', fontSize: '12px', textAlign: 'center', padding: '20px 0' }}>No study sessions in this period</div>}
+        {filteredHistoryKeys.map(dk => {
+          const sessions = STUDY[dk]?.sessions || [];
+          const hrs = sessions.reduce((s, e) => s + Number(e.hours), 0);
+          const subs = [...new Set(sessions.map(s => s.subjectId))].map(id => subjects.find(x => x.id === id)?.emoji || '📚').join(' ');
+          return (
+            <div key={dk} onClick={() => setExpandedDay(expandedDay === dk ? null : dk)}
+              style={{ background: 'var(--bg3)', borderRadius: '10px', padding: '12px', marginBottom: '6px', border: '1px solid var(--border2)', cursor: 'pointer' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '12px', color: 'var(--text2)' }}>{dk}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600 }}>{subs} {hrs.toFixed(1)}h</div>
+                </div>
+                <div style={{ background: hrs >= dailyTarget ? 'rgba(200,241,53,0.1)' : 'var(--bg)', padding: '4px 10px', borderRadius: '12px', fontSize: '12px', color: hrs >= dailyTarget ? 'var(--accent)' : 'var(--text3)', fontWeight: 600 }}>
+                  {hrs >= dailyTarget ? '✅ Done' : `${Math.round((hrs/dailyTarget)*100)}%`}
+                </div>
+              </div>
+              {expandedDay === dk && sessions.map(s => {
+                const sub = subjects.find(x => x.id === s.subjectId) || subjects[0];
+                return (
+                  <div key={s.id} style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border2)', fontSize: '12px', color: 'var(--text2)' }}>
+                    <span style={{ color: sub?.color }}>{sub?.emoji} {sub?.label}</span> — {s.hours}h
+                    {s.learned && <div style={{ fontStyle: 'italic', color: 'var(--text3)', marginTop: '2px' }}>💡 {s.learned}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
 
       <div style={{ height: '20px' }} />
     </div>

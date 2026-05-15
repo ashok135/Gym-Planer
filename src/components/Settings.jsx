@@ -37,11 +37,37 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
 
   const SUBJECT_COLORS = ['#A78BFA', '#FBBF24', '#4D9FFF', '#34D399', '#FB923C', '#F472B6', '#FF6B6B'];
 
+  const DEFAULT_CATEGORIES = [
+    { id: 'food',      label: 'Food',          emoji: '🍕', color: '#FF6B6B' },
+    { id: 'supps',     label: 'Supplements',   emoji: '💊', color: '#C8F135' },
+    { id: 'transport', label: 'Transport',     emoji: '🚗', color: '#4D9FFF' },
+    { id: 'entertain', label: 'Entertainment', emoji: '🎮', color: '#A78BFA' },
+    { id: 'outside',   label: 'Eating Out',    emoji: '🍽️', color: '#FB923C' },
+    { id: 'gym',       label: 'Gym',           emoji: '🏋️', color: '#34D399' },
+    { id: 'others',    label: 'Others',        emoji: '📦', color: '#94A3B8' },
+  ];
+  const CAT_COLORS = ['#FF6B6B','#C8F135','#4D9FFF','#A78BFA','#FB923C','#34D399','#94A3B8','#F472B6','#FBBF24'];
+
+  const [localCategories, setLocalCategories] = useState(BUDGET_SETTINGS?.categories?.length ? BUDGET_SETTINGS.categories : DEFAULT_CATEGORIES);
+  const [newCatLabel, setNewCatLabel] = useState('');
+  const [newCatEmoji, setNewCatEmoji] = useState('📦');
+  const [catMsg, setCatMsg] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+
+  const addCategory = () => {
+    if (!newCatLabel.trim()) return;
+    const newCat = { id: Date.now().toString(), label: newCatLabel.trim(), emoji: newCatEmoji, color: CAT_COLORS[localCategories.length % CAT_COLORS.length] };
+    setLocalCategories(prev => [...prev, newCat]);
+    setNewCatLabel(''); setNewCatEmoji('📦');
+  };
+
+  const removeCategory = (id) => setLocalCategories(prev => prev.filter(c => c.id !== id));
+
   const saveBudgetSettings = () => {
-    const newSettings = { ...BUDGET_SETTINGS, income: Number(localIncome) };
+    const newSettings = { ...BUDGET_SETTINGS, income: Number(localIncome), categories: localCategories };
     syncBudget(BUDGET, newSettings);
-    setBudgetMsg(true);
-    setTimeout(() => setBudgetMsg(false), 2000);
+    setBudgetMsg(true); setCatMsg(true);
+    setTimeout(() => { setBudgetMsg(false); setCatMsg(false); }, 2000);
   };
 
   const addSubject = () => {
@@ -188,6 +214,35 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
     URL.revokeObjectURL(url);
   };
 
+  const exportBudgetCSV = () => {
+    let csv = 'Date,Category,Amount,Note\n';
+    Object.entries(BUDGET).forEach(([mk, md]) => {
+      (md.entries || []).forEach(e => {
+        csv += `${e.date},${e.category},${e.amount},"${(e.note||'').replace(/"/g,'""')}"\n`;
+      });
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'LifeTraker_Budget.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportStudyCSV = () => {
+    let csv = 'Date,Subject,Hours,Learned\n';
+    Object.entries(STUDY).forEach(([dk, sd]) => {
+      (sd.sessions || []).forEach(s => {
+        csv += `${dk},${s.subjectId},${s.hours},"${(s.learned||'').replace(/"/g,'""')}"\n`;
+      });
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'LifeTraker_Study.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+
   return (
     <div id="settings-content" style={{ padding: '20px' }}>
       <div style={{ marginBottom: '20px' }}>
@@ -249,14 +304,31 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
       </Accordion>
 
       {/* BUDGET */}
-      <Accordion title="💰 Budget Defaults" subtitle="Set monthly income and categories">
+      <Accordion title="💰 Budget Defaults" subtitle="Set monthly income and expense categories">
         <div style={{ marginBottom: '12px' }}>
           <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Monthly Income (₹)</div>
           <input type="number" value={localIncome} onChange={e => setLocalIncome(e.target.value)}
             style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '16px', fontWeight: 'bold', boxSizing: 'border-box' }} />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
-          <button className="settings-save" onClick={saveBudgetSettings} style={{ flex: 1 }}>Save Income</button>
+        <div style={{ fontSize: '12px', color: 'var(--text2)', margin: '14px 0 8px' }}>Expense Categories</div>
+        {localCategories.map(c => (
+          <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '18px' }}>{c.emoji}</span>
+              <span style={{ fontSize: '13px', color: c.color, fontWeight: 600 }}>{c.label}</span>
+            </div>
+            <button onClick={() => removeCategory(c.id)} style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: '12px', padding: '4px 8px' }}>Remove</button>
+          </div>
+        ))}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+          <input type="text" value={newCatEmoji} onChange={e => setNewCatEmoji(e.target.value)} placeholder="Emoji" maxLength={2}
+            style={{ width: '44px', padding: '8px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '18px', textAlign: 'center' }} />
+          <input type="text" placeholder="Category name" value={newCatLabel} onChange={e => setNewCatLabel(e.target.value)}
+            style={{ flex: 1, padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px' }} />
+          <button onClick={addCategory} style={{ padding: '8px 14px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>+ Add</button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px' }}>
+          <button className="settings-save" onClick={saveBudgetSettings} style={{ flex: 1 }}>Save Budget Settings</button>
           <span className="save-ok" style={{ opacity: budgetMsg ? 1 : 0 }}>Saved ✓</span>
         </div>
       </Accordion>
@@ -294,9 +366,9 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
       </Accordion>
 
       {/* DATA */}
-      <Accordion title="📦 Data & Export" subtitle="Backup, export, and account">
-        <button className="settings-save" style={{ background: 'var(--accent)', color: '#000', marginBottom: '10px', width: '100%' }} onClick={exportCSV}>Download Full Export (CSV / Excel)</button>
-        <button className="settings-save" style={{ background: 'var(--bg3)', color: 'var(--text)', marginBottom: '10px', width: '100%' }} onClick={exportData}>Export Backup (JSON)</button>
+      <Accordion title="📦 Data &amp; Export" subtitle="Choose what to export">
+        <button className="settings-save" style={{ background: 'var(--accent)', color: '#000', marginBottom: '10px', width: '100%' }} onClick={() => setShowExportModal(true)}>Export Data</button>
+        <button className="settings-save" style={{ background: 'var(--bg3)', color: 'var(--text)', marginBottom: '10px', width: '100%' }} onClick={exportData}>Full Backup (JSON)</button>
         <button className="logout-btn" onClick={handleLogout} style={{ width: '100%' }}>Log Out</button>
       </Accordion>
 
@@ -311,6 +383,21 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
               <button className="settings-save" onClick={() => saveSchedule('fullTime')} style={{ background: 'var(--accent)', color: '#000' }}>Full Time (Permanent)</button>
               <button className="settings-save" onClick={() => saveSchedule('thisWeek')} style={{ background: 'var(--bg3)', color: 'var(--text)' }}>This Week Only</button>
               <button className="settings-save" onClick={() => setShowSchedModal(false)} style={{ background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border)' }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showExportModal && (
+        <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h3>Export Data</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '20px', lineHeight: 1.5 }}>What would you like to export?</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button className="settings-save" onClick={() => { exportCSV('gym'); setShowExportModal(false); }} style={{ background: 'var(--bg3)', color: 'var(--text)' }}>🏋️ Gym &amp; Diet Only</button>
+              <button className="settings-save" onClick={() => { exportBudgetCSV(); setShowExportModal(false); }} style={{ background: 'var(--bg3)', color: 'var(--text)' }}>💰 Budget Only</button>
+              <button className="settings-save" onClick={() => { exportStudyCSV(); setShowExportModal(false); }} style={{ background: 'var(--bg3)', color: 'var(--text)' }}>📚 Study Only</button>
+              <button className="settings-save" onClick={() => { exportCSV('all'); setShowExportModal(false); }} style={{ background: 'var(--accent)', color: '#000' }}>📦 All Data</button>
+              <button className="settings-save" onClick={() => setShowExportModal(false)} style={{ background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border)' }}>Cancel</button>
             </div>
           </div>
         </div>

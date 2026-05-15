@@ -1,27 +1,31 @@
 import React, { useState } from 'react';
 import { PlusCircle, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 
-const CATEGORIES = [
-  { id: 'food',      label: 'Food',         emoji: '🍕', color: '#FF6B6B' },
-  { id: 'supps',     label: 'Supplements',  emoji: '💊', color: '#C8F135' },
-  { id: 'transport', label: 'Transport',    emoji: '🚗', color: '#4D9FFF' },
-  { id: 'entertain', label: 'Entertainment',emoji: '🎮', color: '#A78BFA' },
-  { id: 'outside',   label: 'Eating Out',   emoji: '🍽️', color: '#FB923C' },
-  { id: 'gym',       label: 'Gym',          emoji: '🏋️', color: '#34D399' },
-  { id: 'others',    label: 'Others',       emoji: '📦', color: '#94A3B8' },
+const DEFAULT_CATEGORIES = [
+  { id: 'food',      label: 'Food',          emoji: '🍕', color: '#FF6B6B' },
+  { id: 'supps',     label: 'Supplements',   emoji: '💊', color: '#C8F135' },
+  { id: 'transport', label: 'Transport',     emoji: '🚗', color: '#4D9FFF' },
+  { id: 'entertain', label: 'Entertainment', emoji: '🎮', color: '#A78BFA' },
+  { id: 'outside',   label: 'Eating Out',    emoji: '🍽️', color: '#FB923C' },
+  { id: 'gym',       label: 'Gym',           emoji: '🏋️', color: '#34D399' },
+  { id: 'others',    label: 'Others',        emoji: '📦', color: '#94A3B8' },
 ];
 
-const dateKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+const dayKey   = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
 export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS }) {
   const now = new Date();
-  const currentMonthKey = dateKey(now);
-  
+  const currentMonthKey = monthKey(now);
+
+  const CATEGORIES = BUDGET_SETTINGS?.categories?.length ? BUDGET_SETTINGS.categories : DEFAULT_CATEGORIES;
+
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
   const [showAdd, setShowAdd] = useState(false);
   const [showAddIncome, setShowAddIncome] = useState(false);
-  const [form, setForm] = useState({ category: 'food', amount: '', note: '' });
+  const [form, setForm] = useState({ category: CATEGORIES[0]?.id || 'food', amount: '', note: '' });
   const [incomeForm, setIncomeForm] = useState({ label: '', amount: '' });
+  const [historyFilter, setHistoryFilter] = useState('All');
 
   const monthData = BUDGET[selectedMonth] || { entries: [], extraIncome: [] };
   const entries = monthData.entries || [];
@@ -40,61 +44,52 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS }) {
 
   const addEntry = () => {
     if (!form.amount || isNaN(form.amount) || Number(form.amount) <= 0) return;
-    const newEntry = {
-      id: Date.now().toString(),
-      category: form.category,
-      amount: Number(form.amount),
-      note: form.note.trim(),
-      date: new Date().toISOString().split('T')[0],
-    };
-    const newBudget = {
-      ...BUDGET,
-      [selectedMonth]: {
-        ...monthData,
-        entries: [...entries, newEntry],
-      }
-    };
+    const newEntry = { id: Date.now().toString(), category: form.category, amount: Number(form.amount), note: form.note.trim(), date: dayKey(now) };
+    const newBudget = { ...BUDGET, [selectedMonth]: { ...monthData, entries: [...entries, newEntry] } };
     syncBudget(newBudget);
-    setForm({ category: 'food', amount: '', note: '' });
+    setForm({ category: CATEGORIES[0]?.id || 'food', amount: '', note: '' });
     setShowAdd(false);
   };
 
   const deleteEntry = (id) => {
-    const newBudget = {
-      ...BUDGET,
-      [selectedMonth]: {
-        ...monthData,
-        entries: entries.filter(e => e.id !== id),
-      }
-    };
+    const newBudget = { ...BUDGET, [selectedMonth]: { ...monthData, entries: entries.filter(e => e.id !== id) } };
     syncBudget(newBudget);
   };
 
   const addIncome = () => {
     if (!incomeForm.amount || isNaN(incomeForm.amount) || Number(incomeForm.amount) <= 0) return;
     const newIncome = { id: Date.now().toString(), label: incomeForm.label || 'Extra Income', amount: Number(incomeForm.amount) };
-    const newBudget = {
-      ...BUDGET,
-      [selectedMonth]: { ...monthData, extraIncome: [...extraIncome, newIncome] }
-    };
+    const newBudget = { ...BUDGET, [selectedMonth]: { ...monthData, extraIncome: [...extraIncome, newIncome] } };
     syncBudget(newBudget);
     setIncomeForm({ label: '', amount: '' });
     setShowAddIncome(false);
   };
 
   const deleteIncome = (id) => {
-    const newBudget = {
-      ...BUDGET,
-      [selectedMonth]: { ...monthData, extraIncome: extraIncome.filter(e => e.id !== id) }
-    };
+    const newBudget = { ...BUDGET, [selectedMonth]: { ...monthData, extraIncome: extraIncome.filter(e => e.id !== id) } };
     syncBudget(newBudget);
   };
 
-  // Generate last 6 months for selector
+  // All entries across all months for history
+  const allEntries = [];
+  Object.entries(BUDGET).forEach(([mk, md]) => {
+    (md.entries || []).forEach(e => allEntries.push({ ...e, monthKey: mk }));
+  });
+  allEntries.sort((a, b) => b.date.localeCompare(a.date));
+
+  const filteredHistory = allEntries.filter(e => {
+    if (historyFilter === 'All') return true;
+    const diff = (now - new Date(e.date)) / (1000 * 60 * 60 * 24);
+    if (historyFilter === 'Weekly')  return diff <= 7;
+    if (historyFilter === 'Monthly') return diff <= 30;
+    if (historyFilter === 'Yearly')  return diff <= 365;
+    return true;
+  });
+
   const months = [];
   for (let i = 0; i < 6; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ key: dateKey(d), label: d.toLocaleString('default', { month: 'short', year: '2-digit' }) });
+    months.push({ key: monthKey(d), label: d.toLocaleString('default', { month: 'short', year: '2-digit' }) });
   }
 
   const statusColor = spentPct >= 100 ? 'var(--red)' : spentPct >= 80 ? 'var(--orange)' : 'var(--accent)';
@@ -107,7 +102,6 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS }) {
           <div className="greeting">Monthly</div>
           <div className="ai-title">Budget</div>
         </div>
-        {/* Month Selector */}
         <div style={{ display: 'flex', gap: '6px', overflowX: 'auto' }}>
           {months.map(m => (
             <div key={m.key} onClick={() => setSelectedMonth(m.key)}
@@ -117,7 +111,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS }) {
         </div>
       </div>
 
-      {/* Overview Card */}
+      {/* Overview */}
       <div style={{ margin: '0 20px 16px', background: 'linear-gradient(145deg, var(--bg3), var(--bg2))', borderRadius: '16px', padding: '20px', border: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
           <div>
@@ -131,8 +125,6 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS }) {
             <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '2px' }}>{remaining < 0 ? '⚠️ Over budget' : `${100 - spentPct}% left`}</div>
           </div>
         </div>
-
-        {/* Progress Bar */}
         <div style={{ background: 'var(--border2)', borderRadius: '8px', height: '10px', overflow: 'hidden' }}>
           <div style={{ width: `${spentPct}%`, height: '100%', background: statusColor, borderRadius: '8px', transition: 'width 1s ease' }} />
         </div>
@@ -174,7 +166,6 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS }) {
         </button>
       </div>
 
-      {/* Add Expense Form */}
       {showAdd && (
         <div style={{ margin: '0 20px 16px', background: 'var(--bg3)', borderRadius: '14px', padding: '16px', border: '1px solid var(--border2)' }}>
           <div style={{ fontWeight: 600, marginBottom: '12px', fontSize: '14px' }}>Add Expense</div>
@@ -197,7 +188,6 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS }) {
         </div>
       )}
 
-      {/* Add Extra Income Form */}
       {showAddIncome && (
         <div style={{ margin: '0 20px 16px', background: 'var(--bg3)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(200,241,53,0.2)' }}>
           <div style={{ fontWeight: 600, marginBottom: '12px', fontSize: '14px', color: 'var(--accent)' }}>Add Extra Income</div>
@@ -212,7 +202,6 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS }) {
         </div>
       )}
 
-      {/* Extra Income List */}
       {extraIncome.length > 0 && (
         <div style={{ margin: '0 20px 16px' }}>
           <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)', marginBottom: '8px' }}>💰 Extra Income</div>
@@ -228,31 +217,38 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS }) {
         </div>
       )}
 
-      {/* Expense List */}
-      {entries.length > 0 && (
-        <div style={{ margin: '0 20px 16px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px' }}>All Expenses</div>
-          {[...entries].reverse().map(e => {
-            const cat = CATEGORIES.find(c => c.id === e.category) || CATEGORIES[6];
-            return (
-              <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg3)', borderRadius: '10px', marginBottom: '8px', border: '1px solid var(--border2)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ fontSize: '22px' }}>{cat.emoji}</div>
-                  <div>
-                    <div style={{ fontSize: '12px', color: 'var(--text2)' }}>{cat.label}</div>
-                    {e.note && <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{e.note}</div>}
-                    <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{e.date}</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ fontWeight: 'bold', color: cat.color, fontSize: '16px' }}>₹{Number(e.amount).toLocaleString()}</div>
-                  <button onClick={() => deleteEntry(e.id)} style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: '4px' }}><Trash2 size={16} /></button>
+      {/* EXPENSE HISTORY WITH FILTER */}
+      <div style={{ margin: '0 20px 8px' }}>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '10px' }}>📋 Expense History</div>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+          {['All', 'Weekly', 'Monthly', 'Yearly'].map(f => (
+            <div key={f} onClick={() => setHistoryFilter(f)}
+              style={{ padding: '5px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer', fontWeight: historyFilter === f ? 700 : 400, background: historyFilter === f ? 'var(--accent)' : 'var(--bg3)', color: historyFilter === f ? '#000' : 'var(--text2)', border: '1px solid var(--border2)', transition: 'all 0.2s' }}>
+              {f}
+            </div>
+          ))}
+        </div>
+        {filteredHistory.length === 0 && <div style={{ color: 'var(--text3)', fontSize: '12px', textAlign: 'center', padding: '20px 0' }}>No expenses in this period</div>}
+        {filteredHistory.map(e => {
+          const cat = CATEGORIES.find(c => c.id === e.category) || CATEGORIES[CATEGORIES.length - 1];
+          return (
+            <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg3)', borderRadius: '10px', marginBottom: '8px', border: '1px solid var(--border2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ fontSize: '22px' }}>{cat.emoji}</div>
+                <div>
+                  <div style={{ fontSize: '12px', color: 'var(--text2)' }}>{cat.label}</div>
+                  {e.note && <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{e.note}</div>}
+                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{e.date}</div>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ fontWeight: 'bold', color: cat.color, fontSize: '16px' }}>₹{Number(e.amount).toLocaleString()}</div>
+                <button onClick={() => deleteEntry(e.id)} style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: '4px' }}><Trash2 size={16} /></button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
       <div style={{ height: '20px' }} />
     </div>
   );
