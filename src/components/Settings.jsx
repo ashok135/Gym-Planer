@@ -1,13 +1,46 @@
 import React, { useState } from 'react';
 import { DEFAULT_PLAN, DAYS_FULL, DEFAULT_DIET_PLAN, MONTHS, dateKey } from '../data';
 
-export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE }) {
+export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, BUDGET, STUDY }) {
   const [localNames, setLocalNames] = useState(NAMES);
   const [saveMsg, setSaveMsg] = useState(false);
   
   const [localSchedule, setLocalSchedule] = useState({ ...SCHEDULE?.fullTime });
   const [schedMsg, setSchedMsg] = useState(false);
   const [showSchedModal, setShowSchedModal] = useState(false);
+
+  const [localIncome, setLocalIncome] = useState(BUDGET_SETTINGS?.income || 22400);
+  const [budgetMsg, setBudgetMsg] = useState(false);
+
+  const [localDailyTarget, setLocalDailyTarget] = useState(STUDY_SETTINGS?.dailyTarget || 4);
+  const [localSubjects, setLocalSubjects] = useState(STUDY_SETTINGS?.subjects || []);
+  const [newSubjectLabel, setNewSubjectLabel] = useState('');
+  const [studyMsg, setStudyMsg] = useState(false);
+
+  const SUBJECT_COLORS = ['#A78BFA', '#FBBF24', '#4D9FFF', '#34D399', '#FB923C', '#F472B6', '#FF6B6B'];
+
+  const saveBudgetSettings = () => {
+    const newSettings = { ...BUDGET_SETTINGS, income: Number(localIncome) };
+    syncBudget(BUDGET, newSettings);
+    setBudgetMsg(true);
+    setTimeout(() => setBudgetMsg(false), 2000);
+  };
+
+  const addSubject = () => {
+    if (!newSubjectLabel.trim()) return;
+    const newSub = { id: Date.now().toString(), label: newSubjectLabel.trim(), emoji: '📖', color: SUBJECT_COLORS[localSubjects.length % SUBJECT_COLORS.length] };
+    setLocalSubjects(prev => [...prev, newSub]);
+    setNewSubjectLabel('');
+  };
+
+  const removeSubject = (id) => setLocalSubjects(prev => prev.filter(s => s.id !== id));
+
+  const saveStudySettings = () => {
+    const newSettings = { ...STUDY_SETTINGS, dailyTarget: Number(localDailyTarget), subjects: localSubjects };
+    syncStudy(STUDY, newSettings);
+    setStudyMsg(true);
+    setTimeout(() => setStudyMsg(false), 2000);
+  };
 
   const SPLITS = [
     { id: 0, label: 'Rest Day' },
@@ -198,6 +231,54 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
       
       <button className="settings-save" style={{background:'var(--accent)', color:'#000', marginBottom:'16px'}} onClick={exportCSV}>Download Full Export (CSV / Excel)</button>
       <button className="settings-save" style={{background:'var(--bg3)', color:'var(--text)', marginBottom:'16px'}} onClick={exportData}>Export Backup (JSON)</button>
+
+      {/* BUDGET DEFAULTS */}
+      <div className="settings-header" style={{marginTop:'32px'}}>💰 Budget Defaults</div>
+      <div className="settings-sub">Set your monthly take-home income.</div>
+      <div className="settings-section">
+        <div style={{fontSize:'12px', color:'var(--text2)', marginBottom:'6px'}}>Monthly Income (₹)</div>
+        <input type="number" value={localIncome} onChange={e => setLocalIncome(e.target.value)}
+          style={{width:'100%', padding:'10px 12px', background:'var(--bg)', border:'1px solid var(--border2)', borderRadius:'8px', color:'var(--text)', fontSize:'16px', fontWeight:'bold', boxSizing:'border-box'}} />
+      </div>
+      <div style={{display:'flex', alignItems:'center', gap:'12px', marginTop:'12px', marginBottom:'24px'}}>
+        <button className="settings-save" onClick={saveBudgetSettings} style={{flex:1}}>Save Income</button>
+        <span className="save-ok" style={{opacity: budgetMsg ? 1 : 0}}>Saved ✓</span>
+      </div>
+
+      {/* STUDY DEFAULTS */}
+      <div className="settings-header" style={{marginTop:'8px'}}>📚 Study Defaults</div>
+      <div className="settings-sub">Set daily target and manage subjects.</div>
+      <div className="settings-section">
+        <div style={{fontSize:'12px', color:'var(--text2)', marginBottom:'6px'}}>Daily Target (hours)</div>
+        <div style={{display:'flex', gap:'8px', flexWrap:'wrap', marginBottom:'16px'}}>
+          {[2, 3, 4, 5, 6, 8].map(h => (
+            <div key={h} onClick={() => setLocalDailyTarget(h)}
+              style={{padding:'6px 16px', borderRadius:'20px', fontSize:'13px', cursor:'pointer', background: localDailyTarget === h ? 'var(--accent)' : 'var(--bg)', color: localDailyTarget === h ? '#000' : 'var(--text2)', border:`1px solid ${localDailyTarget === h ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: localDailyTarget === h ? 700 : 400}}>
+              {h}h
+            </div>
+          ))}
+        </div>
+        <div style={{fontSize:'12px', color:'var(--text2)', marginBottom:'8px'}}>Subjects</div>
+        {localSubjects.map(s => (
+          <div key={s.id} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid var(--border2)'}}>
+            <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+              <span style={{fontSize:'18px'}}>{s.emoji}</span>
+              <span style={{fontSize:'13px', color: s.color, fontWeight:600}}>{s.label}</span>
+            </div>
+            <button onClick={() => removeSubject(s.id)} style={{background:'transparent', border:'none', color:'var(--red)', cursor:'pointer', fontSize:'12px'}}>Remove</button>
+          </div>
+        ))}
+        <div style={{display:'flex', gap:'8px', marginTop:'12px'}}>
+          <input type="text" placeholder="New subject (e.g. Python)" value={newSubjectLabel} onChange={e => setNewSubjectLabel(e.target.value)}
+            style={{flex:1, padding:'8px 12px', background:'var(--bg)', border:'1px solid var(--border2)', borderRadius:'8px', color:'var(--text)', fontSize:'13px'}} />
+          <button onClick={addSubject} style={{padding:'8px 14px', background:'var(--bg3)', border:'1px solid var(--border2)', borderRadius:'8px', color:'var(--text)', fontWeight:600, cursor:'pointer', fontSize:'13px'}}>+ Add</button>
+        </div>
+      </div>
+      <div style={{display:'flex', alignItems:'center', gap:'12px', marginTop:'12px', marginBottom:'24px'}}>
+        <button className="settings-save" onClick={saveStudySettings} style={{flex:1}}>Save Study Settings</button>
+        <span className="save-ok" style={{opacity: studyMsg ? 1 : 0}}>Saved ✓</span>
+      </div>
+
       <button className="logout-btn" onClick={handleLogout}>Log Out</button>
       <div style={{height:'20px'}}></div>
 

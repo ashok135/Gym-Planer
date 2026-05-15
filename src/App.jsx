@@ -7,7 +7,20 @@ import Today from './components/Today';
 import Diet from './components/Diet';
 import Report from './components/Report';
 import Settings from './components/Settings';
+import Budget from './components/Budget';
+import Study from './components/Study';
+import AIChat from './components/AIChat';
 import './index.css';
+
+const DEFAULT_BUDGET_SETTINGS = { income: 22400, currency: '₹' };
+const DEFAULT_STUDY_SETTINGS = {
+  dailyTarget: 4,
+  subjects: [
+    { id: 'dsa',   label: 'DSA',        emoji: '🧠', color: '#A78BFA' },
+    { id: 'js',    label: 'JavaScript',  emoji: '⚡', color: '#FBBF24' },
+    { id: 'react', label: 'React',       emoji: '⚛️',  color: '#4D9FFF' },
+  ]
+};
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -24,6 +37,10 @@ export default function App() {
   const [META, setMETA] = useState({});
   const [FOOD, setFOOD] = useState({});
   const [SCHEDULE, setSCHEDULE] = useState({ fullTime: {}, thisWeek: {} });
+  const [BUDGET, setBUDGET] = useState({});
+  const [BUDGET_SETTINGS, setBUDGET_SETTINGS] = useState(DEFAULT_BUDGET_SETTINGS);
+  const [STUDY, setSTUDY] = useState({});
+  const [STUDY_SETTINGS, setSTUDY_SETTINGS] = useState(DEFAULT_STUDY_SETTINGS);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -38,6 +55,10 @@ export default function App() {
             setMETA(data.meta || {});
             setFOOD(data.food || {});
             setSCHEDULE(data.schedule || { fullTime: {}, thisWeek: {} });
+            setBUDGET(data.budget || {});
+            setBUDGET_SETTINGS(data.budgetSettings || DEFAULT_BUDGET_SETTINGS);
+            setSTUDY(data.study || {});
+            setSTUDY_SETTINGS(data.studySettings || DEFAULT_STUDY_SETTINGS);
           }
         } catch(e) {
           console.error("Cloud fetch failed, using local", e);
@@ -46,6 +67,10 @@ export default function App() {
           setMETA(JSON.parse(localStorage.getItem('gmeta')||'{}'));
           setFOOD(JSON.parse(localStorage.getItem('gfood')||'{}'));
           setSCHEDULE(JSON.parse(localStorage.getItem('gschedule')||'{"fullTime":{},"thisWeek":{}}'));
+          setBUDGET(JSON.parse(localStorage.getItem('gbudget')||'{}'));
+          setBUDGET_SETTINGS(JSON.parse(localStorage.getItem('gbudgetSettings')||JSON.stringify(DEFAULT_BUDGET_SETTINGS)));
+          setSTUDY(JSON.parse(localStorage.getItem('gstudy')||'{}'));
+          setSTUDY_SETTINGS(JSON.parse(localStorage.getItem('gstudySettings')||JSON.stringify(DEFAULT_STUDY_SETTINGS)));
         }
       }
       setLoading(false);
@@ -60,11 +85,39 @@ export default function App() {
     localStorage.setItem('gmeta', JSON.stringify(newMETA));
     localStorage.setItem('gfood', JSON.stringify(newFOOD));
     localStorage.setItem('gschedule', JSON.stringify(newSCHEDULE));
-    
     if(user) {
       try {
         await setDoc(doc(db, "users", user.uid), {
-          workouts: newDB, names: newNAMES, meta: newMETA, food: newFOOD, schedule: newSCHEDULE
+          workouts: newDB, names: newNAMES, meta: newMETA, food: newFOOD, schedule: newSCHEDULE,
+          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS
+        });
+      } catch(e) { console.error("Cloud save failed", e); }
+    }
+  };
+
+  const syncBudget = async (newBudget, newSettings = BUDGET_SETTINGS) => {
+    setBUDGET(newBudget); setBUDGET_SETTINGS(newSettings);
+    localStorage.setItem('gbudget', JSON.stringify(newBudget));
+    localStorage.setItem('gbudgetSettings', JSON.stringify(newSettings));
+    if(user) {
+      try {
+        await setDoc(doc(db, "users", user.uid), {
+          workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
+          budget: newBudget, budgetSettings: newSettings, study: STUDY, studySettings: STUDY_SETTINGS
+        });
+      } catch(e) { console.error("Cloud save failed", e); }
+    }
+  };
+
+  const syncStudy = async (newStudy, newSettings = STUDY_SETTINGS) => {
+    setSTUDY(newStudy); setSTUDY_SETTINGS(newSettings);
+    localStorage.setItem('gstudy', JSON.stringify(newStudy));
+    localStorage.setItem('gstudySettings', JSON.stringify(newSettings));
+    if(user) {
+      try {
+        await setDoc(doc(db, "users", user.uid), {
+          workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
+          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: newStudy, studySettings: newSettings
         });
       } catch(e) { console.error("Cloud save failed", e); }
     }
@@ -83,9 +136,7 @@ export default function App() {
     }
   };
 
-  const handleLogout = async () => {
-    await signOut(auth);
-  };
+  const handleLogout = async () => { await signOut(auth); };
 
   if(loading) {
     return (
@@ -121,11 +172,8 @@ export default function App() {
 
   const handleScroll = (e) => {
     const currentScrollY = e.target.scrollTop;
-    if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
-      setShowNav(false);
-    } else if (currentScrollY < lastScrollY.current) {
-      setShowNav(true);
-    }
+    if (currentScrollY > lastScrollY.current && currentScrollY > 50) setShowNav(false);
+    else if (currentScrollY < lastScrollY.current) setShowNav(true);
     lastScrollY.current = currentScrollY;
   };
 
@@ -143,12 +191,15 @@ export default function App() {
         </div>
       </div>
       <div className="screen active" onScroll={handleScroll} style={{paddingBottom:'90px', flex:1, overflowY:'auto'}}>
-        {activeTab === 'today' && <Today DB={DB} NAMES={NAMES} META={META} syncData={syncData} FOOD={FOOD} SCHEDULE={SCHEDULE} />}
-        {activeTab === 'diet' && <Diet FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} />}
-        {activeTab === 'report' && <Report DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} />}
-        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} />}
+        {activeTab === 'today'    && <Today    DB={DB} NAMES={NAMES} META={META} syncData={syncData} FOOD={FOOD} SCHEDULE={SCHEDULE} />}
+        {activeTab === 'diet'     && <Diet     FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} />}
+        {activeTab === 'budget'   && <Budget   BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} />}
+        {activeTab === 'study'    && <Study    STUDY={STUDY} syncStudy={syncStudy} STUDY_SETTINGS={STUDY_SETTINGS} />}
+        {activeTab === 'report'   && <Report   DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} />}
+        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} />}
       </div>
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} showNav={showNav} />
+      <AIChat DB={DB} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} />
     </div>
   );
 }
