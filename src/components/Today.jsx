@@ -12,6 +12,11 @@ export default function Today({ DB, NAMES, META, syncData, FOOD }) {
   
   // Create deep copy of plan
   const plan = JSON.parse(JSON.stringify(DEFAULT_PLAN[dow] || DEFAULT_PLAN[0]));
+  plan.muscles.push({
+    name: 'Abs',
+    exercises: ['Crunches', 'Leg Raises', 'Plank']
+  });
+
   plan.muscles.forEach(m => {
     m.exercises = m.exercises.map((ex, i) => {
       const k = `${dow}_${m.name}_${i}`;
@@ -23,6 +28,13 @@ export default function Today({ DB, NAMES, META, syncData, FOOD }) {
   const [renameBox, setRenameBox] = useState(null);
   const [renameInput, setRenameInput] = useState('');
   const [saveMsg, setSaveMsg] = useState(false);
+  const [showAbs, setShowAbs] = useState(false);
+
+  const getPrevStats = (ek) => {
+    const keys = Object.keys(DB).filter(k => k < key && DB[k][ek] && DB[k][ek].w).sort();
+    if(keys.length === 0) return null;
+    return DB[keys[keys.length - 1]][ek];
+  };
 
   const toggleRename = (ek, currentName) => {
     if(renameBox === ek) setRenameBox(null);
@@ -131,12 +143,22 @@ export default function Today({ DB, NAMES, META, syncData, FOOD }) {
         </div>
       </div>
 
-      {plan.muscles.map(m => (
+      {plan.muscles.map(m => {
+        if(m.name === 'Abs' && !showAbs) {
+          return (
+            <div className="muscle-block" key={m.name} onClick={() => setShowAbs(true)} style={{cursor: 'pointer', opacity: 0.8, textAlign: 'center', padding: '16px', background: 'var(--bg3)', borderRadius: 'var(--radius)', border: '1px dashed var(--border2)'}}>
+              <div style={{fontSize: '12px', fontWeight: 600, color: 'var(--text2)', letterSpacing: '0.1em'}}>+ ADD ABS WORKOUT</div>
+            </div>
+          );
+        }
+
+        return (
         <div className="muscle-block" key={m.name}>
           <div className="muscle-header"><div className="muscle-dot"></div><div className="muscle-name">{m.name}</div></div>
           {m.exercises.map((ex, i) => {
             const ek = `${m.name}_${i}`;
             const sv = saved[ek] || {};
+            const prev = getPrevStats(ek) || {};
             const vol = (sv.s && sv.r && sv.w) ? Math.round(sv.s * sv.r * sv.w) : '';
             const isDone = sv.done; // true, false, or undefined
             return (
@@ -162,16 +184,17 @@ export default function Today({ DB, NAMES, META, syncData, FOOD }) {
                   </div>
                 )}
                 <div className="exercise-inputs">
-                  <div className="input-group"><div className="input-label">SETS</div><input type="number" min="0" placeholder="0" value={sv.s || ''} onChange={e => handleInputChange(ek, 's', e.target.value)} /></div>
-                  <div className="input-group"><div className="input-label">REPS</div><input type="number" min="0" placeholder="0" value={sv.r || ''} onChange={e => handleInputChange(ek, 'r', e.target.value)} /></div>
-                  <div className="input-group"><div className="input-label">KG</div><input type="number" min="0" step="0.5" placeholder="0" value={sv.w || ''} onChange={e => handleInputChange(ek, 'w', e.target.value)} /></div>
+                  <div className="input-group"><div className="input-label">SETS</div><input type="number" min="0" placeholder={prev.s || "0"} value={sv.s || ''} onChange={e => handleInputChange(ek, 's', e.target.value)} /></div>
+                  <div className="input-group"><div className="input-label">REPS</div><input type="number" min="0" placeholder={prev.r || "0"} value={sv.r || ''} onChange={e => handleInputChange(ek, 'r', e.target.value)} /></div>
+                  <div className="input-group"><div className="input-label">KG</div><input type="number" min="0" step="0.5" placeholder={prev.w || "0"} value={sv.w || ''} onChange={e => handleInputChange(ek, 'w', e.target.value)} /></div>
                 </div>
                 <div className="vol-row"><span className="vol-label">Volume</span><span className="vol-val">{vol ? vol+' kg' : '—'}</span></div>
               </div>
             );
           })}
         </div>
-      ))}
+        );
+      })}
 
       <div className="save-area">
         <button className="save-btn" onClick={saveToday}>Save workout</button>

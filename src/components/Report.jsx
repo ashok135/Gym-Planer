@@ -15,6 +15,7 @@ export default function Report({ DB, NAMES, META, FOOD }) {
   
   let totalVol = 0, totalDaysAttended = 0, totalPossibleDays = 0;
   let totalProtein = 0, habitWater = 0, habitSleep = 0, habitJunk = 0;
+  let totalMinutesSpent = 0;
   
   const chartData = [];
   const monthlyDataMap = {}; // For Yearly aggregation
@@ -71,6 +72,16 @@ export default function Report({ DB, NAMES, META, FOOD }) {
       attended = true;
     }
     
+    if (m.start && m.end) {
+      const [sh, sm] = m.start.split(':').map(Number);
+      const [eh, em] = m.end.split(':').map(Number);
+      if (!isNaN(sh) && !isNaN(eh)) {
+        let mins = (eh * 60 + em) - (sh * 60 + sm);
+        if (mins < 0) mins += 24 * 60;
+        totalMinutesSpent += mins;
+      }
+    }
+    
     totalVol += vol;
     
     const f = FOOD[k] || {};
@@ -117,6 +128,15 @@ export default function Report({ DB, NAMES, META, FOOD }) {
     { name: 'Attended', value: totalDaysAttended, color: 'var(--accent)' },
     { name: 'Missed', value: missedDays, color: 'var(--red)' }
   ];
+  
+  const formatTime = (totalMins) => {
+    if (totalMins === 0) return '0 hrs';
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
+    if (h === 0) return `${m} mins`;
+    if (m === 0) return `${h} hrs`;
+    return `${h}h ${m}m`;
+  };
   
   const pct = totalPossibleDays ? Math.round((totalDaysAttended / totalPossibleDays) * 100) : 0;
   let pctColor = 'var(--text)';
@@ -206,6 +226,7 @@ export default function Report({ DB, NAMES, META, FOOD }) {
             <div style={{display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px'}}>
               <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text)'}}><CheckCircle2 size={16} color="var(--accent)"/> {totalDaysAttended} Present</div>
               <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text2)'}}><XCircle size={16} color="var(--red)"/> {missedDays} Absent</div>
+              <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--blue)', marginTop: '4px'}}><span style={{fontSize: '16px'}}>⏱️</span> {formatTime(totalMinutesSpent)} Spent</div>
             </div>
             <div style={{width: '90px', height: '90px'}}>
               <ResponsiveContainer width="100%" height="100%">
