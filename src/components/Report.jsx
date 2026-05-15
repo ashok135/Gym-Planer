@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, A
 import { CheckCircle2, XCircle } from 'lucide-react';
 import History from './History';
 
-export default function Report({ DB, NAMES, META, FOOD }) {
+export default function Report({ DB, NAMES, META, FOOD, SCHEDULE }) {
   const [timeRange, setTimeRange] = useState('Today'); // 'Today', 'Weekly', 'Monthly', 'Yearly'
   
   // Aggregate data based on time range
