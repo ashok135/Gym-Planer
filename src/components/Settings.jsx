@@ -3,6 +3,59 @@ import { DEFAULT_PLAN, DAYS_FULL, DEFAULT_DIET_PLAN, MONTHS, dateKey } from '../
 import { ChevronDown, Beaker } from 'lucide-react';
 import { generateSeedData } from '../utils/seeder';
 
+const getJobSuggestions = (input) => {
+  const clean = input.trim();
+  if (!clean) {
+    return [
+      'React Developer', 'WordPress Developer', 'Frontend Developer', 
+      'Fullstack Developer', 'Node.js Developer', 'Django Developer', 
+      'UI/UX Designer', 'Mobile App Developer'
+    ];
+  }
+  const lower = clean.toLowerCase();
+  if (lower.startsWith('re') || lower.includes('react')) {
+    return ['React Developer', 'React Engineer', 'React Frontend Developer', 'React Native Developer', 'React.js Specialist', 'Senior React Developer', 'Fullstack React Developer'];
+  }
+  if (lower.startsWith('wo') || lower.includes('word') || lower.includes('wp')) {
+    return ['WordPress Developer', 'WordPress Plugin Developer', 'WordPress Theme Developer', 'WordPress Web Designer', 'WordPress Elementor Specialist', 'WordPress WooCommerce Developer', 'WordPress Theme Architect'];
+  }
+  if (lower.startsWith('fr') || lower.includes('front')) {
+    return ['Frontend Developer', 'Frontend Engineer', 'Frontend React Developer', 'Frontend UI Developer', 'Senior Frontend Engineer'];
+  }
+  if (lower.startsWith('py') || lower.includes('python') || lower.includes('dj')) {
+    return ['Python Developer', 'Django Developer', 'Python Django Engineer', 'Python Backend Developer', 'Python Data Scientist'];
+  }
+  if (lower.startsWith('no') || lower.includes('node')) {
+    return ['Node.js Developer', 'Node.js Backend Developer', 'Fullstack Node.js Developer', 'Node.js Software Engineer'];
+  }
+  if (lower.startsWith('ph') || lower.includes('php') || lower.includes('lar')) {
+    return ['PHP Developer', 'Laravel Developer', 'PHP Laravel Developer', 'Fullstack PHP Developer', 'Laravel Web Developer'];
+  }
+  if (lower.startsWith('ui') || lower.includes('ux') || lower.includes('des')) {
+    return ['UI/UX Designer', 'User Interface Designer', 'User Experience Designer', 'Web Designer', 'Product Designer'];
+  }
+  const capitalized = clean.charAt(0).toUpperCase() + clean.slice(1);
+  return [
+    `${capitalized} Developer`,
+    `${capitalized} Engineer`,
+    `Senior ${capitalized} Developer`,
+    `Junior ${capitalized} Developer`,
+    `${capitalized} Consultant`,
+    `Fullstack ${capitalized} Developer`,
+    `${capitalized} Technical Specialist`
+  ];
+};
+
+const getCitySuggestions = (input) => {
+  const clean = input.trim();
+  if (!clean) {
+    return ['Bangalore', 'Chennai', 'Hyderabad', 'Mumbai', 'Pune', 'Delhi', 'Noida', 'Remote'];
+  }
+  const lower = clean.toLowerCase();
+  const list = ['Bangalore', 'Chennai', 'Hyderabad', 'Mumbai', 'Pune', 'Delhi', 'Noida', 'Gurgaon', 'Kolkata', 'San Francisco', 'New York', 'London', 'Remote'];
+  return list.filter(item => item.toLowerCase().includes(lower));
+};
+
 function Accordion({ title, subtitle, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -30,6 +83,8 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
   const [newLocationInput, setNewLocationInput] = useState('');
   const [workTypes, setWorkTypes] = useState(profileInfo?.workTypes || ['Remote', 'Hybrid']);
   const [profileMsg, setProfileMsg] = useState(false);
+  const [roleFocused, setRoleFocused] = useState(false);
+  const [locFocused, setLocFocused] = useState(false);
 
   useEffect(() => {
     setProfileName(profileInfo?.name || '');
@@ -437,16 +492,36 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
               </div>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <input type="text" placeholder="Add location (e.g. Hyderabad, Chennai)" value={newLocationInput} onChange={e => setNewLocationInput(e.target.value)}
-              style={{ flex: 1, padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px' }} />
+          <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <input type="text" placeholder="Add location (e.g. Hyderabad, Chennai)" value={newLocationInput} 
+                onChange={e => setNewLocationInput(e.target.value)}
+                onFocus={() => setLocFocused(true)}
+                onBlur={() => setTimeout(() => setLocFocused(false), 200)}
+                style={{ width: '100%', padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
+              {locFocused && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '8px', marginTop: '4px', zIndex: 10, maxHeight: '120px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                  {getCitySuggestions(newLocationInput).map(item => (
+                    <div key={item} onMouseDown={() => {
+                      setNewLocationInput(item);
+                      setLocFocused(false);
+                    }}
+                      style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text2)', cursor: 'pointer', borderBottom: '1px solid var(--border2)', background: 'transparent', transition: 'background 0.2s' }}
+                      onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                      onMouseLeave={e => e.target.style.background = 'transparent'}>
+                      📍 {item}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <button onClick={() => {
               if (newLocationInput.trim() && !preferredLocations.includes(newLocationInput.trim())) {
                 setPreferredLocations([...preferredLocations, newLocationInput.trim()]);
                 setNewLocationInput('');
               }
             }}
-              style={{ padding: '8px 14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>
+              style={{ padding: '8px 14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '13px', height: '37px' }}>
               + Add
             </button>
           </div>
@@ -496,16 +571,36 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
               </div>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <input type="text" placeholder="Add custom role (e.g. Node Developer)" value={newRoleInput} onChange={e => setNewRoleInput(e.target.value)}
-              style={{ flex: 1, padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px' }} />
+          <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <input type="text" placeholder="Add custom role (e.g. Node Developer)" value={newRoleInput} 
+                onChange={e => setNewRoleInput(e.target.value)}
+                onFocus={() => setRoleFocused(true)}
+                onBlur={() => setTimeout(() => setRoleFocused(false), 200)}
+                style={{ width: '100%', padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
+              {roleFocused && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '8px', marginTop: '4px', zIndex: 10, maxHeight: '120px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                  {getJobSuggestions(newRoleInput).map(item => (
+                    <div key={item} onMouseDown={() => {
+                      setNewRoleInput(item);
+                      setRoleFocused(false);
+                    }}
+                      style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text2)', cursor: 'pointer', borderBottom: '1px solid var(--border2)', background: 'transparent', transition: 'background 0.2s' }}
+                      onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                      onMouseLeave={e => e.target.style.background = 'transparent'}>
+                      🔍 {item}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <button onClick={() => {
               if (newRoleInput.trim() && !targetRoles.includes(newRoleInput.trim())) {
                 setTargetRoles([...targetRoles, newRoleInput.trim()]);
                 setNewRoleInput('');
               }
             }}
-              style={{ padding: '8px 14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>
+              style={{ padding: '8px 14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '13px', height: '37px' }}>
               + Add
             </button>
           </div>

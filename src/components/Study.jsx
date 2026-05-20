@@ -13,6 +13,59 @@ const DEFAULT_SUBJECTS = [
 const dateKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 
+const getJobSuggestions = (input) => {
+  const clean = input.trim();
+  if (!clean) {
+    return [
+      'React Developer', 'WordPress Developer', 'Frontend Developer', 
+      'Fullstack Developer', 'Node.js Developer', 'Django Developer', 
+      'UI/UX Designer', 'Mobile App Developer'
+    ];
+  }
+  const lower = clean.toLowerCase();
+  if (lower.startsWith('re') || lower.includes('react')) {
+    return ['React Developer', 'React Engineer', 'React Frontend Developer', 'React Native Developer', 'React.js Specialist', 'Senior React Developer', 'Fullstack React Developer'];
+  }
+  if (lower.startsWith('wo') || lower.includes('word') || lower.includes('wp')) {
+    return ['WordPress Developer', 'WordPress Plugin Developer', 'WordPress Theme Developer', 'WordPress Web Designer', 'WordPress Elementor Specialist', 'WordPress WooCommerce Developer', 'WordPress Theme Architect'];
+  }
+  if (lower.startsWith('fr') || lower.includes('front')) {
+    return ['Frontend Developer', 'Frontend Engineer', 'Frontend React Developer', 'Frontend UI Developer', 'Senior Frontend Engineer'];
+  }
+  if (lower.startsWith('py') || lower.includes('python') || lower.includes('dj')) {
+    return ['Python Developer', 'Django Developer', 'Python Django Engineer', 'Python Backend Developer', 'Python Data Scientist'];
+  }
+  if (lower.startsWith('no') || lower.includes('node')) {
+    return ['Node.js Developer', 'Node.js Backend Developer', 'Fullstack Node.js Developer', 'Node.js Software Engineer'];
+  }
+  if (lower.startsWith('ph') || lower.includes('php') || lower.includes('lar')) {
+    return ['PHP Developer', 'Laravel Developer', 'PHP Laravel Developer', 'Fullstack PHP Developer', 'Laravel Web Developer'];
+  }
+  if (lower.startsWith('ui') || lower.includes('ux') || lower.includes('des')) {
+    return ['UI/UX Designer', 'User Interface Designer', 'User Experience Designer', 'Web Designer', 'Product Designer'];
+  }
+  const capitalized = clean.charAt(0).toUpperCase() + clean.slice(1);
+  return [
+    `${capitalized} Developer`,
+    `${capitalized} Engineer`,
+    `Senior ${capitalized} Developer`,
+    `Junior ${capitalized} Developer`,
+    `${capitalized} Consultant`,
+    `Fullstack ${capitalized} Developer`,
+    `${capitalized} Technical Specialist`
+  ];
+};
+
+const getCitySuggestions = (input) => {
+  const clean = input.trim();
+  if (!clean) {
+    return ['Bangalore', 'Chennai', 'Hyderabad', 'Mumbai', 'Pune', 'Delhi', 'Noida', 'Remote'];
+  }
+  const lower = clean.toLowerCase();
+  const list = ['Bangalore', 'Chennai', 'Hyderabad', 'Mumbai', 'Pune', 'Delhi', 'Noida', 'Gurgaon', 'Kolkata', 'San Francisco', 'New York', 'London', 'Remote'];
+  return list.filter(item => item.toLowerCase().includes(lower));
+};
+
 export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, activeRange: propRange, profileInfo = { name: '', resume: '', targetRoles: ['React Developer', 'WordPress Developer', 'Frontend Developer'], preferredLocations: ['Bangalore', 'Chennai', 'Remote'], workTypes: ['Remote', 'Hybrid'] } }) {
   const now = new Date();
   const todayKey = dateKey(now);
@@ -43,6 +96,8 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, acti
   const [activeSearchMode, setActiveSearchMode] = useState(workModes[0] || 'Remote');
   const [customSearchRole, setCustomSearchRole] = useState('');
   const [customSearchLoc, setCustomSearchLoc] = useState('');
+  const [roleFocused, setRoleFocused] = useState(false);
+  const [locFocused, setLocFocused] = useState(false);
 
   const generateSimulatedJobs = () => {
     const companies = ['Google', 'Meta', 'Stripe', 'Netflix', 'Airbnb', 'Automattic', 'WP Engine', 'Supabase', 'Vercel', 'Figma', 'Spotify', 'Uber'];
@@ -65,7 +120,7 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, acti
         type: cleanRole,
         ago: `${(idx + 1) * 7} mins ago`,
         color,
-        link: `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(role + ' ' + mode)}&location=${encodeURIComponent(searchLoc || 'Remote')}`
+        link: `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(role + ' ' + mode)}&location=${encodeURIComponent(searchLoc || 'Remote')}`
       };
     });
   };
@@ -763,47 +818,48 @@ Return the output strictly in the following JSON format:
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', position: 'relative' }}>
             <div style={{ flex: 1, position: 'relative' }}>
               <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Custom Job Name:</div>
-              <input type="text" placeholder="e.g. Python Dev" value={customSearchRole} onChange={e => setCustomSearchRole(e.target.value)}
+              <input type="text" placeholder="e.g. Python Dev" value={customSearchRole} 
+                onChange={e => setCustomSearchRole(e.target.value)}
+                onFocus={() => setRoleFocused(true)}
+                onBlur={() => setTimeout(() => setRoleFocused(false), 200)}
                 style={{ width: '100%', padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px', boxSizing: 'border-box' }} />
-              {customSearchRole.trim() && (
+              {roleFocused && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '8px', marginTop: '4px', zIndex: 10, maxHeight: '120px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
-                  {[
-                    'React Developer', 'WordPress Developer', 'Frontend Developer', 'Fullstack Developer', 
-                    'Node.js Developer', 'Django Developer', 'Python Developer', 'Java Developer', 
-                    'UI/UX Designer', 'Mobile App Developer', 'DevOps Engineer', 'WordPress Plugin Engineer'
-                  ]
-                    .filter(item => item.toLowerCase().includes(customSearchRole.toLowerCase()) && item.toLowerCase() !== customSearchRole.toLowerCase())
-                    .map(item => (
-                      <div key={item} onClick={() => setCustomSearchRole(item)}
-                        style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text2)', cursor: 'pointer', borderBottom: '1px solid var(--border2)', transition: 'background 0.2s' }}
-                        onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
-                        onMouseLeave={e => e.target.style.background = 'transparent'}>
-                        🔍 {item}
-                      </div>
-                    ))}
+                  {getJobSuggestions(customSearchRole).map(item => (
+                    <div key={item} onMouseDown={() => {
+                      setCustomSearchRole(item);
+                      setRoleFocused(false);
+                    }}
+                      style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text2)', cursor: 'pointer', borderBottom: '1px solid var(--border2)', background: 'transparent', transition: 'background 0.2s' }}
+                      onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                      onMouseLeave={e => e.target.style.background = 'transparent'}>
+                      🔍 {item}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
             <div style={{ flex: 1, position: 'relative' }}>
               <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Custom City:</div>
-              <input type="text" placeholder="e.g. Delhi, London" value={customSearchLoc} onChange={e => setCustomSearchLoc(e.target.value)}
+              <input type="text" placeholder="e.g. Delhi, London" value={customSearchLoc} 
+                onChange={e => setCustomSearchLoc(e.target.value)}
+                onFocus={() => setLocFocused(true)}
+                onBlur={() => setTimeout(() => setLocFocused(false), 200)}
                 style={{ width: '100%', padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px', boxSizing: 'border-box' }} />
-              {customSearchLoc.trim() && (
+              {locFocused && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '8px', marginTop: '4px', zIndex: 10, maxHeight: '120px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
-                  {[
-                    'Bangalore', 'Chennai', 'Hyderabad', 'Mumbai', 'Pune', 'Delhi', 'Noida', 
-                    'Gurgaon', 'Kolkata', 'San Francisco', 'New York', 'London', 'Remote'
-                  ]
-                    .filter(item => item.toLowerCase().includes(customSearchLoc.toLowerCase()) && item.toLowerCase() !== customSearchLoc.toLowerCase())
-                    .map(item => (
-                      <div key={item} onClick={() => setCustomSearchLoc(item)}
-                        style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text2)', cursor: 'pointer', borderBottom: '1px solid var(--border2)', transition: 'background 0.2s' }}
-                        onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
-                        onMouseLeave={e => e.target.style.background = 'transparent'}>
-                        📍 {item}
-                      </div>
-                    ))}
+                  {getCitySuggestions(customSearchLoc).map(item => (
+                    <div key={item} onMouseDown={() => {
+                      setCustomSearchLoc(item);
+                      setLocFocused(false);
+                    }}
+                      style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text2)', cursor: 'pointer', borderBottom: '1px solid var(--border2)', background: 'transparent', transition: 'background 0.2s' }}
+                      onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                      onMouseLeave={e => e.target.style.background = 'transparent'}>
+                      📍 {item}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -823,7 +879,7 @@ Return the output strictly in the following JSON format:
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <a href={`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(queryKeywords)}&location=${encodeURIComponent(queryLocation || 'Remote')}`} target="_blank" rel="noopener noreferrer"
+                  <a href={`https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(queryKeywords)}&location=${encodeURIComponent(queryLocation || 'Remote')}`} target="_blank" rel="noopener noreferrer"
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', background: 'rgba(10, 102, 194, 0.1)', border: '1px solid rgba(10, 102, 194, 0.3)', borderRadius: '10px', color: '#0A66C2', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold', transition: 'all 0.2s' }}>
                     🔵 LinkedIn
                   </a>
