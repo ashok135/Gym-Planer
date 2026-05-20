@@ -3,7 +3,7 @@ import { MessageCircle, X, Send, Bot, Key, Sparkles } from 'lucide-react';
 
 const GEMINI_KEY_STORAGE = 'gemini_api_key';
 
-export default function AIChat({ DB, META, FOOD, BUDGET, STUDY, SCHEDULE, syncAiSettings }) {
+export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHEDULE, syncAiSettings }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'bot', text: "Hi! I'm Lucy 🤖 Ask me anything about your workouts, diet, budget, or study progress!" }
@@ -36,22 +36,121 @@ export default function AIChat({ DB, META, FOOD, BUDGET, STUDY, SCHEDULE, syncAi
     const todayKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
     const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
-    const recentWorkouts = Object.entries(DB).slice(-7).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join('\n');
+    // 1. Calculate best exercise today based on volume (Sets * Reps * Weight)
+    let bestExerciseToday = null;
+    let maxVolume = 0;
+    const todayWorkouts = DB[todayKey] || {};
+    for (const [exKey, exVal] of Object.entries(todayWorkouts)) {
+      if (exVal.done) {
+        const name = NAMES[exKey] || exKey;
+        const volume = (exVal.s || 0) * (exVal.r || 0) * (exVal.w || 0);
+        if (volume > maxVolume) {
+          maxVolume = volume;
+          bestExerciseToday = { name, sets: exVal.s, reps: exVal.r, weight: exVal.w, volume };
+        }
+      }
+    }
+
+    // 2. Scan workouts database backwards to find last workouts for major muscle groups
+    const lastWorkouts = { legs: null, chest: null, back: null, shoulders: null, arms: null };
+    const sortedDbEntries = Object.entries(DB).sort((a,b) => b[0].localeCompare(a[0])); // latest first
+
+    for (const [date, exercises] of sortedDbEntries) {
+      for (const exKey of Object.keys(exercises)) {
+        const exName = (NAMES[exKey] || exKey).toLowerCase();
+        
+        if (!lastWorkouts.legs && (exName.includes('leg') || exName.includes('quad') || exName.includes('squat') || exName.includes('calf') || exName.includes('hamstring') || exName.includes('press'))) {
+          lastWorkouts.legs = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k]||k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
+        }
+        if (!lastWorkouts.chest && (exName.includes('chest') || exName.includes('bench') || exName.includes('press') || exName.includes('pec') || exName.includes('fly'))) {
+          if (!exName.includes('leg press')) {
+            lastWorkouts.chest = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k]||k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
+          }
+        }
+        if (!lastWorkouts.back && (exName.includes('back') || exName.includes('row') || exName.includes('lat') || exName.includes('pull') || exName.includes('deadlift'))) {
+          lastWorkouts.back = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k]||k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
+        }
+        if (!lastWorkouts.shoulders && (exName.includes('shoulder') || exName.includes('press') || exName.includes('delt') || exName.includes('lateral'))) {
+          if (!exName.includes('leg') && !exName.includes('chest') && !exName.includes('bench')) {
+            lastWorkouts.shoulders = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k]||k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
+          }
+        }
+        if (!lastWorkouts.arms && (exName.includes('arm') || exName.includes('bicep') || exName.includes('tricep') || exName.includes('curl') || exName.includes('extension'))) {
+          lastWorkouts.arms = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k]||k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
+        }
+      }
+    }
+
+    // 3. Budget comparison: Current vs Previous Month
+    const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth()+1).padStart(2,'0')}`;
+    
+    const currBudgetEntries = BUDGET?.[monthKey]?.entries || [];
+    const currSpent = currBudgetEntries.reduce((s,e) => s + Number(e.amount), 0);
+    
+    const prevBudgetEntries = BUDGET?.[prevMonthKey]?.entries || [];
+    const prevSpent = prevBudgetEntries.reduce((s,e) => s + Number(e.amount), 0);
+
+    // 4. Study Subject coverage
+    const subjectStats = {};
+    const subjectsList = [
+      { id: 'dsa', label: 'DSA' },
+      { id: 'js', label: 'JavaScript' },
+      { id: 'react', label: 'React' },
+      { id: 'interview', label: 'Interview Prep' }
+    ];
+    subjectsList.forEach(sub => {
+      subjectStats[sub.id] = { label: sub.label, totalHours: 0, lastDate: 'Never' };
+    });
+    
+    Object.entries(STUDY).forEach(([date, val]) => {
+      if (val && val.sessions) {
+        val.sessions.forEach(sess => {
+          const sId = sess.subjectId;
+          if (subjectStats[sId]) {
+            subjectStats[sId].totalHours += Number(sess.hours || 0);
+            if (subjectStats[sId].lastDate === 'Never' || date > subjectStats[sId].lastDate) {
+              subjectStats[sId].lastDate = date;
+            }
+          }
+        });
+      }
+    });
+
+    const recentWorkouts = Object.entries(DB).slice(-5).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join('\n');
     const todayMeta = META[todayKey] || {};
-    const budgetMonth = BUDGET?.[monthKey] || {};
     const todayStudy = STUDY?.[todayKey] || {};
 
-    return `You are Lucy, an AI coach acting as: ${persona}.
-Embedded in a personal tracking app called LifeTraker.
-The user's data:
-- Today: ${todayKey}
-- Today workout meta: start=${todayMeta.start}, end=${todayMeta.end}, energy=${todayMeta.energy}/5, status=${todayMeta.status}
-- Recent workout entries (last 7 days): ${recentWorkouts || 'none'}
-- Budget this month: spent=₹${(budgetMonth.entries||[]).reduce((s,e)=>s+Number(e.amount),0)}, income=₹22400, entries=${JSON.stringify(budgetMonth.entries?.slice(-5)||[])}
-- Study today: ${JSON.stringify(todayStudy.sessions||[])}
-- Habits today: water=${FOOD[todayKey]?.water||0}, sleep=${FOOD[todayKey]?.sleep||0}, junk=${FOOD[todayKey]?.junk||0}
+    return `You are Lucy, a passionate, ultra-friendly, raw, and highly energetic personal coach/assistant acting as: ${persona}.
+Embedded in the user's personal tracking app called LifeTraker.
 
-Answer the user's question concisely (2-4 sentences max). Be motivating and specific. Use emojis. Speak in the tone of your defined persona.`;
+Here is the user's compiled historical and current data. Answer any specific questions about this data accurately:
+- Today's Date: ${todayKey}
+- Today's Gym Workout Metadata: start=${todayMeta.start || 'not started'}, end=${todayMeta.end || 'not ended'}, energy=${todayMeta.energy || 'none'}/5, status=${todayMeta.status || 'Not started'}
+- Today's Gym Exercises: ${JSON.stringify(DB[todayKey] || {})}
+- Best Exercise Today (Based on Volume): ${bestExerciseToday ? `${bestExerciseToday.name} (${bestExerciseToday.sets} sets of ${bestExerciseToday.reps} reps at ${bestExerciseToday.weight}kg, Vol: ${bestExerciseToday.volume}kg-reps)` : 'none yet'}
+- Last Workouts by Muscle:
+  * Legs: Last done on ${lastWorkouts.legs ? `${lastWorkouts.legs.date} (${lastWorkouts.legs.details})` : 'never'}
+  * Chest: Last done on ${lastWorkouts.chest ? `${lastWorkouts.chest.date} (${lastWorkouts.chest.details})` : 'never'}
+  * Back: Last done on ${lastWorkouts.back ? `${lastWorkouts.back.date} (${lastWorkouts.back.details})` : 'never'}
+  * Shoulders: Last done on ${lastWorkouts.shoulders ? `${lastWorkouts.shoulders.date} (${lastWorkouts.shoulders.details})` : 'never'}
+  * Arms: Last done on ${lastWorkouts.arms ? `${lastWorkouts.arms.date} (${lastWorkouts.arms.details})` : 'never'}
+- Budget Tracking:
+  * This Month (${monthKey}): Total spent = ₹${currSpent} (Income = ₹22400)
+  * Last Month (${prevMonthKey}): Total spent = ₹${prevSpent}
+- Study Subject Stats & Coverage:
+  ${Object.values(subjectStats).map(s => `* ${s.label}: Total hours studied = ${s.totalHours.toFixed(1)} hrs (Last studied: ${s.lastDate})`).join('\n  ')}
+- Today's Study Sessions: ${JSON.stringify(todayStudy.sessions || [])}
+- Today's Habits: water=${FOOD[todayKey]?.water || 0} glasses, sleep=${FOOD[todayKey]?.sleep || 0} hrs, junk=${FOOD[todayKey]?.junk || 0} items
+
+Guidelines for Lucy:
+1. Tone: Be a real buddy/coach—highly energetic, raw, honest, and athletic. It is completely okay to use casual, funny, direct, and slightly raw trainer slang or mild expressions ("get your lazy butt moving", "hell yeah!", "crush this shit", "stop slacking", "no bullshit") to keep it real and friendly.
+2. Answering Questions:
+   - If they ask about today's workout, highlight today's exercises or the best exercise.
+   - If they ask "when did I last do Legs", look at the 'Last Workouts by Muscle' section above and answer exactly.
+   - If they ask about budget comparison, compare 'This Month' total spent vs 'Last Month' spent and give sharp, motivating advice.
+   - If they ask about study topics to cover, identify which subjects have "Never" been studied, have 0 hours, or have the oldest 'Last studied' date and push them to study those!
+3. Style: Max 3-5 sentences. Keep it punchy, high-impact, and fully friendly!`;
   };
 
   const [tempKey, setTempKey] = useState('');
