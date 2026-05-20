@@ -14,7 +14,7 @@ export default function AIChat({ DB, META, FOOD, BUDGET, STUDY, SCHEDULE }) {
   const [openrouterKey, setOpenrouterKey] = useState(() => localStorage.getItem('openrouter_api_key') || '');
   const [provider, setProvider] = useState(() => localStorage.getItem('ai_provider') || 'gemini');
   const [model, setModel] = useState(() => localStorage.getItem('ai_model') || 'gemini-1.5-flash');
-  const [openrouterModel, setOpenrouterModel] = useState(() => localStorage.getItem('openrouter_model') || 'meta-llama/llama-3-8b-instruct:free');
+  const [openrouterModel, setOpenrouterModel] = useState(() => localStorage.getItem('openrouter_model') || 'openrouter/free');
   const [persona, setPersona] = useState(() => localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
   const [showKeyInput, setShowKeyInput] = useState(false);
 
@@ -24,7 +24,7 @@ export default function AIChat({ DB, META, FOOD, BUDGET, STUDY, SCHEDULE }) {
       setOpenrouterKey(localStorage.getItem('openrouter_api_key') || '');
       setProvider(localStorage.getItem('ai_provider') || 'gemini');
       setModel(localStorage.getItem('ai_model') || 'gemini-1.5-flash');
-      setOpenrouterModel(localStorage.getItem('openrouter_model') || 'meta-llama/llama-3-8b-instruct:free');
+      setOpenrouterModel(localStorage.getItem('openrouter_model') || 'openrouter/free');
       setPersona(localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
     };
     window.addEventListener('storage', handleStorage);
@@ -104,7 +104,9 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openrouterKey}`
+            'Authorization': `Bearer ${openrouterKey}`,
+            'HTTP-Referer': 'https://lifetraker-gym.vercel.app',
+            'X-Title': 'LifeTraker Gym'
           },
           body: JSON.stringify({
             model: openrouterModel,
@@ -208,7 +210,7 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
                   style={{ width: '100%', padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px', outline: 'none' }}
                 >
                   <option value="gemini">Google Gemini (Direct)</option>
-                  <option value="openrouter">OpenRouter (Free Llama 3 / Gemini)</option>
+                  <option value="openrouter">OpenRouter (Free Auto-Router)</option>
                 </select>
               </div>
 
@@ -224,10 +226,12 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
                     }}
                     style={{ width: '100%', padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px', outline: 'none' }}
                   >
+                    <option value="openrouter/free">Auto-Select Active Free Model (Highly Recommended!)</option>
                     <option value="meta-llama/llama-3-8b-instruct:free">Llama 3 8B Instruct (Free/Fast)</option>
-                    <option value="google/gemma-2-9b-it:free">Gemma 2 9B Instruct (Free/Smart)</option>
-                    <option value="qwen/qwen-2-7b-instruct:free">Qwen 2 7B Instruct (Free/Multilingual)</option>
                   </select>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '4px', fontStyle: 'italic' }}>
+                    💡 "Auto-Select" always routes to an active free model even if others are down.
+                  </div>
                 </div>
               )}
 
