@@ -44,6 +44,22 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
   const monthlyDataMap = {};
   const prs = {};
   const allExercises = {};
+
+  const gymMonthsData = [];
+  const todayKey = dateKey(now);
+  for (let m = 0; m < 12; m++) {
+    const monthDays = [];
+    const daysInMonth = new Date(now.getFullYear(), m + 1, 0).getDate();
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dk = `${now.getFullYear()}-${String(m + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      const entry = DB[dk] || {};
+      const vol = getDayVol(entry);
+      const meta = META[dk] || {};
+      const status = meta.status || '';
+      monthDays.push({ dk, vol, status });
+    }
+    gymMonthsData.push({ name: MONTHS[m].slice(0, 3), days: monthDays });
+  }
   Object.values(DEFAULT_PLAN).forEach(p => p.muscles.forEach(m => m.exercises.forEach((ex, i) => {
     allExercises[`${m.name}_${i}`] = ex;
   })));
@@ -285,6 +301,43 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
               <div style={{fontSize: '10px', color: 'var(--text3)', marginTop: '4px'}}>
                 {timeRange} cumulative duration
               </div>
+            </div>
+          </div>
+
+          {/* Gym Activity Heatmap Card */}
+          <div className="dash-card full" style={{ margin: '0 0 24px 0', background: 'var(--bg2)', borderRadius: '24px', padding: '24px', border: '1px solid var(--border2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ fontSize: '16px', fontWeight: 800 }}>Gym Activity Heatmap</div>
+              <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{now.getFullYear()} Calendar</div>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', background: 'var(--bg3)', padding: '12px', borderRadius: '16px', border: '1px solid var(--border2)', overflowX: 'auto', scrollbarWidth: 'none' }}>
+              {gymMonthsData.map(m => (
+                <div key={m.name} style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 'fit-content' }}>
+                  <div style={{ fontSize: '8px', color: 'var(--text3)', textAlign: 'center' }}>{m.name}</div>
+                  <div style={{ display: 'grid', gridTemplateRows: 'repeat(7, 1fr)', gridAutoFlow: 'column', gap: '2.5px' }}>
+                    {m.days.map(d => {
+                      let bgColor = 'rgba(255,255,255,0.05)';
+                      if (d.status === 'Skipped') {
+                        bgColor = 'rgba(255, 77, 77, 0.4)'; // Red for skipped
+                      } else if (d.status === 'Completed' || d.status === 'Partial' || d.vol > 0) {
+                        bgColor = `rgba(200, 241, 53, ${Math.min(1, 0.3 + (d.vol / 5000))})`; // Green/accent for completed
+                      }
+                      return (
+                        <div key={d.dk} style={{ 
+                          width: '7px', height: '7px', borderRadius: '1px', 
+                          background: bgColor,
+                          border: d.dk === todayKey ? '1px solid var(--accent)' : 'none'
+                        }} title={`${d.dk}: ${d.vol > 0 ? d.vol.toLocaleString() + ' kg' : d.status || 'No session'}`} />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '12px', fontSize: '10px', color: 'var(--text3)', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><div style={{ width: '8px', height: '8px', borderRadius: '1px', background: 'rgba(255,255,255,0.05)' }}></div> Empty/Rest</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><div style={{ width: '8px', height: '8px', borderRadius: '1px', background: 'rgba(255, 77, 77, 0.4)' }}></div> Skipped</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><div style={{ width: '8px', height: '8px', borderRadius: '1px', background: 'rgba(200, 241, 53, 0.5)' }}></div> Active</div>
             </div>
           </div>
 
