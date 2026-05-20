@@ -69,7 +69,8 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
     Object.keys(e).filter(ek => !['meta', 'customName', 'done'].includes(ek)).forEach(ek => {
       const v = e[ek];
       if(v.s && v.r && v.w) {
-        if(!prs[ek] || v.w > prs[ek].w) prs[ek] = { w: v.w, date: k };
+        const weight = parseFloat(v.w) || 0;
+        if(!prs[ek] || weight > prs[ek].w) prs[ek] = { w: weight, date: k };
       }
     });
   });
@@ -342,29 +343,6 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
           </div>
 
           <div className="dash-grid">
-            <div className="dash-card full" style={{background: 'linear-gradient(145deg, var(--bg3), var(--bg2))', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden', display:'block'}}>
-              <div className="dash-glow accent" style={{opacity: 0.15}}></div>
-              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px'}}>
-                <span style={{fontSize: '20px'}}>🏆</span>
-                <div className="dash-val" style={{fontSize:'18px'}}>Hall of Fame</div>
-              </div>
-              <div className="dash-label">Top 3 All-Time Heaviest Lifts</div>
-              <div className="pr-list" style={{marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
-                {prEntries.length ? prEntries.map(([ek, v], idx) => {
-                  const name = NAMES[Object.keys(NAMES).find(k => k.endsWith('_' + ek))] || (allExercises[ek] || ek);
-                  return (
-                    <div key={ek} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)'}}>
-                      <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                        <div style={{width: '24px', height: '24px', borderRadius: '50%', background: idx === 0 ? 'rgba(200, 241, 53, 0.2)' : 'var(--bg)', color: idx === 0 ? 'var(--accent)' : 'var(--text2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold'}}>{idx + 1}</div>
-                        <span style={{color: 'var(--text)', fontSize: '14px', fontWeight: 500}}>{name}</span>
-                      </div>
-                      <span style={{fontWeight: 700, color: 'var(--accent)', fontSize: '16px'}}>{v.w} kg</span>
-                    </div>
-                  );
-                }) : <div style={{textAlign: 'center', color: 'var(--text2)', fontSize: '13px', padding: '20px 0'}}>Log workouts to build your Hall of Fame!</div>}
-              </div>
-            </div>
-
             <div className="dash-card full" style={{background: 'var(--bg3)', padding: '10px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', borderColor: 'var(--border2)'}}>
               <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
@@ -463,6 +441,28 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{marginTop: '40px'}}>
+            <div className="dash-val" style={{fontSize: '18px', marginBottom: '16px'}}>🏆 Hall of Fame</div>
+            <div className="dash-card full" style={{background: 'linear-gradient(145deg, var(--bg3), var(--bg2))', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden', display:'block'}}>
+              <div className="dash-glow accent" style={{opacity: 0.15}}></div>
+              <div className="dash-label" style={{marginBottom: '16px'}}>Top 3 All-Time Heaviest Lifts</div>
+              <div className="pr-list" style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                {prEntries.length ? prEntries.map(([ek, v], idx) => {
+                  const name = NAMES[Object.keys(NAMES).find(k => k.endsWith('_' + ek))] || (allExercises[ek] || ek);
+                  return (
+                    <div key={ek} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)'}}>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                        <div style={{width: '24px', height: '24px', borderRadius: '50%', background: idx === 0 ? 'rgba(200, 241, 53, 0.2)' : 'var(--bg)', color: idx === 0 ? 'var(--accent)' : 'var(--text2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold'}}>{idx + 1}</div>
+                        <span style={{color: 'var(--text)', fontSize: '14px', fontWeight: 500}}>{name}</span>
+                      </div>
+                      <span style={{fontWeight: 700, color: 'var(--accent)', fontSize: '16px'}}>{v.w} kg</span>
+                    </div>
+                  );
+                }) : <div style={{textAlign: 'center', color: 'var(--text2)', fontSize: '13px', padding: '20px 0'}}>Log workouts to build your Hall of Fame!</div>}
               </div>
             </div>
           </div>
