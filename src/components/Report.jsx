@@ -43,7 +43,16 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
   const chartData = [];
   const monthlyDataMap = {};
   const prs = {};
-  const allExercises = {};
+  const allExercises = {
+    'Abs_0': 'Crunches',
+    'Abs_1': 'Leg Raises',
+    'Abs_2': 'Plank',
+    'Progressive_0': 'Back Squat (Heavy)',
+    'Progressive_1': 'Deadlift (Heavy)',
+    'Progressive_2': 'Overhead Press (Heavy)',
+    'Progressive_3': 'Weighted Pull-ups',
+    'Progressive_4': 'Barbell Row (Heavy)',
+  };
 
   const gymMonthsData = [];
   const todayKey = dateKey(now);

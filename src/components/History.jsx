@@ -89,7 +89,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
 
     const hasAbs = Object.keys(entry).some(k => k.startsWith('Abs_'));
     if (hasAbs) {
-      plan.muscles.push({ name: 'Abs', exercises: ['Crunch', 'Plank', 'Leg Raises'] });
+      plan.muscles.push({ name: 'Abs', exercises: ['Crunches', 'Leg Raises', 'Plank'] });
     }
     const hasProgressive = Object.keys(entry).some(k => k.startsWith('Progressive_'));
     if (hasProgressive) {
