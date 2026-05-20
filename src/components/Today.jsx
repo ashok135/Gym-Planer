@@ -44,6 +44,12 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
     return meta.progressiveEnabled || Object.keys(saved).some(k => k.startsWith('Progressive_'));
   });
 
+  const activeMuscles = plan.muscles.filter(m => {
+    if (m.name === 'Abs') return showAbs;
+    if (m.name === 'Progressive') return showProgressive;
+    return true;
+  });
+
   const addAbs = () => {
     setShowAbs(true);
     handleMetaChange('absEnabled', true);
@@ -151,8 +157,8 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
         <div className="workout-type">{DAYS_FULL[dow]}</div>
         <div className="workout-name">{plan.label}{showAbs ? ' & Abs' : ''}{showProgressive ? ' & Progressive' : ''}</div>
         <div className="workout-meta">
-          <span><strong>{plan.muscles.reduce((s,m)=>s+m.exercises.length,0)}</strong> exercises</span>
-          <span><strong>{plan.muscles.length}</strong> muscle groups</span>
+          <span><strong>{activeMuscles.reduce((s,m)=>s+m.exercises.length,0)}</strong> exercises</span>
+          <span><strong>{activeMuscles.length}</strong> muscle groups</span>
         </div>
       </div>
 
