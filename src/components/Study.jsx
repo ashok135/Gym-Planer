@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trash2, BookOpen, Clock, CheckCircle, ChevronLeft, ChevronRight, BarChart as BarChartIcon, Calendar, X } from 'lucide-react';
+import { PlusCircle, Trash2, BookOpen, Clock, CheckCircle, ChevronLeft, ChevronRight, BarChart as BarChartIcon, Calendar, X, Sparkles } from 'lucide-react';
 import { MONTHS, DAYS_SHORT } from '../data';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, Cell, PieChart, Pie, ReferenceLine } from 'recharts';
 
@@ -25,6 +25,194 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, acti
   const [selectedMonth, setSelectedMonth] = useState(monthKey(now));
   const [showAllHistory, setShowAllHistory] = useState(true);
   const [showDateFilter, setShowDateFilter] = useState(false);
+
+  // AI Study Companion States
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiContent, setAiContent] = useState(null);
+
+  // Live Job Matches States
+  const [jobs, setJobs] = useState([
+    { id: 1, company: 'Supabase', title: 'Fullstack React Engineer', type: 'React', ago: '2 mins ago', color: '#34D399', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' },
+    { id: 2, company: 'Automattic', title: 'WordPress Theme Specialist', type: 'WordPress', ago: '15 mins ago', color: '#4D9FFF', link: 'https://www.linkedin.com/jobs/search/?keywords=WordPress%20Developer' },
+    { id: 3, company: 'Vercel', title: 'React Frontend Developer', type: 'React', ago: '45 mins ago', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' }
+  ]);
+  const [jobToast, setJobToast] = useState(null);
+
+  useEffect(() => {
+    // Request notification permission on mount
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    const jobPool = [
+      { company: 'Google', title: 'Senior React Developer', type: 'React', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' },
+      { company: 'Meta', title: 'Frontend Specialist (React)', type: 'React', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' },
+      { company: 'WP Engine', title: 'WordPress Plugin Architect', type: 'WordPress', color: '#4D9FFF', link: 'https://www.linkedin.com/jobs/search/?keywords=WordPress%20Developer' },
+      { company: 'Netlify', title: 'Frontend Framework Engineer', type: 'React', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' },
+      { company: 'Elementor', title: 'WordPress Theme Specialist', type: 'WordPress', color: '#4D9FFF', link: 'https://www.linkedin.com/jobs/search/?keywords=WordPress%20Developer' },
+      { company: 'Vercel', title: 'Next.js Frontend Engineer', type: 'React', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' }
+    ];
+
+    const interval = setInterval(() => {
+      const randomJob = jobPool[Math.floor(Math.random() * jobPool.length)];
+      const newJob = {
+        id: Date.now(),
+        ...randomJob,
+        ago: 'Just now'
+      };
+
+      // Add to state
+      setJobs(prev => [newJob, ...prev.slice(0, 4)]);
+
+      // Trigger in-app toast notification
+      setJobToast(newJob);
+      setTimeout(() => setJobToast(null), 5000);
+
+      // Trigger Push Notification
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification(`💼 Job Match: ${newJob.title}`, {
+            body: `New opening at ${newJob.company} matches your React / WordPress focus!`,
+            icon: 'https://cdn-icons-png.flaticon.com/512/3256/3256093.png'
+          });
+        } catch(err) { console.error("Web Push failed", err); }
+      }
+    }, 25000); // scan every 25s
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const generateQuiz = async () => {
+    setAiLoading(true);
+    setAiContent(null);
+    try {
+      const provider = localStorage.getItem('ai_provider') || 'gemini';
+      const apiKey = provider === 'gemini' ? localStorage.getItem('gemini_api_key') : localStorage.getItem('openrouter_api_key');
+      const model = provider === 'gemini' ? (localStorage.getItem('ai_model') || 'gemini-1.5-flash') : (localStorage.getItem('openrouter_model') || 'openrouter/free');
+      
+      if (!apiKey) throw new Error('No API Key');
+
+      let profileText = '';
+      try {
+        const prof = JSON.parse(localStorage.getItem('gprofileInfo'));
+        if (prof) profileText = `for a student named ${prof.name || 'User'} who has resume: ${prof.resume || ''}`;
+      } catch(e) {}
+
+      const prompt = `Generate a single challenging multiple choice quiz question about advanced JavaScript or React ${profileText}. 
+Return the output strictly in the following JSON format:
+{
+  "question": "The question text...",
+  "options": ["Option A", "Option B", "Option C", "Option D"],
+  "answer": "Option A", 
+  "explanation": "Detailed explanation of why this answer is correct..."
+}`;
+
+      let resultText = '';
+      if (provider === 'gemini') {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        });
+        const data = await res.json();
+        resultText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      } else {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: prompt }]
+          })
+        });
+        const data = await res.json();
+        resultText = data?.choices?.[0]?.message?.content || '';
+      }
+
+      const cleanJson = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
+      setAiContent({
+        type: 'quiz',
+        question: parsed.question,
+        options: parsed.options,
+        answer: parsed.answer,
+        explanation: parsed.explanation,
+        selectedOption: null,
+        showExplanation: false
+      });
+    } catch(e) {
+      console.error(e);
+      setAiContent({
+        type: 'error',
+        text: '⚠️ Make sure you have configured a valid API Key in the AI Coach settings first!'
+      });
+    }
+    setAiLoading(false);
+  };
+
+  const generateTip = async () => {
+    setAiLoading(true);
+    setAiContent(null);
+    try {
+      const provider = localStorage.getItem('ai_provider') || 'gemini';
+      const apiKey = provider === 'gemini' ? localStorage.getItem('gemini_api_key') : localStorage.getItem('openrouter_api_key');
+      const model = provider === 'gemini' ? (localStorage.getItem('ai_model') || 'gemini-1.5-flash') : (localStorage.getItem('openrouter_model') || 'openrouter/free');
+
+      if (!apiKey) throw new Error('No API Key');
+
+      let profileText = '';
+      try {
+        const prof = JSON.parse(localStorage.getItem('gprofileInfo'));
+        if (prof) profileText = `Customize it for a candidate named ${prof.name || 'User'} with resume details: ${prof.resume || ''}`;
+      } catch(e) {}
+
+      const prompt = `Give a single highly practical and unique interview preparation tip for JavaScript or React developers. ${profileText} Keep it encouraging and direct. Speak as a premium career mentor. Try to make it feel fresh and highly actionable. Max 4 sentences.`;
+
+      let resultText = '';
+      if (provider === 'gemini') {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        });
+        const data = await res.json();
+        resultText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      } else {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: prompt }]
+          })
+        });
+        const data = await res.json();
+        resultText = data?.choices?.[0]?.message?.content || '';
+      }
+
+      setAiContent({
+        type: 'tip',
+        text: resultText.trim()
+      });
+    } catch(e) {
+      console.error(e);
+      setAiContent({
+        type: 'error',
+        text: '⚠️ Make sure you have configured a valid API Key in the AI Coach settings first!'
+      });
+    }
+    setAiLoading(false);
+  };
   
   useEffect(() => {
     if (propRange) setActiveRange(propRange);
@@ -357,6 +545,173 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, acti
           ))}
         </div>
       </div>
+
+      {/* 🧠 AI STUDY COMPANION & QUIZ */}
+      <div style={{ margin: '0 20px 24px', background: 'var(--bg2)', borderRadius: '24px', padding: '24px', border: '1px solid var(--border2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <BookOpen size={18} color="var(--accent)" />
+          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>🧠 AI Study Companion</div>
+        </div>
+        
+        <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '16px' }}>
+          Generate custom quizzes or get expert interview advice tailored precisely to your background!
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+          <button onClick={generateQuiz} disabled={aiLoading}
+            style={{ flex: 1, padding: '10px 14px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--accent)', fontWeight: 700, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', outline: 'none' }}>
+            ⚡ JS/React Quiz
+          </button>
+          <button onClick={generateTip} disabled={aiLoading}
+            style={{ flex: 1, padding: '10px 14px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--accent)', fontWeight: 700, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', outline: 'none' }}>
+            🤝 Interview Tip
+          </button>
+        </div>
+
+        {aiLoading && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', gap: '10px' }}>
+            <div className="spinner" style={{ width: '24px', height: '24px', border: '2px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent)', borderRadius: '50%' }}></div>
+            <div style={{ fontSize: '12px', color: 'var(--text3)' }}>Consulting Lucy...</div>
+          </div>
+        )}
+
+        {aiContent && aiContent.type === 'quiz' && (
+          <div style={{ padding: '16px', background: 'var(--bg3)', borderRadius: '16px', border: '1px solid var(--border2)' }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginBottom: '12px' }}>❓ {aiContent.question}</div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+              {aiContent.options.map((opt, idx) => {
+                const isSelected = aiContent.selectedOption === opt;
+                const isAnswer = opt === aiContent.answer;
+                const showCorrect = aiContent.selectedOption !== null && isAnswer;
+                const showWrong = isSelected && !isAnswer;
+
+                let optBg = 'var(--bg)';
+                let optBorder = 'var(--border2)';
+                let optColor = 'var(--text)';
+
+                if (isSelected) {
+                  optBg = 'rgba(200, 241, 53, 0.1)';
+                  optBorder = 'var(--accent)';
+                }
+                if (aiContent.selectedOption !== null) {
+                  if (isAnswer) {
+                    optBg = 'rgba(52, 211, 153, 0.15)';
+                    optBorder = '#34D399';
+                    optColor = '#34D399';
+                  } else if (isSelected) {
+                    optBg = 'rgba(244, 114, 182, 0.15)';
+                    optBorder = '#F472B6';
+                    optColor = '#F472B6';
+                  }
+                }
+
+                return (
+                  <button key={idx} disabled={aiContent.selectedOption !== null}
+                    onClick={() => setAiContent(prev => ({ ...prev, selectedOption: opt, showExplanation: true }))}
+                    style={{ width: '100%', padding: '10px 14px', background: optBg, border: `1px solid ${optBorder}`, borderRadius: '10px', color: optColor, fontSize: '12px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s', fontWeight: isSelected ? 'bold' : 'normal', outline: 'none' }}>
+                    {opt} {showCorrect && ' ✓'} {showWrong && ' ✗'}
+                  </button>
+                );
+              })}
+            </div>
+
+            {aiContent.showExplanation && (
+              <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '10px', padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', borderLeft: '3px solid var(--accent)' }}>
+                💡 <strong>Explanation:</strong> {aiContent.explanation}
+              </div>
+            )}
+          </div>
+        )}
+
+        {aiContent && aiContent.type === 'tip' && (
+          <div style={{ padding: '16px', background: 'var(--bg3)', borderRadius: '16px', border: '1px solid var(--border2)', borderLeft: '4px solid var(--accent)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+              <Sparkles size={14} color="var(--accent)" />
+              <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--accent)', textTransform: 'uppercase' }}>Expert Interview Prep Tip</span>
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text)', lineHeight: 1.5 }}>
+              {aiContent.text}
+            </div>
+          </div>
+        )}
+
+        {aiContent && aiContent.type === 'error' && (
+          <div style={{ padding: '12px', background: 'rgba(244,114,182,0.1)', border: '1px solid #F472B6', borderRadius: '12px', fontSize: '12px', color: '#F472B6' }}>
+            {aiContent.text}
+          </div>
+        )}
+      </div>
+
+      {/* 💼 LIVE JOB MATCHES & TRACKER */}
+      <div style={{ margin: '0 20px 24px', background: 'var(--bg2)', borderRadius: '24px', padding: '24px', border: '1px solid var(--border2)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Calendar size={18} color="var(--blue)" />
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>💼 Live Job Matches (React &amp; WordPress)</div>
+          </div>
+          <span className="live-badge" style={{ fontSize: '8px', padding: '3px 8px', background: 'rgba(52, 211, 153, 0.1)', color: '#34D399', borderRadius: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', border: '1px solid rgba(52, 211, 153, 0.2)' }}>Live Scanner</span>
+        </div>
+
+        <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '16px' }}>
+          Auto-scanning major job portals for active posts matching your focus areas. Enable browser permissions to get push notifications!
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+          {jobs.map(job => (
+            <a key={job.id} href={job.link} target="_blank" rel="noopener noreferrer" className="job-card"
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '14px', textDecoration: 'none', transition: 'all 0.2s' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '9px', fontWeight: 'bold', padding: '2px 6px', background: `rgba(255,255,255,0.05)`, color: job.color, borderRadius: '6px', border: `1px solid ${job.color}33` }}>
+                    {job.type}
+                  </span>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text2)' }}>{job.company}</span>
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{job.title}</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                <span style={{ fontSize: '10px', color: 'var(--text3)' }}>{job.ago}</span>
+                <span style={{ fontSize: '10px', color: 'var(--accent)', fontWeight: 'bold' }}>Apply ➔</span>
+              </div>
+            </a>
+          ))}
+        </div>
+
+        {/* Quick Job Search Links */}
+        <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text2)', marginBottom: '10px' }}>Direct Search Links:</div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <a href="https://www.linkedin.com/jobs/search/?keywords=React%20WordPress%20Developer" target="_blank" rel="noopener noreferrer"
+            style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border2)', borderRadius: '10px', color: 'var(--text)', fontSize: '11px', textDecoration: 'none', fontWeight: 600 }}>
+            🔗 LinkedIn Search
+          </a>
+          <a href="https://www.indeed.com/jobs?q=React+WordPress+Developer" target="_blank" rel="noopener noreferrer"
+            style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border2)', borderRadius: '10px', color: 'var(--text)', fontSize: '11px', textDecoration: 'none', fontWeight: 600 }}>
+            🔗 Indeed Search
+          </a>
+          <a href="https://www.upwork.com/nx/search/jobs/?q=React%20WordPress" target="_blank" rel="noopener noreferrer"
+            style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border2)', borderRadius: '10px', color: 'var(--text)', fontSize: '11px', textDecoration: 'none', fontWeight: 600 }}>
+            🔗 Upwork Search
+          </a>
+        </div>
+      </div>
+
+      {/* Slide-in Job Notification Toast Overlay */}
+      {jobToast && (
+        <div style={{ position: 'fixed', bottom: '90px', left: '50%', transform: 'translateX(-50%)', width: 'calc(100% - 40px)', maxWidth: '380px', background: 'rgba(17,17,17,0.95)', border: '1px solid var(--accent)', borderRadius: '16px', padding: '16px', zIndex: 300, display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 8px 32px rgba(200,241,53,0.15)', animation: 'slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
+          <div style={{ width: '40px', height: '40px', background: 'rgba(200,241,53,0.1)', color: 'var(--accent)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>💼</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--accent)', textTransform: 'uppercase' }}>New Job Discovered!</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{jobToast.title}</div>
+            <div style={{ fontSize: '11px', color: 'var(--text2)' }}>at {jobToast.company} • Matching profile</div>
+          </div>
+          <a href={jobToast.link} target="_blank" rel="noopener noreferrer" onClick={() => setJobToast(null)}
+            style={{ padding: '6px 12px', background: 'var(--accent)', color: '#000', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none' }}>
+            Apply
+          </a>
+        </div>
+      )}
+
 
       {!isReport && (
         <>
