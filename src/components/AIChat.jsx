@@ -3,7 +3,7 @@ import { MessageCircle, X, Send, Bot, Key, Sparkles } from 'lucide-react';
 
 const GEMINI_KEY_STORAGE = 'gemini_api_key';
 
-export default function AIChat({ DB, META, FOOD, BUDGET, STUDY, SCHEDULE }) {
+export default function AIChat({ DB, META, FOOD, BUDGET, STUDY, SCHEDULE, syncAiSettings }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'bot', text: "Hi! I'm Lucy 🤖 Ask me anything about your workouts, diet, budget, or study progress!" }
@@ -132,12 +132,21 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
 
   const saveKey = () => {
     if (tempKey.trim()) {
+      const val = tempKey.trim();
       if (provider === 'gemini') {
-        setApiKey(tempKey.trim());
-        localStorage.setItem(GEMINI_KEY_STORAGE, tempKey.trim());
+        setApiKey(val);
+        if (syncAiSettings) {
+          syncAiSettings({ apiKey: val });
+        } else {
+          localStorage.setItem(GEMINI_KEY_STORAGE, val);
+        }
       } else {
-        setOpenrouterKey(tempKey.trim());
-        localStorage.setItem('openrouter_api_key', tempKey.trim());
+        setOpenrouterKey(val);
+        if (syncAiSettings) {
+          syncAiSettings({ openrouterKey: val });
+        } else {
+          localStorage.setItem('openrouter_api_key', val);
+        }
       }
       setShowKeyInput(false);
       setTempKey('');
@@ -205,7 +214,11 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
                   onChange={e => {
                     const val = e.target.value;
                     setProvider(val);
-                    localStorage.setItem('ai_provider', val);
+                    if (syncAiSettings) {
+                      syncAiSettings({ provider: val });
+                    } else {
+                      localStorage.setItem('ai_provider', val);
+                    }
                   }}
                   style={{ width: '100%', padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px', outline: 'none' }}
                 >
@@ -222,7 +235,11 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
                     onChange={e => {
                       const val = e.target.value;
                       setOpenrouterModel(val);
-                      localStorage.setItem('openrouter_model', val);
+                      if (syncAiSettings) {
+                        syncAiSettings({ openrouterModel: val });
+                      } else {
+                        localStorage.setItem('openrouter_model', val);
+                      }
                     }}
                     style={{ width: '100%', padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px', outline: 'none' }}
                   >

@@ -70,6 +70,19 @@ export default function App() {
             setBUDGET_SETTINGS(data.budgetSettings || DEFAULT_BUDGET_SETTINGS);
             setSTUDY(data.study || {});
             setSTUDY_SETTINGS(data.studySettings || DEFAULT_STUDY_SETTINGS);
+            
+            // Sync AI settings from Firebase to localStorage if they exist
+            if (data.aiSettings) {
+              localStorage.setItem('ai_enabled', data.aiSettings.enabled ? 'true' : 'false');
+              localStorage.setItem('gemini_api_key', data.aiSettings.apiKey || '');
+              localStorage.setItem('openrouter_api_key', data.aiSettings.openrouterKey || '');
+              localStorage.setItem('ai_provider', data.aiSettings.provider || 'gemini');
+              localStorage.setItem('ai_model', data.aiSettings.model || 'gemini-1.5-flash');
+              localStorage.setItem('openrouter_model', data.aiSettings.openrouterModel || 'openrouter/free');
+              localStorage.setItem('ai_persona', data.aiSettings.persona || 'Motivational Fitness Coach');
+              setAiEnabled(data.aiSettings.enabled);
+              window.dispatchEvent(new Event('storage'));
+            }
           }
         } catch(e) {
           console.error("Cloud fetch failed, using local", e);
@@ -89,6 +102,18 @@ export default function App() {
     return unsub;
   }, []);
 
+  const getAiSettingsFromLocalStorage = () => {
+    return {
+      enabled: localStorage.getItem('ai_enabled') === 'true',
+      apiKey: localStorage.getItem('gemini_api_key') || '',
+      openrouterKey: localStorage.getItem('openrouter_api_key') || '',
+      provider: localStorage.getItem('ai_provider') || 'gemini',
+      model: localStorage.getItem('ai_model') || 'gemini-1.5-flash',
+      openrouterModel: localStorage.getItem('openrouter_model') || 'openrouter/free',
+      persona: localStorage.getItem('ai_persona') || 'Motivational Fitness Coach'
+    };
+  };
+
   const syncData = async (newDB, newNAMES, newMETA, newFOOD, newSCHEDULE = SCHEDULE) => {
     setDB(newDB); setNAMES(newNAMES); setMETA(newMETA); setFOOD(newFOOD); setSCHEDULE(newSCHEDULE);
     localStorage.setItem('gdb', JSON.stringify(newDB));
@@ -100,7 +125,8 @@ export default function App() {
       try {
         await setDoc(doc(db, "users", user.uid), {
           workouts: newDB, names: newNAMES, meta: newMETA, food: newFOOD, schedule: newSCHEDULE,
-          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS
+          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
+          aiSettings: getAiSettingsFromLocalStorage()
         });
       } catch(e) { console.error("Cloud save failed", e); }
     }
@@ -114,7 +140,8 @@ export default function App() {
       try {
         await setDoc(doc(db, "users", user.uid), {
           workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
-          budget: newBudget, budgetSettings: newSettings, study: STUDY, studySettings: STUDY_SETTINGS
+          budget: newBudget, budgetSettings: newSettings, study: STUDY, studySettings: STUDY_SETTINGS,
+          aiSettings: getAiSettingsFromLocalStorage()
         });
       } catch(e) { console.error("Cloud save failed", e); }
     }
@@ -128,9 +155,34 @@ export default function App() {
       try {
         await setDoc(doc(db, "users", user.uid), {
           workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
-          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: newStudy, studySettings: newSettings
+          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: newStudy, studySettings: newSettings,
+          aiSettings: getAiSettingsFromLocalStorage()
         });
       } catch(e) { console.error("Cloud save failed", e); }
+    }
+  };
+
+  const syncAiSettings = async (newSettings) => {
+    if (newSettings.enabled !== undefined) localStorage.setItem('ai_enabled', newSettings.enabled ? 'true' : 'false');
+    if (newSettings.apiKey !== undefined) localStorage.setItem('gemini_api_key', newSettings.apiKey);
+    if (newSettings.openrouterKey !== undefined) localStorage.setItem('openrouter_api_key', newSettings.openrouterKey);
+    if (newSettings.provider !== undefined) localStorage.setItem('ai_provider', newSettings.provider);
+    if (newSettings.model !== undefined) localStorage.setItem('ai_model', newSettings.model);
+    if (newSettings.openrouterModel !== undefined) localStorage.setItem('openrouter_model', newSettings.openrouterModel);
+    if (newSettings.persona !== undefined) localStorage.setItem('ai_persona', newSettings.persona);
+
+    setAiEnabled(localStorage.getItem('ai_enabled') === 'true');
+    window.dispatchEvent(new Event('storage'));
+
+    if(user) {
+      try {
+        const mergedSettings = getAiSettingsFromLocalStorage();
+        await setDoc(doc(db, "users", user.uid), {
+          workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
+          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
+          aiSettings: mergedSettings
+        });
+      } catch(e) { console.error("Cloud save for AI settings failed", e); }
     }
   };
 
@@ -207,10 +259,10 @@ export default function App() {
         {activeTab === 'budget'   && <Budget   BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} />}
         {activeTab === 'study'    && <Study    STUDY={STUDY} syncStudy={syncStudy} STUDY_SETTINGS={STUDY_SETTINGS} />}
         {activeTab === 'report'   && <Report   DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} BUDGET={BUDGET} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY={STUDY} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} />}
-        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} />}
+        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} syncAiSettings={syncAiSettings} />}
       </div>
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} showNav={showNav} />
-      {aiEnabled && <AIChat DB={DB} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} />}
+      {aiEnabled && <AIChat DB={DB} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} syncAiSettings={syncAiSettings} />}
     </div>
   );
 }

@@ -20,7 +20,7 @@ function Accordion({ title, subtitle, children, defaultOpen = false }) {
   );
 }
 
-export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, BUDGET, STUDY }) {
+export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, BUDGET, STUDY, syncAiSettings }) {
   const [localNames, setLocalNames] = useState(NAMES);
   const [saveMsg, setSaveMsg] = useState(false);
   
@@ -59,7 +59,24 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
   const [localAiKey, setLocalAiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [localAiModel, setLocalAiModel] = useState(() => localStorage.getItem('ai_model') || 'gemini-1.5-flash');
   const [localAiPersona, setLocalAiPersona] = useState(() => localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
+  const [localProvider, setLocalProvider] = useState(() => localStorage.getItem('ai_provider') || 'gemini');
+  const [localOpenrouterKey, setLocalOpenrouterKey] = useState(() => localStorage.getItem('openrouter_api_key') || '');
+  const [localOpenrouterModel, setLocalOpenrouterModel] = useState(() => localStorage.getItem('openrouter_model') || 'openrouter/free');
   const [devMode, setDevMode] = useState(() => localStorage.getItem('dev_mode') === 'true');
+
+  React.useEffect(() => {
+    const handleStorage = () => {
+      setLocalAiEnabled(localStorage.getItem('ai_enabled') === 'true');
+      setLocalAiKey(localStorage.getItem('gemini_api_key') || '');
+      setLocalAiModel(localStorage.getItem('ai_model') || 'gemini-1.5-flash');
+      setLocalAiPersona(localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
+      setLocalProvider(localStorage.getItem('ai_provider') || 'gemini');
+      setLocalOpenrouterKey(localStorage.getItem('openrouter_api_key') || '');
+      setLocalOpenrouterModel(localStorage.getItem('openrouter_model') || 'openrouter/free');
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const addCategory = () => {
     if (!newCatLabel.trim()) return;
@@ -379,46 +396,142 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
             <div onClick={() => {
               const newVal = !localAiEnabled;
               setLocalAiEnabled(newVal);
-              localStorage.setItem('ai_enabled', newVal);
-              window.dispatchEvent(new Event('storage'));
+              if (syncAiSettings) {
+                syncAiSettings({ enabled: newVal });
+              } else {
+                localStorage.setItem('ai_enabled', newVal ? 'true' : 'false');
+                window.dispatchEvent(new Event('storage'));
+              }
             }} style={{ width: '44px', height: '24px', background: localAiEnabled ? 'var(--accent)' : 'var(--bg3)', borderRadius: '12px', position: 'relative', cursor: 'pointer', transition: 'all 0.3s', border: '1px solid var(--border2)' }}>
               <div style={{ width: '18px', height: '18px', background: localAiEnabled ? '#000' : 'var(--text3)', borderRadius: '50%', position: 'absolute', top: '2px', left: localAiEnabled ? '22px' : '3px', transition: 'all 0.3s' }}></div>
             </div>
           </div>
         </div>
-        
-        <div style={{ marginBottom: '12px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Gemini API Key</div>
-          <input type="password" value={localAiKey} onChange={e => {
-            setLocalAiKey(e.target.value);
-            localStorage.setItem('gemini_api_key', e.target.value);
-          }} placeholder="Paste your API key here"
-            style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
-        </div>
 
+        {/* AI Provider Selector */}
         <div style={{ marginBottom: '12px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Coach Persona (Free Models)</div>
-          <select value={localAiModel} onChange={e => {
-            setLocalAiModel(e.target.value);
-            localStorage.setItem('ai_model', e.target.value);
-          }} style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }}>
-            <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fastest/Free)</option>
-            <option value="gemini-2.0-flash">Gemini 2.0 Flash (Advanced/Free)</option>
-            <option value="gemini-pro">Gemini Pro (Legacy/Stable)</option>
+          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Select AI Provider</div>
+          <select 
+            value={localProvider} 
+            onChange={e => {
+              const val = e.target.value;
+              setLocalProvider(val);
+              if (syncAiSettings) {
+                syncAiSettings({ provider: val });
+              } else {
+                localStorage.setItem('ai_provider', val);
+                window.dispatchEvent(new Event('storage'));
+              }
+            }}
+            style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }}
+          >
+            <option value="gemini">Google Gemini (Direct)</option>
+            <option value="openrouter">OpenRouter (Free Auto-Router)</option>
           </select>
         </div>
 
+        {/* Gemini Configuration */}
+        {localProvider === 'gemini' && (
+          <>
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Gemini API Key</div>
+              <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '6px' }}>
+                Get a free key in 10s at <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 'bold', textDecoration: 'underline' }}>aistudio.google.com</a>
+              </div>
+              <input type="password" value={localAiKey} onChange={e => {
+                const val = e.target.value;
+                setLocalAiKey(val);
+                if (syncAiSettings) {
+                  syncAiSettings({ apiKey: val });
+                } else {
+                  localStorage.setItem('gemini_api_key', val);
+                  window.dispatchEvent(new Event('storage'));
+                }
+              }} placeholder="Paste your Gemini key here"
+                style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Gemini Model</div>
+              <select value={localAiModel} onChange={e => {
+                const val = e.target.value;
+                setLocalAiModel(val);
+                if (syncAiSettings) {
+                  syncAiSettings({ model: val });
+                } else {
+                  localStorage.setItem('ai_model', val);
+                  window.dispatchEvent(new Event('storage'));
+                }
+              }} style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }}>
+                <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fastest/Free)</option>
+                <option value="gemini-2.0-flash">Gemini 2.0 Flash (Advanced/Free)</option>
+                <option value="gemini-pro">Gemini Pro (Legacy/Stable)</option>
+              </select>
+            </div>
+          </>
+        )}
+
+        {/* OpenRouter Configuration */}
+        {localProvider === 'openrouter' && (
+          <>
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>OpenRouter API Key</div>
+              <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '6px' }}>
+                Get a free key at <a href="https://openrouter.ai/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 'bold', textDecoration: 'underline' }}>openrouter.ai</a> (Access Llama 3 / Gemma Free!)
+              </div>
+              <input type="password" value={localOpenrouterKey} onChange={e => {
+                const val = e.target.value;
+                setLocalOpenrouterKey(val);
+                if (syncAiSettings) {
+                  syncAiSettings({ openrouterKey: val });
+                } else {
+                  localStorage.setItem('openrouter_api_key', val);
+                  window.dispatchEvent(new Event('storage'));
+                }
+              }} placeholder="Paste your OpenRouter key here"
+                style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>OpenRouter Free Model</div>
+              <select value={localOpenrouterModel} onChange={e => {
+                const val = e.target.value;
+                setLocalOpenrouterModel(val);
+                if (syncAiSettings) {
+                  syncAiSettings({ openrouterModel: val });
+                } else {
+                  localStorage.setItem('openrouter_model', val);
+                  window.dispatchEvent(new Event('storage'));
+                }
+              }} style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }}>
+                <option value="openrouter/free">Auto-Select Active Free Model (Highly Recommended!)</option>
+                <option value="meta-llama/llama-3-8b-instruct:free">Llama 3 8B Instruct (Free/Fast)</option>
+              </select>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '4px', fontStyle: 'italic' }}>
+                💡 "Auto-Select" always routes to an active free model even if others are down.
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Common Coach Persona/Personality Instructions */}
         <div style={{ marginBottom: '12px' }}>
           <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Coach Personality / Instructions</div>
           <input type="text" value={localAiPersona} onChange={e => {
-            setLocalAiPersona(e.target.value);
-            localStorage.setItem('ai_persona', e.target.value);
+            const val = e.target.value;
+            setLocalAiPersona(val);
+            if (syncAiSettings) {
+              syncAiSettings({ persona: val });
+            } else {
+              localStorage.setItem('ai_persona', val);
+              window.dispatchEvent(new Event('storage'));
+            }
           }} placeholder="e.g. Aggressive Drill Sergeant, Helpful Friend"
             style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
         </div>
 
         <div style={{ fontSize: '10px', color: 'var(--accent)', marginTop: '8px', opacity: 0.8 }}>
-          Settings are saved locally on this device.
+          Settings are synchronized with your account securely in the cloud.
         </div>
       </Accordion>
 
