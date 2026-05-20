@@ -9,6 +9,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
   
   const saved = DB[key] || {};
   const meta = META[key] || { mood: '', energy: 0, status: 'Completed', bw: '', start: '06:30', end: '08:10', notes: '' };
+  const isSkipped = meta.status === 'Skipped';
   
   let currentPlanId = dow;
   if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) currentPlanId = SCHEDULE.fullTime[dow];
@@ -137,28 +138,28 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
             </select>
           </div>
           <div className="meta-group"><div className="meta-label">Body Weight (kg)</div>
-            <input type="number" step="0.1" className="meta-input" value={meta.bw || ''} onChange={e => handleMetaChange('bw', e.target.value)} placeholder="e.g. 75.5" />
+            <input type="number" step="0.1" className="meta-input" value={meta.bw || ''} onChange={e => handleMetaChange('bw', e.target.value)} placeholder="e.g. 75.5" disabled={isSkipped} />
           </div>
           <div className="meta-group"><div className="meta-label">Start Time</div>
-            <input type="time" className="meta-input" value={meta.start || ''} onChange={e => handleMetaChange('start', e.target.value)} />
+            <input type="time" className="meta-input" value={meta.start || ''} onChange={e => handleMetaChange('start', e.target.value)} disabled={isSkipped} />
           </div>
           <div className="meta-group"><div className="meta-label">End Time</div>
-            <input type="time" className="meta-input" value={meta.end || ''} onChange={e => handleMetaChange('end', e.target.value)} />
+            <input type="time" className="meta-input" value={meta.end || ''} onChange={e => handleMetaChange('end', e.target.value)} disabled={isSkipped} />
           </div>
         </div>
         
-        <div className="meta-grid">
+        <div className="meta-grid" style={{ opacity: isSkipped ? 0.5 : 1 }}>
           <div className="meta-group"><div className="meta-label" style={{color:'#ddd'}}>Mood</div>
             <div className="mood-group">
               {['😴','😐','🙂','🔥','💪'].map(m => (
-                <button key={m} className={`mood-btn ${meta.mood === m ? 'active' : ''}`} onClick={() => handleMetaChange('mood', m)}>{m}</button>
+                <button key={m} className={`mood-btn ${meta.mood === m ? 'active' : ''}`} onClick={() => !isSkipped && handleMetaChange('mood', m)} style={{ cursor: isSkipped ? 'not-allowed' : 'pointer' }}>{m}</button>
               ))}
             </div>
           </div>
           <div className="meta-group"><div className="meta-label" style={{color:'#ddd'}}>Energy</div>
             <div className="energy-group">
               {[1,2,3,4,5].map(e => (
-                <span key={e} className={`energy-star ${meta.energy >= e ? 'active' : ''}`} onClick={() => handleMetaChange('energy', e)}>★</span>
+                <span key={e} className={`energy-star ${meta.energy >= e ? 'active' : ''}`} onClick={() => !isSkipped && handleMetaChange('energy', e)} style={{ cursor: isSkipped ? 'not-allowed' : 'pointer' }}>★</span>
               ))}
             </div>
           </div>
@@ -172,18 +173,18 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
       {plan.muscles.map(m => {
         if(m.name === 'Abs' && !showAbs) {
           return (
-            <div className="muscle-block" key={m.name} onClick={addAbs} style={{cursor: 'pointer', opacity: 0.8, textAlign: 'center', padding: '16px', background: 'var(--bg3)', borderRadius: 'var(--radius)', border: '1px dashed var(--border2)'}}>
+            <div className="muscle-block" key={m.name} onClick={() => !isSkipped && addAbs()} style={{cursor: isSkipped ? 'not-allowed' : 'pointer', opacity: isSkipped ? 0.4 : 0.8, textAlign: 'center', padding: '16px', background: 'var(--bg3)', borderRadius: 'var(--radius)', border: '1px dashed var(--border2)'}}>
               <div style={{fontSize: '12px', fontWeight: 600, color: 'var(--text2)', letterSpacing: '0.1em'}}>+ ADD ABS WORKOUT</div>
             </div>
           );
         }
 
         return (
-        <div className="muscle-block" key={m.name}>
+        <div className="muscle-block" key={m.name} style={{ opacity: isSkipped ? 0.5 : 1 }}>
           <div className="muscle-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
             <div style={{display:'flex', alignItems:'center'}}><div className="muscle-dot"></div><div className="muscle-name">{m.name}</div></div>
             {m.name === 'Abs' && (
-              <button onClick={removeAbs} style={{background:'transparent', border:'none', color:'var(--red)', fontSize:'12px', fontWeight:'bold', cursor:'pointer', padding:'4px 8px'}}>REMOVE</button>
+              <button onClick={() => !isSkipped && removeAbs()} disabled={isSkipped} style={{background:'transparent', border:'none', color:'var(--red)', fontSize:'12px', fontWeight:'bold', cursor: isSkipped ? 'not-allowed' : 'pointer', padding:'4px 8px'}}>REMOVE</button>
             )}
           </div>
           {m.exercises.map((ex, i) => {
@@ -197,27 +198,27 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
                 <div className="exercise-name-row">
                   <div className="exercise-name-wrap" style={{ display: 'flex', alignItems: 'center' }}>
                     <div style={{ display: 'flex', gap: '8px', marginRight: '12px' }}>
-                      <div onClick={() => handleInputChange(ek, 'done', isDone === true ? null : true)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                      <div onClick={() => !isSkipped && handleInputChange(ek, 'done', isDone === true ? null : true)} style={{ cursor: isSkipped ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
                         <CheckCircle2 size={22} color={isDone === true ? "var(--accent)" : "rgba(200, 241, 53, 0.2)"} />
                       </div>
-                      <div onClick={() => handleInputChange(ek, 'done', isDone === false ? null : false)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                      <div onClick={() => !isSkipped && handleInputChange(ek, 'done', isDone === false ? null : false)} style={{ cursor: isSkipped ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
                         <XCircle size={22} color={isDone === false ? "var(--red)" : "rgba(255, 77, 77, 0.2)"} />
                       </div>
                     </div>
                     <div className="exercise-name" style={{textDecoration: isDone === false ? 'line-through' : 'none', color: isDone === true ? 'var(--accent)' : 'var(--text)', flex: 1}}>{ex}</div>
-                    <button className="rename-today-btn" onClick={() => toggleRename(ek, ex)}>✏️</button>
+                    <button className="rename-today-btn" onClick={() => !isSkipped && toggleRename(ek, ex)} disabled={isSkipped} style={{ cursor: isSkipped ? 'not-allowed' : 'pointer' }}>✏️</button>
                   </div>
                 </div>
                 {renameBox === ek && (
                   <div className="rename-input-box open">
-                    <input type="text" className="rename-input" value={renameInput} onChange={e => setRenameInput(e.target.value)} placeholder="Rename for today only" />
-                    <button className="rename-save" onClick={() => saveRename(ek)}>Apply</button>
+                    <input type="text" className="rename-input" value={renameInput} onChange={e => setRenameInput(e.target.value)} placeholder="Rename for today only" disabled={isSkipped} />
+                    <button className="rename-save" onClick={() => saveRename(ek)} disabled={isSkipped}>Apply</button>
                   </div>
                 )}
                 <div className="exercise-inputs">
-                  <div className="input-group"><div className="input-label">SETS</div><input type="number" min="0" placeholder={prev.s || "0"} value={sv.s || ''} onChange={e => handleInputChange(ek, 's', e.target.value)} /></div>
-                  <div className="input-group"><div className="input-label">{ex.toLowerCase().includes('plank') || ex.toLowerCase().includes('hold') || ex.toLowerCase().includes('cardio') ? 'TIME (s)' : 'REPS'}</div><input type="number" min="0" placeholder={prev.r || "0"} value={sv.r || ''} onChange={e => handleInputChange(ek, 'r', e.target.value)} /></div>
-                  <div className="input-group"><div className="input-label">{ex.toLowerCase().includes('plank') || ex.toLowerCase().includes('hold') || ex.toLowerCase().includes('cardio') ? 'LEVEL' : 'KG'}</div><input type="number" min="0" step="0.5" placeholder={prev.w || "0"} value={sv.w || ''} onChange={e => handleInputChange(ek, 'w', e.target.value)} /></div>
+                  <div className="input-group"><div className="input-label">SETS</div><input type="number" min="0" placeholder={prev.s || "0"} value={sv.s || ''} onChange={e => handleInputChange(ek, 's', e.target.value)} disabled={isSkipped} style={{ cursor: isSkipped ? 'not-allowed' : 'text' }} /></div>
+                  <div className="input-group"><div className="input-label">{ex.toLowerCase().includes('plank') || ex.toLowerCase().includes('hold') || ex.toLowerCase().includes('cardio') ? 'TIME (s)' : 'REPS'}</div><input type="number" min="0" placeholder={prev.r || "0"} value={sv.r || ''} onChange={e => handleInputChange(ek, 'r', e.target.value)} disabled={isSkipped} style={{ cursor: isSkipped ? 'not-allowed' : 'text' }} /></div>
+                  <div className="input-group"><div className="input-label">{ex.toLowerCase().includes('plank') || ex.toLowerCase().includes('hold') || ex.toLowerCase().includes('cardio') ? 'LEVEL' : 'KG'}</div><input type="number" min="0" step="0.5" placeholder={prev.w || "0"} value={sv.w || ''} onChange={e => handleInputChange(ek, 'w', e.target.value)} disabled={isSkipped} style={{ cursor: isSkipped ? 'not-allowed' : 'text' }} /></div>
                 </div>
                 <div className="vol-row"><span className="vol-label">Volume</span><span className="vol-val">{vol ? vol+' kg' : '—'}</span></div>
               </div>

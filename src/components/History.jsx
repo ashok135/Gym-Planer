@@ -211,7 +211,17 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
               <div className="hday-top" style={{ marginBottom: '10px' }}>
                 <div className="hday-date" style={{ fontSize: '16px', fontWeight: 800 }}>
                   {day.isToday ? 'Today — ' : ''}{DAYS_SHORT[day.dow]}, {day.d} {MONTHS[month.mo].slice(0,3)}
-                  {day.meta.status && day.meta.status !== 'Skipped' && <span className="hday-status" style={{ fontSize: '11px', marginLeft: '8px' }}>{day.meta.status} {day.meta.mood||''}</span>}
+                  {day.meta.status && (
+                    <span className="hday-status" style={{ 
+                      fontSize: '11px', 
+                      marginLeft: '8px', 
+                      color: day.meta.status === 'Skipped' ? 'var(--red)' : 'var(--accent)',
+                      background: day.meta.status === 'Skipped' ? 'rgba(255, 77, 77, 0.1)' : 'rgba(200, 241, 53, 0.1)',
+                      border: day.meta.status === 'Skipped' ? '1px solid rgba(255, 77, 77, 0.2)' : '1px solid rgba(200, 241, 53, 0.2)'
+                    }}>
+                      {day.meta.status} {day.meta.mood||''}
+                    </span>
+                  )}
                 </div>
                 <div style={{textAlign:'right'}}>
                   {day.vol > 0 && <div className="hday-vol" style={{ fontSize: '18px', fontWeight: 900 }}>{day.vol.toLocaleString()} <span style={{fontSize:'12px', fontWeight: 400}}>kg</span></div>}
