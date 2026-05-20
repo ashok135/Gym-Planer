@@ -94,6 +94,7 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, acti
   const [activeSearchRole, setActiveSearchRole] = useState(selectedRoles[0] || 'React Developer');
   const [activeSearchLoc, setActiveSearchLoc] = useState(preferredLocs[0] || 'Remote');
   const [activeSearchMode, setActiveSearchMode] = useState(workModes[0] || 'Remote');
+  const [activeSearchExp, setActiveSearchExp] = useState(profileInfo?.experienceLevel || 'Fresher');
   const [customSearchRole, setCustomSearchRole] = useState('');
   const [customSearchLoc, setCustomSearchLoc] = useState('');
   const [roleFocused, setRoleFocused] = useState(false);
@@ -130,6 +131,7 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, acti
     if (selectedRoles.length > 0) setActiveSearchRole(selectedRoles[0]);
     if (preferredLocs.length > 0) setActiveSearchLoc(preferredLocs[0]);
     if (workModes.length > 0) setActiveSearchMode(workModes[0]);
+    setActiveSearchExp(profileInfo?.experienceLevel || 'Fresher');
   }, [profileInfo]);
 
   useEffect(() => {
@@ -814,6 +816,23 @@ Return the output strictly in the following JSON format:
             </div>
           </div>
 
+          {/* Experience Level Selector */}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '6px' }}>Select Experience Level:</div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {[
+                { id: 'Fresher', label: '🎓 Fresher' },
+                { id: '1-2 Years', label: '⚡ 1-2 Years' },
+                { id: '3+ Years', label: '🚀 3+ Years' }
+              ].map(level => (
+                <div key={level.id} onClick={() => setActiveSearchExp(level.id)}
+                  style={{ flex: 1, padding: '8px', borderRadius: '8px', fontSize: '11px', textAlign: 'center', cursor: 'pointer', background: activeSearchExp === level.id ? 'var(--accent)' : 'var(--bg3)', color: activeSearchExp === level.id ? '#000' : 'var(--text2)', border: `1px solid ${activeSearchExp === level.id ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
+                  {level.label}
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Custom Search (Ad-hoc override) */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', position: 'relative' }}>
             <div style={{ flex: 1, position: 'relative' }}>
@@ -869,13 +888,21 @@ Return the output strictly in the following JSON format:
           {(() => {
             const finalRole = customSearchRole.trim() || activeSearchRole;
             const finalLoc = customSearchLoc.trim() || activeSearchLoc;
-            const queryKeywords = `${finalRole} ${activeSearchMode}`;
+            
+            // Map experience level to search keywords nicely
+            const expKeyword = activeSearchExp === 'Fresher' 
+              ? 'fresher' 
+              : activeSearchExp === '1-2 Years' 
+                ? 'junior' 
+                : 'senior';
+
+            const queryKeywords = `${finalRole} ${activeSearchMode} ${expKeyword}`;
             const queryLocation = finalLoc === 'Remote' ? '' : finalLoc;
 
             return (
               <div>
                 <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--accent)', marginBottom: '10px', background: 'rgba(200, 241, 53, 0.05)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(200, 241, 53, 0.1)' }}>
-                  🚀 Launching: <span style={{ color: '#fff' }}>"{finalRole}"</span> in <span style={{ color: '#fff' }}>"{finalLoc}"</span> ({activeSearchMode})
+                  🚀 Launching: <span style={{ color: '#fff' }}>"{finalRole}"</span> for <span style={{ color: '#fff' }}>{activeSearchExp}</span> in <span style={{ color: '#fff' }}>"{finalLoc}"</span> ({activeSearchMode})
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -887,7 +914,7 @@ Return the output strictly in the following JSON format:
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', background: 'rgba(37, 87, 224, 0.1)', border: '1px solid rgba(37, 87, 224, 0.3)', borderRadius: '10px', color: '#2557E0', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold', transition: 'all 0.2s' }}>
                     🔵 Indeed
                   </a>
-                  <a href={`https://www.upwork.com/nx/search/jobs/?q=${encodeURIComponent(finalRole + ' ' + finalLoc + ' ' + activeSearchMode)}`} target="_blank" rel="noopener noreferrer"
+                  <a href={`https://www.upwork.com/nx/search/jobs/?q=${encodeURIComponent(finalRole + ' ' + finalLoc + ' ' + activeSearchMode + ' ' + expKeyword)}`} target="_blank" rel="noopener noreferrer"
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', background: 'rgba(20, 168, 0, 0.1)', border: '1px solid rgba(20, 168, 0, 0.3)', borderRadius: '10px', color: '#14A800', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold', transition: 'all 0.2s' }}>
                     🔵 Upwork
                   </a>

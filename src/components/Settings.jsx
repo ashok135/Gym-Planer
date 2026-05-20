@@ -73,7 +73,7 @@ function Accordion({ title, subtitle, children, defaultOpen = false }) {
   );
 }
 
-export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, BUDGET, STUDY, syncAiSettings, profileInfo = { name: '', resume: '', targetRoles: ['React Developer', 'WordPress Developer', 'Frontend Developer'], preferredLocations: ['Bangalore', 'Chennai', 'Remote'], workTypes: ['Remote', 'Hybrid'] }, syncProfileInfo }) {
+export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, BUDGET, STUDY, syncAiSettings, profileInfo = { name: '', resume: '', targetRoles: ['React Developer', 'WordPress Developer', 'Frontend Developer'], preferredLocations: ['Bangalore', 'Chennai', 'Remote'], workTypes: ['Remote', 'Hybrid'], experienceLevel: 'Fresher' }, syncProfileInfo }) {
   const [localNames, setLocalNames] = useState(NAMES);
   const [profileName, setProfileName] = useState(profileInfo?.name || '');
   const [profileResume, setProfileResume] = useState(profileInfo?.resume || '');
@@ -82,6 +82,7 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
   const [preferredLocations, setPreferredLocations] = useState(profileInfo?.preferredLocations || ['Bangalore', 'Chennai', 'Remote']);
   const [newLocationInput, setNewLocationInput] = useState('');
   const [workTypes, setWorkTypes] = useState(profileInfo?.workTypes || ['Remote', 'Hybrid']);
+  const [experienceLevel, setExperienceLevel] = useState(profileInfo?.experienceLevel || 'Fresher');
   const [profileMsg, setProfileMsg] = useState(false);
   const [roleFocused, setRoleFocused] = useState(false);
   const [locFocused, setLocFocused] = useState(false);
@@ -92,6 +93,7 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
     setTargetRoles(profileInfo?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer']);
     setPreferredLocations(profileInfo?.preferredLocations || ['Bangalore', 'Chennai', 'Remote']);
     setWorkTypes(profileInfo?.workTypes || ['Remote', 'Hybrid']);
+    setExperienceLevel(profileInfo?.experienceLevel || 'Fresher');
   }, [profileInfo]);
   const [saveMsg, setSaveMsg] = useState(false);
   
@@ -555,6 +557,26 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
           </div>
         </div>
 
+        {/* Experience Level Selector */}
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Experience Level</div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {[
+              { id: 'Fresher', label: '🎓 Fresher' },
+              { id: '1-2 Years', label: '⚡ 1 to 2 Years' },
+              { id: '3+ Years', label: '🚀 3+ Years' }
+            ].map(level => {
+              const isSelected = experienceLevel === level.id;
+              return (
+                <div key={level.id} onClick={() => setExperienceLevel(level.id)}
+                  style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '12px', textAlign: 'center', cursor: 'pointer', background: isSelected ? 'var(--accent)' : 'var(--bg3)', color: isSelected ? '#000' : 'var(--text2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
+                  {level.label}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Custom Target Roles Tag Box */}
         <div style={{ marginBottom: '16px' }}>
           <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Target Job Roles</div>
@@ -614,7 +636,8 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
                 resume: profileResume.trim(),
                 targetRoles,
                 preferredLocations,
-                workTypes
+                workTypes,
+                experienceLevel
               });
               setProfileMsg(true);
               setTimeout(() => setProfileMsg(false), 2000);

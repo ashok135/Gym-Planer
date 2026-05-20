@@ -52,7 +52,8 @@ export default function App() {
         resume: saved?.resume || '',
         targetRoles: saved?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'],
         preferredLocations: saved?.preferredLocations || ['Bangalore', 'Chennai', 'Remote'],
-        workTypes: saved?.workTypes || ['Remote', 'Hybrid']
+        workTypes: saved?.workTypes || ['Remote', 'Hybrid'],
+        experienceLevel: saved?.experienceLevel || 'Fresher'
       };
     } catch(e) {
       return { 
@@ -60,7 +61,8 @@ export default function App() {
         resume: '', 
         targetRoles: ['React Developer', 'WordPress Developer', 'Frontend Developer'], 
         preferredLocations: ['Bangalore', 'Chennai', 'Remote'], 
-        workTypes: ['Remote', 'Hybrid'] 
+        workTypes: ['Remote', 'Hybrid'],
+        experienceLevel: 'Fresher'
       };
     }
   });
@@ -111,7 +113,8 @@ export default function App() {
                 resume: data.profileInfo.resume || '',
                 targetRoles: data.profileInfo.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'],
                 preferredLocations: data.profileInfo.preferredLocations || ['Bangalore', 'Chennai', 'Remote'],
-                workTypes: data.profileInfo.workTypes || ['Remote', 'Hybrid']
+                workTypes: data.profileInfo.workTypes || ['Remote', 'Hybrid'],
+                experienceLevel: data.profileInfo.experienceLevel || 'Fresher'
               };
               setProfileInfo(info);
               localStorage.setItem('gprofileInfo', JSON.stringify(info));
@@ -135,7 +138,8 @@ export default function App() {
               resume: saved?.resume || '',
               targetRoles: saved?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'],
               preferredLocations: saved?.preferredLocations || ['Bangalore', 'Chennai', 'Remote'],
-              workTypes: saved?.workTypes || ['Remote', 'Hybrid']
+              workTypes: saved?.workTypes || ['Remote', 'Hybrid'],
+              experienceLevel: saved?.experienceLevel || 'Fresher'
             });
           } catch(e) {}
         }
