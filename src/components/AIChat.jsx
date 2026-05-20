@@ -11,6 +11,8 @@ export default function AIChat({ DB, META, FOOD, BUDGET, STUDY, SCHEDULE }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(GEMINI_KEY_STORAGE) || '');
+  const [openrouterKey, setOpenrouterKey] = useState(() => localStorage.getItem('openrouter_api_key') || '');
+  const [provider, setProvider] = useState(() => localStorage.getItem('ai_provider') || 'gemini');
   const [model, setModel] = useState(() => localStorage.getItem('ai_model') || 'gemini-1.5-flash');
   const [persona, setPersona] = useState(() => localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
   const [showKeyInput, setShowKeyInput] = useState(false);
@@ -18,6 +20,8 @@ export default function AIChat({ DB, META, FOOD, BUDGET, STUDY, SCHEDULE }) {
   useEffect(() => {
     const handleStorage = () => {
       setApiKey(localStorage.getItem(GEMINI_KEY_STORAGE) || '');
+      setOpenrouterKey(localStorage.getItem('openrouter_api_key') || '');
+      setProvider(localStorage.getItem('ai_provider') || 'gemini');
       setModel(localStorage.getItem('ai_model') || 'gemini-1.5-flash');
       setPersona(localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
     };
@@ -57,9 +61,19 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
     }
   }, [messages, open]);
 
+  useEffect(() => {
+    if (showKeyInput) {
+      const activeKey = provider === 'gemini' ? apiKey : openrouterKey;
+      setTempKey(activeKey);
+    } else {
+      setTempKey('');
+    }
+  }, [showKeyInput, provider, apiKey, openrouterKey]);
+
   const sendMessage = async () => {
     if (!input.trim()) return;
-    if (!apiKey) { setShowKeyInput(true); return; }
+    const activeKey = provider === 'gemini' ? apiKey : openrouterKey;
+    if (!activeKey) { setShowKeyInput(true); return; }
 
     const userMsg = input.trim();
     setInput('');
@@ -68,30 +82,57 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
 
     try {
       const context = buildContext();
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: context + '\n\nUser: ' + userMsg }] }]
-        })
-      });
-      const data = await res.json();
-      const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, couldn't get a response. Try again!";
+      let reply = '';
+      if (provider === 'gemini') {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: context + '\n\nUser: ' + userMsg }] }]
+          })
+        });
+        const data = await res.json();
+        reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, couldn't get a response. Try again!";
+      } else {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openrouterKey}`
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash:free',
+            messages: [
+              { role: 'system', content: context },
+              { role: 'user', content: userMsg }
+            ]
+          })
+        });
+        const data = await res.json();
+        reply = data?.choices?.[0]?.message?.content || "Sorry, couldn't get a response. Try again!";
+      }
       setMessages(prev => [...prev, { role: 'bot', text: reply }]);
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'bot', text: "⚠️ Error connecting to AI. Check your API key in Settings." }]);
+      setMessages(prev => [...prev, { role: 'bot', text: `⚠️ Error connecting to AI. Check your ${provider === 'gemini' ? 'Gemini' : 'OpenRouter'} API key.` }]);
     }
     setLoading(false);
   };
 
   const saveKey = () => {
     if (tempKey.trim()) {
-      setApiKey(tempKey.trim());
-      localStorage.setItem(GEMINI_KEY_STORAGE, tempKey.trim());
+      if (provider === 'gemini') {
+        setApiKey(tempKey.trim());
+        localStorage.setItem(GEMINI_KEY_STORAGE, tempKey.trim());
+      } else {
+        setOpenrouterKey(tempKey.trim());
+        localStorage.setItem('openrouter_api_key', tempKey.trim());
+      }
       setShowKeyInput(false);
       setTempKey('');
     }
   };
+
+  const activeKeyExists = provider === 'gemini' ? apiKey : openrouterKey;
 
   return (
     <>
@@ -133,7 +174,7 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
               <Bot size={20} color="var(--accent)" />
               <div>
                 <div style={{ fontWeight: 800, fontSize: '14px', letterSpacing: '0.02em' }}>Lucy · AI Coach</div>
-                <div style={{ fontSize: '10px', color: 'var(--text3)' }}>Powered by Gemini</div>
+                <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{provider === 'gemini' ? 'Gemini AI' : 'OpenRouter AI'}</div>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -145,15 +186,35 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
           {/* API Key Input */}
           {showKeyInput && (
             <div style={{ padding: '14px 16px', background: 'rgba(200,241,53,0.03)', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px', fontWeight: 600 }}>Select AI Provider</div>
+                <select 
+                  value={provider} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    setProvider(val);
+                    localStorage.setItem('ai_provider', val);
+                  }}
+                  style={{ width: '100%', padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px', outline: 'none' }}
+                >
+                  <option value="gemini">Google Gemini (Direct)</option>
+                  <option value="openrouter">OpenRouter (Free Llama 3 / Gemini)</option>
+                </select>
+              </div>
+
               <div style={{ fontSize: '11px', color: 'var(--text2)', marginBottom: '8px' }}>
-                Get a free key in 10s at <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 'bold', textDecoration: 'underline' }}>aistudio.google.com</a>
+                {provider === 'gemini' ? (
+                  <>Get a free key in 10s at <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 'bold', textDecoration: 'underline' }}>aistudio.google.com</a></>
+                ) : (
+                  <>Get a free key at <a href="https://openrouter.ai/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 'bold', textDecoration: 'underline' }}>openrouter.ai</a> (Access Llama 3 / Gemini 2.5 Free!)</>
+                )}
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <input type="password" placeholder="Paste Gemini API key..." value={tempKey} onChange={e => setTempKey(e.target.value)}
+                <input type="password" placeholder={`Paste ${provider === 'gemini' ? 'Gemini' : 'OpenRouter'} key...`} value={tempKey} onChange={e => setTempKey(e.target.value)}
                   style={{ flex: 1, padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px' }} />
                 <button onClick={saveKey} style={{ padding: '8px 14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}>Save</button>
               </div>
-              {apiKey && <div style={{ fontSize: '10px', color: 'var(--accent)', marginTop: '6px' }}>✅ Key saved!</div>}
+              {activeKeyExists && <div style={{ fontSize: '10px', color: 'var(--accent)', marginTop: '6px' }}>✅ Key saved!</div>}
             </div>
           )}
 
@@ -171,10 +232,14 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
                 </div>
               </div>
             ))}
-            {!apiKey && (
+            {!activeKeyExists && (
               <div style={{ background: 'rgba(200,241,53,0.03)', padding: '12px 14px', borderRadius: '12px', border: '1px dashed var(--border2)', fontSize: '12px', color: 'var(--text2)', marginTop: '8px' }}>
                 <div style={{ fontWeight: 700, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}><Sparkles size={14}/> Setup AI Coach (Lucy)</div>
-                To chat, please create a free Google Gemini key at <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 600 }}>Google AI Studio</a> and click the 🔑 **API Key** button above to paste it! okey.
+                {provider === 'gemini' ? (
+                  <>To chat, please create a free Google Gemini key at <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 600 }}>Google AI Studio</a> and click the 🔑 **API Key** button above to paste it! okey.</>
+                ) : (
+                  <>To chat, please create a free key at <a href="https://openrouter.ai/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 600 }}>OpenRouter</a> and click the 🔑 **API Key** button above to paste it! okey.</>
+                )}
               </div>
             )}
             {loading && (
