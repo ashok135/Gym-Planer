@@ -14,6 +14,7 @@ export default function AIChat({ DB, META, FOOD, BUDGET, STUDY, SCHEDULE }) {
   const [openrouterKey, setOpenrouterKey] = useState(() => localStorage.getItem('openrouter_api_key') || '');
   const [provider, setProvider] = useState(() => localStorage.getItem('ai_provider') || 'gemini');
   const [model, setModel] = useState(() => localStorage.getItem('ai_model') || 'gemini-1.5-flash');
+  const [openrouterModel, setOpenrouterModel] = useState(() => localStorage.getItem('openrouter_model') || 'meta-llama/llama-3-8b-instruct:free');
   const [persona, setPersona] = useState(() => localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
   const [showKeyInput, setShowKeyInput] = useState(false);
 
@@ -23,6 +24,7 @@ export default function AIChat({ DB, META, FOOD, BUDGET, STUDY, SCHEDULE }) {
       setOpenrouterKey(localStorage.getItem('openrouter_api_key') || '');
       setProvider(localStorage.getItem('ai_provider') || 'gemini');
       setModel(localStorage.getItem('ai_model') || 'gemini-1.5-flash');
+      setOpenrouterModel(localStorage.getItem('openrouter_model') || 'meta-llama/llama-3-8b-instruct:free');
       setPersona(localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
     };
     window.addEventListener('storage', handleStorage);
@@ -105,7 +107,7 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
             'Authorization': `Bearer ${openrouterKey}`
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash:free',
+            model: openrouterModel,
             messages: [
               { role: 'system', content: context },
               { role: 'user', content: userMsg }
@@ -210,11 +212,30 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
                 </select>
               </div>
 
+              {provider === 'openrouter' && (
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px', fontWeight: 600 }}>Select OpenRouter Free Model</div>
+                  <select 
+                    value={openrouterModel} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      setOpenrouterModel(val);
+                      localStorage.setItem('openrouter_model', val);
+                    }}
+                    style={{ width: '100%', padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px', outline: 'none' }}
+                  >
+                    <option value="meta-llama/llama-3-8b-instruct:free">Llama 3 8B Instruct (Free/Fast)</option>
+                    <option value="google/gemma-2-9b-it:free">Gemma 2 9B Instruct (Free/Smart)</option>
+                    <option value="qwen/qwen-2-7b-instruct:free">Qwen 2 7B Instruct (Free/Multilingual)</option>
+                  </select>
+                </div>
+              )}
+
               <div style={{ fontSize: '11px', color: 'var(--text2)', marginBottom: '8px' }}>
                 {provider === 'gemini' ? (
                   <>Get a free key in 10s at <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 'bold', textDecoration: 'underline' }}>aistudio.google.com</a></>
                 ) : (
-                  <>Get a free key at <a href="https://openrouter.ai/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 'bold', textDecoration: 'underline' }}>openrouter.ai</a> (Access Llama 3 / Gemini 2.5 Free!)</>
+                  <>Get a free key at <a href="https://openrouter.ai/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 'bold', textDecoration: 'underline' }}>openrouter.ai</a> (Access Llama 3 / Gemma Free!)</>
                 )}
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
