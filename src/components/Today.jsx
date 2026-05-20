@@ -97,6 +97,10 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
     const newMeta = { ...META };
     if(!newMeta[key]) newMeta[key] = { ...meta };
     newMeta[key][field] = value;
+    if (field === 'status' && value === 'Skipped') {
+      newMeta[key].start = '';
+      newMeta[key].end = '';
+    }
     syncData(DB, NAMES, newMeta, FOOD);
   };
 
