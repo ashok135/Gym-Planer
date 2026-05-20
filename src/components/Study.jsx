@@ -13,7 +13,7 @@ const DEFAULT_SUBJECTS = [
 const dateKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 
-export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, activeRange: propRange }) {
+export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, activeRange: propRange, profileInfo = { name: '', resume: '', targetRoles: ['React', 'WordPress'] } }) {
   const now = new Date();
   const todayKey = dateKey(now);
 
@@ -31,12 +31,57 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, acti
   const [aiContent, setAiContent] = useState(null);
 
   // Live Job Matches States
-  const [jobs, setJobs] = useState([
-    { id: 1, company: 'Supabase', title: 'Fullstack React Engineer', type: 'React', ago: '2 mins ago', color: '#34D399', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' },
-    { id: 2, company: 'Automattic', title: 'WordPress Theme Specialist', type: 'WordPress', ago: '15 mins ago', color: '#4D9FFF', link: 'https://www.linkedin.com/jobs/search/?keywords=WordPress%20Developer' },
-    { id: 3, company: 'Vercel', title: 'React Frontend Developer', type: 'React', ago: '45 mins ago', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' }
-  ]);
+  const [jobs, setJobs] = useState([]);
   const [jobToast, setJobToast] = useState(null);
+
+  const selectedRoles = profileInfo?.targetRoles || ['React', 'WordPress'];
+
+  const ROLE_JOBS = {
+    React: [
+      { company: 'Google', title: 'Senior React Developer', type: 'React', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' },
+      { company: 'Vercel', title: 'Next.js Frontend Engineer', type: 'React', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' },
+      { company: 'Supabase', title: 'Frontend Engineer (React)', type: 'React', color: '#34D399', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' }
+    ],
+    WordPress: [
+      { company: 'Automattic', title: 'WordPress Theme Architect', type: 'WordPress', color: '#4D9FFF', link: 'https://www.linkedin.com/jobs/search/?keywords=WordPress%20Developer' },
+      { company: 'WP Engine', title: 'WordPress Plugin Engineer', type: 'WordPress', color: '#4D9FFF', link: 'https://www.linkedin.com/jobs/search/?keywords=WordPress%20Developer' },
+      { company: 'Elementor', title: 'Theme Specialist', type: 'WordPress', color: '#4D9FFF', link: 'https://www.linkedin.com/jobs/search/?keywords=WordPress%20Developer' }
+    ],
+    Fullstack: [
+      { company: 'Stripe', title: 'Fullstack Software Engineer', type: 'Fullstack', color: '#34D399', link: 'https://www.linkedin.com/jobs/search/?keywords=Fullstack%20Developer' },
+      { company: 'Netflix', title: 'Fullstack UI Engineer', type: 'Fullstack', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=Fullstack%20Developer' },
+      { company: 'Airbnb', title: 'Fullstack Core Systems Developer', type: 'Fullstack', color: '#34D399', link: 'https://www.linkedin.com/jobs/search/?keywords=Fullstack%20Developer' }
+    ],
+    'UI/UX': [
+      { company: 'Figma', title: 'Lead Product Designer', type: 'UI/UX', color: '#FB923C', link: 'https://www.linkedin.com/jobs/search/?keywords=UI%20UX%20Designer' },
+      { company: 'Canva', title: 'UI/UX Visual Engineer', type: 'UI/UX', color: '#FB923C', link: 'https://www.linkedin.com/jobs/search/?keywords=UI%20UX%20Designer' },
+      { company: 'Linear', title: 'Interaction & UI Designer', type: 'UI/UX', color: '#FB923C', link: 'https://www.linkedin.com/jobs/search/?keywords=UI%20UX%20Designer' }
+    ],
+    Mobile: [
+      { company: 'Coinbase', title: 'React Native Mobile Developer', type: 'Mobile', color: '#F472B6', link: 'https://www.linkedin.com/jobs/search/?keywords=Mobile%20Developer' },
+      { company: 'Uber', title: 'Flutter Mobile Engineer', type: 'Mobile', color: '#F472B6', link: 'https://www.linkedin.com/jobs/search/?keywords=Mobile%20Developer' },
+      { company: 'Spotify', title: 'iOS/Android Swift Specialist', type: 'Mobile', color: '#F472B6', link: 'https://www.linkedin.com/jobs/search/?keywords=Mobile%20Developer' }
+    ]
+  };
+
+  const getDynamicPool = () => {
+    let pool = [];
+    selectedRoles.forEach(r => {
+      if (ROLE_JOBS[r]) pool.push(...ROLE_JOBS[r]);
+    });
+    if (pool.length === 0) pool = [...ROLE_JOBS.React, ...ROLE_JOBS.WordPress];
+    return pool;
+  };
+
+  useEffect(() => {
+    const pool = getDynamicPool();
+    const shuffled = [...pool].sort(() => 0.5 - Math.random());
+    setJobs(shuffled.slice(0, 3).map((job, idx) => ({
+      id: idx + 1,
+      ...job,
+      ago: `${(idx + 1) * 5} mins ago`
+    })));
+  }, [profileInfo]);
 
   useEffect(() => {
     // Request notification permission on mount
@@ -44,17 +89,9 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, acti
       Notification.requestPermission();
     }
 
-    const jobPool = [
-      { company: 'Google', title: 'Senior React Developer', type: 'React', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' },
-      { company: 'Meta', title: 'Frontend Specialist (React)', type: 'React', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' },
-      { company: 'WP Engine', title: 'WordPress Plugin Architect', type: 'WordPress', color: '#4D9FFF', link: 'https://www.linkedin.com/jobs/search/?keywords=WordPress%20Developer' },
-      { company: 'Netlify', title: 'Frontend Framework Engineer', type: 'React', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' },
-      { company: 'Elementor', title: 'WordPress Theme Specialist', type: 'WordPress', color: '#4D9FFF', link: 'https://www.linkedin.com/jobs/search/?keywords=WordPress%20Developer' },
-      { company: 'Vercel', title: 'Next.js Frontend Engineer', type: 'React', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' }
-    ];
-
     const interval = setInterval(() => {
-      const randomJob = jobPool[Math.floor(Math.random() * jobPool.length)];
+      const pool = getDynamicPool();
+      const randomJob = pool[Math.floor(Math.random() * pool.length)];
       const newJob = {
         id: Date.now(),
         ...randomJob,
@@ -72,7 +109,7 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, acti
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         try {
           new Notification(`💼 Job Match: ${newJob.title}`, {
-            body: `New opening at ${newJob.company} matches your React / WordPress focus!`,
+            body: `New opening at ${newJob.company} matches your target roles!`,
             icon: 'https://cdn-icons-png.flaticon.com/512/3256/3256093.png'
           });
         } catch(err) { console.error("Web Push failed", err); }
@@ -80,7 +117,7 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, acti
     }, 25000); // scan every 25s
 
     return () => clearInterval(interval);
-  }, []);
+  }, [profileInfo]);
 
   const generateQuiz = async () => {
     setAiLoading(true);
@@ -648,13 +685,15 @@ Return the output strictly in the following JSON format:
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Calendar size={18} color="var(--blue)" />
-            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>💼 Live Job Matches (React &amp; WordPress)</div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>
+              💼 Live Job Matches ({selectedRoles.join(' & ')} Focus)
+            </div>
           </div>
           <span className="live-badge" style={{ fontSize: '8px', padding: '3px 8px', background: 'rgba(52, 211, 153, 0.1)', color: '#34D399', borderRadius: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', border: '1px solid rgba(52, 211, 153, 0.2)' }}>Live Scanner</span>
         </div>
 
         <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '16px' }}>
-          Auto-scanning major job portals for active posts matching your focus areas. Enable browser permissions to get push notifications!
+          Auto-scanning major job portals for active posts matching your custom target roles. Enable browser permissions to get push notifications!
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
@@ -681,18 +720,12 @@ Return the output strictly in the following JSON format:
         {/* Quick Job Search Links */}
         <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text2)', marginBottom: '10px' }}>Direct Search Links:</div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <a href="https://www.linkedin.com/jobs/search/?keywords=React%20WordPress%20Developer" target="_blank" rel="noopener noreferrer"
-            style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border2)', borderRadius: '10px', color: 'var(--text)', fontSize: '11px', textDecoration: 'none', fontWeight: 600 }}>
-            🔗 LinkedIn Search
-          </a>
-          <a href="https://www.indeed.com/jobs?q=React+WordPress+Developer" target="_blank" rel="noopener noreferrer"
-            style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border2)', borderRadius: '10px', color: 'var(--text)', fontSize: '11px', textDecoration: 'none', fontWeight: 600 }}>
-            🔗 Indeed Search
-          </a>
-          <a href="https://www.upwork.com/nx/search/jobs/?q=React%20WordPress" target="_blank" rel="noopener noreferrer"
-            style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border2)', borderRadius: '10px', color: 'var(--text)', fontSize: '11px', textDecoration: 'none', fontWeight: 600 }}>
-            🔗 Upwork Search
-          </a>
+          {selectedRoles.map(role => (
+            <a key={role} href={`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(role + ' Developer')}`} target="_blank" rel="noopener noreferrer"
+              style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border2)', borderRadius: '10px', color: 'var(--text)', fontSize: '11px', textDecoration: 'none', fontWeight: 600 }}>
+              🔗 LinkedIn {role} Search
+            </a>
+          ))}
         </div>
       </div>
 

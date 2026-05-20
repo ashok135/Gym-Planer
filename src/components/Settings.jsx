@@ -20,15 +20,17 @@ function Accordion({ title, subtitle, children, defaultOpen = false }) {
   );
 }
 
-export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, BUDGET, STUDY, syncAiSettings, profileInfo = { name: '', resume: '' }, syncProfileInfo }) {
+export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, BUDGET, STUDY, syncAiSettings, profileInfo = { name: '', resume: '', targetRoles: ['React', 'WordPress'] }, syncProfileInfo }) {
   const [localNames, setLocalNames] = useState(NAMES);
   const [profileName, setProfileName] = useState(profileInfo?.name || '');
   const [profileResume, setProfileResume] = useState(profileInfo?.resume || '');
+  const [targetRoles, setTargetRoles] = useState(profileInfo?.targetRoles || ['React', 'WordPress']);
   const [profileMsg, setProfileMsg] = useState(false);
 
   useEffect(() => {
     setProfileName(profileInfo?.name || '');
     setProfileResume(profileInfo?.resume || '');
+    setTargetRoles(profileInfo?.targetRoles || ['React', 'WordPress']);
   }, [profileInfo]);
   const [saveMsg, setSaveMsg] = useState(false);
   
@@ -413,10 +415,43 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
             style={{ width: '100%', height: '120px', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical', outline: 'none' }} />
         </div>
 
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Target Job Roles</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {[
+              { id: 'React', label: '⚛️ React Developer' },
+              { id: 'WordPress', label: '📝 WordPress Developer' },
+              { id: 'Fullstack', label: '💻 Fullstack Developer' },
+              { id: 'UI/UX', label: '🎨 UI/UX Designer' },
+              { id: 'Mobile', label: '📱 Mobile Developer' }
+            ].map(role => {
+              const isSelected = targetRoles.includes(role.id);
+              return (
+                <div key={role.id} onClick={() => {
+                  if (isSelected) {
+                    if (targetRoles.length > 1) {
+                      setTargetRoles(targetRoles.filter(r => r !== role.id));
+                    }
+                  } else {
+                    setTargetRoles([...targetRoles, role.id]);
+                  }
+                }}
+                  style={{ padding: '8px 14px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer', background: isSelected ? 'var(--accent)' : 'var(--bg3)', color: isSelected ? '#000' : 'var(--text2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
+                  {role.label}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px' }}>
           <button className="settings-save" onClick={async () => {
             if (syncProfileInfo) {
-              await syncProfileInfo({ name: profileName.trim(), resume: profileResume.trim() });
+              await syncProfileInfo({ 
+                name: profileName.trim(), 
+                resume: profileResume.trim(),
+                targetRoles
+              });
               setProfileMsg(true);
               setTimeout(() => setProfileMsg(false), 2000);
             }

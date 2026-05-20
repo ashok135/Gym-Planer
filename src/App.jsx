@@ -46,9 +46,14 @@ export default function App() {
   const [aiEnabled, setAiEnabled] = useState(() => localStorage.getItem('ai_enabled') === 'true');
   const [profileInfo, setProfileInfo] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('gprofileInfo')) || { name: '', resume: '' };
+      const saved = JSON.parse(localStorage.getItem('gprofileInfo'));
+      return {
+        name: saved?.name || '',
+        resume: saved?.resume || '',
+        targetRoles: saved?.targetRoles || ['React', 'WordPress']
+      };
     } catch(e) {
-      return { name: '', resume: '' };
+      return { name: '', resume: '', targetRoles: ['React', 'WordPress'] };
     }
   });
 
@@ -93,8 +98,13 @@ export default function App() {
             
             // Sync Profile Info from Firebase if it exists
             if (data.profileInfo) {
-              setProfileInfo(data.profileInfo);
-              localStorage.setItem('gprofileInfo', JSON.stringify(data.profileInfo));
+              const info = {
+                name: data.profileInfo.name || '',
+                resume: data.profileInfo.resume || '',
+                targetRoles: data.profileInfo.targetRoles || ['React', 'WordPress']
+              };
+              setProfileInfo(info);
+              localStorage.setItem('gprofileInfo', JSON.stringify(info));
             }
           }
         } catch(e) {
@@ -109,7 +119,12 @@ export default function App() {
           setSTUDY(JSON.parse(localStorage.getItem('gstudy')||'{}'));
           setSTUDY_SETTINGS(JSON.parse(localStorage.getItem('gstudySettings')||JSON.stringify(DEFAULT_STUDY_SETTINGS)));
           try {
-            setProfileInfo(JSON.parse(localStorage.getItem('gprofileInfo')) || { name: '', resume: '' });
+            const saved = JSON.parse(localStorage.getItem('gprofileInfo'));
+            setProfileInfo({
+              name: saved?.name || '',
+              resume: saved?.resume || '',
+              targetRoles: saved?.targetRoles || ['React', 'WordPress']
+            });
           } catch(e) {}
         }
       }
@@ -292,7 +307,7 @@ export default function App() {
         {activeTab === 'today'    && <Today    DB={DB} NAMES={NAMES} META={META} syncData={syncData} FOOD={FOOD} SCHEDULE={SCHEDULE} />}
         {activeTab === 'diet'     && <Diet     FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} />}
         {activeTab === 'budget'   && <Budget   BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} />}
-        {activeTab === 'study'    && <Study    STUDY={STUDY} syncStudy={syncStudy} STUDY_SETTINGS={STUDY_SETTINGS} />}
+        {activeTab === 'study'    && <Study    STUDY={STUDY} syncStudy={syncStudy} STUDY_SETTINGS={STUDY_SETTINGS} profileInfo={profileInfo} />}
         {activeTab === 'report'   && <Report   DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} BUDGET={BUDGET} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY={STUDY} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} />}
         {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} syncAiSettings={syncAiSettings} profileInfo={profileInfo} syncProfileInfo={syncProfileInfo} />}
       </div>
