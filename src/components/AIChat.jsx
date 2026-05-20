@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Bot } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, Key, Sparkles } from 'lucide-react';
 
 const GEMINI_KEY_STORAGE = 'gemini_api_key';
 
 export default function AIChat({ DB, META, FOOD, BUDGET, STUDY, SCHEDULE }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'bot', text: "Hi! I'm your AI Coach 🤖 Ask me anything about your workouts, diet, budget, or study progress!" }
+    { role: 'bot', text: "Hi! I'm Lucy 🤖 Ask me anything about your workouts, diet, budget, or study progress!" }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,7 +35,7 @@ export default function AIChat({ DB, META, FOOD, BUDGET, STUDY, SCHEDULE }) {
     const budgetMonth = BUDGET?.[monthKey] || {};
     const todayStudy = STUDY?.[todayKey] || {};
 
-    return `You are an AI coach acting as: ${persona}.
+    return `You are Lucy, an AI coach acting as: ${persona}.
 Embedded in a personal tracking app called LifeTraker.
 The user's data:
 - Today: ${todayKey}
@@ -98,8 +98,29 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
       {/* Floating Button */}
       {!open && (
         <button onClick={() => setOpen(true)}
-          style={{ position: 'fixed', bottom: '90px', right: '20px', width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, #A78BFA, #4D9FFF)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(167,139,250,0.5)', zIndex: 999, animation: 'pulse 2s infinite alternate' }}>
-          <MessageCircle size={24} color="#fff" />
+          style={{ 
+            position: 'fixed', 
+            bottom: '95px', 
+            right: '24px', 
+            height: '46px', 
+            borderRadius: '23px', 
+            padding: '0 16px',
+            background: 'var(--bg2)', 
+            border: '1px solid var(--border2)', 
+            cursor: 'pointer', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.4)', 
+            zIndex: 999, 
+            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            color: 'var(--text)'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.transform = 'none'; }}
+        >
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 8px var(--accent)' }}></div>
+          <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text2)' }}>TALK TO LUCY</span>
         </button>
       )}
 
@@ -107,25 +128,25 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
       {open && (
         <div style={{ position: 'fixed', bottom: '80px', right: '12px', left: '12px', maxWidth: '500px', margin: '0 auto', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '20px', zIndex: 1000, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', maxHeight: '70vh' }}>
           {/* Chat Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'linear-gradient(135deg, rgba(167,139,250,0.1), rgba(77,159,255,0.1))', borderRadius: '20px 20px 0 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'linear-gradient(135deg, rgba(200,241,53,0.05), rgba(77,159,255,0.05))', borderRadius: '20px 20px 0 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Bot size={20} color="#A78BFA" />
+              <Bot size={20} color="var(--accent)" />
               <div>
-                <div style={{ fontWeight: 700, fontSize: '14px' }}>AI Coach</div>
+                <div style={{ fontWeight: 800, fontSize: '14px', letterSpacing: '0.02em' }}>Lucy · AI Coach</div>
                 <div style={{ fontSize: '10px', color: 'var(--text3)' }}>Powered by Gemini</div>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <button onClick={() => setShowKeyInput(!showKeyInput)} style={{ background: 'transparent', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text3)', fontSize: '10px', padding: '4px 8px', cursor: 'pointer' }}>🔑 API Key</button>
+              <button onClick={() => setShowKeyInput(!showKeyInput)} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text3)', fontSize: '10px', padding: '4px 8px', cursor: 'pointer' }}><Key size={10}/> API Key</button>
               <button onClick={() => setOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer' }}><X size={20} /></button>
             </div>
           </div>
 
           {/* API Key Input */}
           {showKeyInput && (
-            <div style={{ padding: '12px 16px', background: 'rgba(167,139,250,0.05)', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ padding: '14px 16px', background: 'rgba(200,241,53,0.03)', borderBottom: '1px solid var(--border)' }}>
               <div style={{ fontSize: '11px', color: 'var(--text2)', marginBottom: '8px' }}>
-                Get free key at <span style={{ color: '#A78BFA' }}>aistudio.google.com</span>
+                Get a free key in 10s at <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 'bold', textDecoration: 'underline' }}>aistudio.google.com</a>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input type="password" placeholder="Paste Gemini API key..." value={tempKey} onChange={e => setTempKey(e.target.value)}
@@ -141,7 +162,7 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
             {messages.map((msg, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 <div style={{
-                  maxWidth: '80%', padding: '10px 14px', borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                  maxWidth: '85%', padding: '10px 14px', borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                   background: msg.role === 'user' ? 'var(--accent)' : 'var(--bg3)',
                   color: msg.role === 'user' ? '#000' : 'var(--text)',
                   fontSize: '13px', lineHeight: 1.5, whiteSpace: 'pre-wrap'
@@ -150,6 +171,12 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
                 </div>
               </div>
             ))}
+            {!apiKey && (
+              <div style={{ background: 'rgba(200,241,53,0.03)', padding: '12px 14px', borderRadius: '12px', border: '1px dashed var(--border2)', fontSize: '12px', color: 'var(--text2)', marginTop: '8px' }}>
+                <div style={{ fontWeight: 700, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}><Sparkles size={14}/> Setup AI Coach (Lucy)</div>
+                To chat, please create a free Google Gemini key at <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 600 }}>Google AI Studio</a> and click the 🔑 **API Key** button above to paste it! okey.
+              </div>
+            )}
             {loading && (
               <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
                 <div style={{ padding: '10px 14px', background: 'var(--bg3)', borderRadius: '16px 16px 16px 4px', fontSize: '13px', color: 'var(--text3)' }}>
@@ -166,7 +193,7 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !loading && sendMessage()}
-              placeholder="Ask your AI coach..."
+              placeholder="Ask Lucy..."
               style={{ flex: 1, padding: '10px 14px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '20px', color: 'var(--text)', fontSize: '13px', outline: 'none' }}
             />
             <button onClick={sendMessage} disabled={loading}
