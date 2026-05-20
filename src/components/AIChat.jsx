@@ -92,7 +92,11 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
           })
         });
         const data = await res.json();
-        reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, couldn't get a response. Try again!";
+        if (data.error) {
+          reply = `⚠️ Gemini API Error: ${data.error.message} (Code: ${data.error.code})`;
+        } else {
+          reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, couldn't get a response. Please verify your API Key and try again!";
+        }
       } else {
         const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
@@ -109,11 +113,15 @@ Answer the user's question concisely (2-4 sentences max). Be motivating and spec
           })
         });
         const data = await res.json();
-        reply = data?.choices?.[0]?.message?.content || "Sorry, couldn't get a response. Try again!";
+        if (data.error) {
+          reply = `⚠️ OpenRouter API Error: ${data.error.message || JSON.stringify(data.error)}`;
+        } else {
+          reply = data?.choices?.[0]?.message?.content || "Sorry, couldn't get a response. Please verify your API Key and try again!";
+        }
       }
       setMessages(prev => [...prev, { role: 'bot', text: reply }]);
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'bot', text: `⚠️ Error connecting to AI. Check your ${provider === 'gemini' ? 'Gemini' : 'OpenRouter'} API key.` }]);
+      setMessages(prev => [...prev, { role: 'bot', text: `⚠️ Connection Error: Failed to connect to ${provider === 'gemini' ? 'Gemini' : 'OpenRouter'}. Please check your internet connection.` }]);
     }
     setLoading(false);
   };
