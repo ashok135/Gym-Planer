@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DEFAULT_PLAN, DAYS_FULL, DEFAULT_DIET_PLAN, MONTHS, dateKey } from '../data';
 import { ChevronDown, Beaker } from 'lucide-react';
 import { generateSeedData } from '../utils/seeder';
@@ -20,8 +20,16 @@ function Accordion({ title, subtitle, children, defaultOpen = false }) {
   );
 }
 
-export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, BUDGET, STUDY, syncAiSettings }) {
+export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, BUDGET, STUDY, syncAiSettings, profileInfo = { name: '', resume: '' }, syncProfileInfo }) {
   const [localNames, setLocalNames] = useState(NAMES);
+  const [profileName, setProfileName] = useState(profileInfo?.name || '');
+  const [profileResume, setProfileResume] = useState(profileInfo?.resume || '');
+  const [profileMsg, setProfileMsg] = useState(false);
+
+  useEffect(() => {
+    setProfileName(profileInfo?.name || '');
+    setProfileResume(profileInfo?.resume || '');
+  }, [profileInfo]);
   const [saveMsg, setSaveMsg] = useState(false);
   
   const [localSchedule, setLocalSchedule] = useState({ ...SCHEDULE?.fullTime });
@@ -385,6 +393,35 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px' }}>
           <button className="settings-save" onClick={saveStudySettings} style={{ flex: 1 }}>Save Study Settings</button>
           <span className="save-ok" style={{ opacity: studyMsg ? 1 : 0 }}>Saved ✓</span>
+        </div>
+      </Accordion>
+
+      {/* PROFILE & RESUME */}
+      <Accordion title="👤 Profile &amp; Resume Details" subtitle="Set your name and professional background for Lucy">
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Your Name / Nickname</div>
+          <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)} placeholder="e.g. Ashok"
+            style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
+        </div>
+
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Resume / Profile Summary</div>
+          <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '6px' }}>
+            Paste your skills, experience, education, or achievements. Lucy will read this to customize your interview prep!
+          </div>
+          <textarea value={profileResume} onChange={e => setProfileResume(e.target.value)} placeholder="e.g. JavaScript, React, Node.js developer with 2 years of experience. Education: B.Tech in CSE..."
+            style={{ width: '100%', height: '120px', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical', outline: 'none' }} />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px' }}>
+          <button className="settings-save" onClick={async () => {
+            if (syncProfileInfo) {
+              await syncProfileInfo({ name: profileName.trim(), resume: profileResume.trim() });
+              setProfileMsg(true);
+              setTimeout(() => setProfileMsg(false), 2000);
+            }
+          }} style={{ flex: 1 }}>Save Profile</button>
+          <span className="save-ok" style={{ opacity: profileMsg ? 1 : 0 }}>Saved ✓</span>
         </div>
       </Accordion>
 

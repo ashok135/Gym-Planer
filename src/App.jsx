@@ -44,6 +44,13 @@ export default function App() {
   const [STUDY_SETTINGS, setSTUDY_SETTINGS] = useState(DEFAULT_STUDY_SETTINGS);
 
   const [aiEnabled, setAiEnabled] = useState(() => localStorage.getItem('ai_enabled') === 'true');
+  const [profileInfo, setProfileInfo] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('gprofileInfo')) || { name: '', resume: '' };
+    } catch(e) {
+      return { name: '', resume: '' };
+    }
+  });
 
   useEffect(() => {
     const handleStorage = () => {
@@ -83,6 +90,12 @@ export default function App() {
               setAiEnabled(data.aiSettings.enabled);
               window.dispatchEvent(new Event('storage'));
             }
+            
+            // Sync Profile Info from Firebase if it exists
+            if (data.profileInfo) {
+              setProfileInfo(data.profileInfo);
+              localStorage.setItem('gprofileInfo', JSON.stringify(data.profileInfo));
+            }
           }
         } catch(e) {
           console.error("Cloud fetch failed, using local", e);
@@ -95,6 +108,9 @@ export default function App() {
           setBUDGET_SETTINGS(JSON.parse(localStorage.getItem('gbudgetSettings')||JSON.stringify(DEFAULT_BUDGET_SETTINGS)));
           setSTUDY(JSON.parse(localStorage.getItem('gstudy')||'{}'));
           setSTUDY_SETTINGS(JSON.parse(localStorage.getItem('gstudySettings')||JSON.stringify(DEFAULT_STUDY_SETTINGS)));
+          try {
+            setProfileInfo(JSON.parse(localStorage.getItem('gprofileInfo')) || { name: '', resume: '' });
+          } catch(e) {}
         }
       }
       setLoading(false);
@@ -126,7 +142,8 @@ export default function App() {
         await setDoc(doc(db, "users", user.uid), {
           workouts: newDB, names: newNAMES, meta: newMETA, food: newFOOD, schedule: newSCHEDULE,
           budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
-          aiSettings: getAiSettingsFromLocalStorage()
+          aiSettings: getAiSettingsFromLocalStorage(),
+          profileInfo
         });
       } catch(e) { console.error("Cloud save failed", e); }
     }
@@ -141,7 +158,8 @@ export default function App() {
         await setDoc(doc(db, "users", user.uid), {
           workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
           budget: newBudget, budgetSettings: newSettings, study: STUDY, studySettings: STUDY_SETTINGS,
-          aiSettings: getAiSettingsFromLocalStorage()
+          aiSettings: getAiSettingsFromLocalStorage(),
+          profileInfo
         });
       } catch(e) { console.error("Cloud save failed", e); }
     }
@@ -156,7 +174,8 @@ export default function App() {
         await setDoc(doc(db, "users", user.uid), {
           workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
           budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: newStudy, studySettings: newSettings,
-          aiSettings: getAiSettingsFromLocalStorage()
+          aiSettings: getAiSettingsFromLocalStorage(),
+          profileInfo
         });
       } catch(e) { console.error("Cloud save failed", e); }
     }
@@ -180,9 +199,25 @@ export default function App() {
         await setDoc(doc(db, "users", user.uid), {
           workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
           budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
-          aiSettings: mergedSettings
+          aiSettings: mergedSettings,
+          profileInfo
         });
       } catch(e) { console.error("Cloud save for AI settings failed", e); }
+    }
+  };
+
+  const syncProfileInfo = async (newProfile) => {
+    setProfileInfo(newProfile);
+    localStorage.setItem('gprofileInfo', JSON.stringify(newProfile));
+    if(user) {
+      try {
+        await setDoc(doc(db, "users", user.uid), {
+          workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
+          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
+          aiSettings: getAiSettingsFromLocalStorage(),
+          profileInfo: newProfile
+        });
+      } catch(e) { console.error("Cloud save for profile failed", e); }
     }
   };
 
@@ -259,10 +294,10 @@ export default function App() {
         {activeTab === 'budget'   && <Budget   BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} />}
         {activeTab === 'study'    && <Study    STUDY={STUDY} syncStudy={syncStudy} STUDY_SETTINGS={STUDY_SETTINGS} />}
         {activeTab === 'report'   && <Report   DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} BUDGET={BUDGET} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY={STUDY} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} />}
-        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} syncAiSettings={syncAiSettings} />}
+        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} syncAiSettings={syncAiSettings} profileInfo={profileInfo} syncProfileInfo={syncProfileInfo} />}
       </div>
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} showNav={showNav} />
-      {aiEnabled && <AIChat DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} syncAiSettings={syncAiSettings} />}
+      {aiEnabled && <AIChat DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} syncAiSettings={syncAiSettings} profileInfo={profileInfo} />}
     </div>
   );
 }

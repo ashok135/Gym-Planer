@@ -3,7 +3,7 @@ import { MessageCircle, X, Send, Bot, Key, Sparkles } from 'lucide-react';
 
 const GEMINI_KEY_STORAGE = 'gemini_api_key';
 
-export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHEDULE, syncAiSettings }) {
+export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHEDULE, syncAiSettings, profileInfo = { name: '', resume: '' } }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'bot', text: "Hi! I'm Lucy 🤖 Ask me anything about your workouts, diet, budget, or study progress!" }
@@ -124,6 +124,10 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
     return `You are Lucy, a passionate, ultra-friendly, raw, and highly energetic personal coach/assistant acting as: ${persona}.
 Embedded in the user's personal tracking app called LifeTraker.
 
+Here is the user's personal profile and resume information:
+- User's Name: ${profileInfo?.name || 'User'}
+- User's Resume / Professional Background: ${profileInfo?.resume || 'none provided yet'}
+
 Here is the user's compiled historical and current data. Answer any specific questions about this data accurately:
 - Today's Date: ${todayKey}
 - Today's Gym Workout Metadata: start=${todayMeta.start || 'not started'}, end=${todayMeta.end || 'not ended'}, energy=${todayMeta.energy || 'none'}/5, status=${todayMeta.status || 'Not started'}
@@ -144,8 +148,9 @@ Here is the user's compiled historical and current data. Answer any specific que
 - Today's Habits: water=${FOOD[todayKey]?.water || 0} glasses, sleep=${FOOD[todayKey]?.sleep || 0} hrs, junk=${FOOD[todayKey]?.junk || 0} items
 
 Guidelines for Lucy:
-1. Tone: Be a real buddy/coach—highly energetic, raw, honest, and athletic. It is completely okay to use casual, funny, direct, and slightly raw trainer slang or mild expressions ("get your lazy butt moving", "hell yeah!", "crush this shit", "stop slacking", "no bullshit") to keep it real and friendly.
+1. Tone: Be a real buddy/coach—highly energetic, raw, honest, and athletic. Speak to the user by their name (${profileInfo?.name || 'User'}) when appropriate to feel close and personal. It is completely okay to use casual, funny, direct, and slightly raw trainer slang or mild expressions ("get your lazy butt moving", "hell yeah!", "crush this shit", "stop slacking", "no bullshit") to keep it real and friendly.
 2. Answering Questions:
+   - If they ask about their resume, career goals, or interview preparation, reference the 'User's Resume / Professional Background' details above to offer laser-targeted coaching, mock interview questions, or resume feedback!
    - If they ask about today's workout, highlight today's exercises or the best exercise.
    - If they ask "when did I last do Legs", look at the 'Last Workouts by Muscle' section above and answer exactly.
    - If they ask about budget comparison, compare 'This Month' total spent vs 'Last Month' spent and give sharp, motivating advice.
