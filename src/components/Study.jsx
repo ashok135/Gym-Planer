@@ -13,7 +13,7 @@ const DEFAULT_SUBJECTS = [
 const dateKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 
-export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, activeRange: propRange, profileInfo = { name: '', resume: '', targetRoles: ['React', 'WordPress'] } }) {
+export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, activeRange: propRange, profileInfo = { name: '', resume: '', targetRoles: ['React Developer', 'WordPress Developer', 'Frontend Developer'], preferredLocations: ['Bangalore', 'Chennai', 'Remote'], workTypes: ['Remote', 'Hybrid'] } }) {
   const now = new Date();
   const todayKey = dateKey(now);
 
@@ -34,87 +34,77 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, acti
   const [jobs, setJobs] = useState([]);
   const [jobToast, setJobToast] = useState(null);
 
-  const selectedRoles = profileInfo?.targetRoles || ['React', 'WordPress'];
+  const selectedRoles = profileInfo?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'];
+  const preferredLocs = profileInfo?.preferredLocations || ['Bangalore', 'Chennai', 'Remote'];
+  const workModes = profileInfo?.workTypes || ['Remote', 'Hybrid'];
 
-  const ROLE_JOBS = {
-    React: [
-      { company: 'Google', title: 'Senior React Developer', type: 'React', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' },
-      { company: 'Vercel', title: 'Next.js Frontend Engineer', type: 'React', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' },
-      { company: 'Supabase', title: 'Frontend Engineer (React)', type: 'React', color: '#34D399', link: 'https://www.linkedin.com/jobs/search/?keywords=React%20Developer' }
-    ],
-    WordPress: [
-      { company: 'Automattic', title: 'WordPress Theme Architect', type: 'WordPress', color: '#4D9FFF', link: 'https://www.linkedin.com/jobs/search/?keywords=WordPress%20Developer' },
-      { company: 'WP Engine', title: 'WordPress Plugin Engineer', type: 'WordPress', color: '#4D9FFF', link: 'https://www.linkedin.com/jobs/search/?keywords=WordPress%20Developer' },
-      { company: 'Elementor', title: 'Theme Specialist', type: 'WordPress', color: '#4D9FFF', link: 'https://www.linkedin.com/jobs/search/?keywords=WordPress%20Developer' }
-    ],
-    Fullstack: [
-      { company: 'Stripe', title: 'Fullstack Software Engineer', type: 'Fullstack', color: '#34D399', link: 'https://www.linkedin.com/jobs/search/?keywords=Fullstack%20Developer' },
-      { company: 'Netflix', title: 'Fullstack UI Engineer', type: 'Fullstack', color: '#A78BFA', link: 'https://www.linkedin.com/jobs/search/?keywords=Fullstack%20Developer' },
-      { company: 'Airbnb', title: 'Fullstack Core Systems Developer', type: 'Fullstack', color: '#34D399', link: 'https://www.linkedin.com/jobs/search/?keywords=Fullstack%20Developer' }
-    ],
-    'UI/UX': [
-      { company: 'Figma', title: 'Lead Product Designer', type: 'UI/UX', color: '#FB923C', link: 'https://www.linkedin.com/jobs/search/?keywords=UI%20UX%20Designer' },
-      { company: 'Canva', title: 'UI/UX Visual Engineer', type: 'UI/UX', color: '#FB923C', link: 'https://www.linkedin.com/jobs/search/?keywords=UI%20UX%20Designer' },
-      { company: 'Linear', title: 'Interaction & UI Designer', type: 'UI/UX', color: '#FB923C', link: 'https://www.linkedin.com/jobs/search/?keywords=UI%20UX%20Designer' }
-    ],
-    Mobile: [
-      { company: 'Coinbase', title: 'React Native Mobile Developer', type: 'Mobile', color: '#F472B6', link: 'https://www.linkedin.com/jobs/search/?keywords=Mobile%20Developer' },
-      { company: 'Uber', title: 'Flutter Mobile Engineer', type: 'Mobile', color: '#F472B6', link: 'https://www.linkedin.com/jobs/search/?keywords=Mobile%20Developer' },
-      { company: 'Spotify', title: 'iOS/Android Swift Specialist', type: 'Mobile', color: '#F472B6', link: 'https://www.linkedin.com/jobs/search/?keywords=Mobile%20Developer' }
-    ]
-  };
+  const [activeSearchRole, setActiveSearchRole] = useState(selectedRoles[0] || 'React Developer');
+  const [activeSearchLoc, setActiveSearchLoc] = useState(preferredLocs[0] || 'Remote');
+  const [activeSearchMode, setActiveSearchMode] = useState(workModes[0] || 'Remote');
+  const [customSearchRole, setCustomSearchRole] = useState('');
+  const [customSearchLoc, setCustomSearchLoc] = useState('');
 
-  const getDynamicPool = () => {
-    let pool = [];
-    selectedRoles.forEach(r => {
-      if (ROLE_JOBS[r]) pool.push(...ROLE_JOBS[r]);
+  const generateSimulatedJobs = () => {
+    const companies = ['Google', 'Meta', 'Stripe', 'Netflix', 'Airbnb', 'Automattic', 'WP Engine', 'Supabase', 'Vercel', 'Figma', 'Spotify', 'Uber'];
+    const colors = ['#A78BFA', '#34D399', '#4D9FFF', '#FB923C', '#F472B6'];
+    
+    return selectedRoles.map((role, idx) => {
+      const company = companies[Math.floor((idx * 7 + 3) % companies.length)];
+      const color = colors[idx % colors.length];
+      const location = preferredLocs[Math.floor((idx * 3 + 1) % preferredLocs.length)];
+      const mode = workModes[Math.floor((idx * 2 + 5) % workModes.length)];
+      const cleanRole = role.replace(/Developer/i, '').replace(/Engineer/i, '').trim();
+
+      const searchLoc = location === 'Remote' ? '' : location;
+      const searchMode = mode === 'Remote' ? 'Remote' : mode === 'Hybrid' ? 'Hybrid' : '';
+
+      return {
+        id: idx + 1,
+        company,
+        title: `${role} (${mode})`,
+        type: cleanRole,
+        ago: `${(idx + 1) * 7} mins ago`,
+        color,
+        link: `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(role + ' ' + mode)}&location=${encodeURIComponent(searchLoc || 'Remote')}`
+      };
     });
-    if (pool.length === 0) pool = [...ROLE_JOBS.React, ...ROLE_JOBS.WordPress];
-    return pool;
   };
 
   useEffect(() => {
-    const pool = getDynamicPool();
-    const shuffled = [...pool].sort(() => 0.5 - Math.random());
-    setJobs(shuffled.slice(0, 3).map((job, idx) => ({
-      id: idx + 1,
-      ...job,
-      ago: `${(idx + 1) * 5} mins ago`
-    })));
+    setJobs(generateSimulatedJobs().slice(0, 3));
+    if (selectedRoles.length > 0) setActiveSearchRole(selectedRoles[0]);
+    if (preferredLocs.length > 0) setActiveSearchLoc(preferredLocs[0]);
+    if (workModes.length > 0) setActiveSearchMode(workModes[0]);
   }, [profileInfo]);
 
   useEffect(() => {
-    // Request notification permission on mount
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
 
     const interval = setInterval(() => {
-      const pool = getDynamicPool();
+      const pool = generateSimulatedJobs();
+      if (pool.length === 0) return;
       const randomJob = pool[Math.floor(Math.random() * pool.length)];
       const newJob = {
-        id: Date.now(),
         ...randomJob,
+        id: Date.now(),
         ago: 'Just now'
       };
 
-      // Add to state
-      setJobs(prev => [newJob, ...prev.slice(0, 4)]);
-
-      // Trigger in-app toast notification
+      setJobs(prev => [newJob, ...prev.slice(0, 3)]);
       setJobToast(newJob);
       setTimeout(() => setJobToast(null), 5000);
 
-      // Trigger Push Notification
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         try {
           new Notification(`💼 Job Match: ${newJob.title}`, {
-            body: `New opening at ${newJob.company} matches your target roles!`,
+            body: `New opening at ${newJob.company} matches your target roles and modes!`,
             icon: 'https://cdn-icons-png.flaticon.com/512/3256/3256093.png'
           });
         } catch(err) { console.error("Web Push failed", err); }
       }
-    }, 25000); // scan every 25s
+    }, 25000);
 
     return () => clearInterval(interval);
   }, [profileInfo]);
@@ -686,14 +676,14 @@ Return the output strictly in the following JSON format:
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Calendar size={18} color="var(--blue)" />
             <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>
-              💼 Live Job Matches ({selectedRoles.join(' & ')} Focus)
+              💼 Live Job Matches ({preferredLocs.join(', ')})
             </div>
           </div>
           <span className="live-badge" style={{ fontSize: '8px', padding: '3px 8px', background: 'rgba(52, 211, 153, 0.1)', color: '#34D399', borderRadius: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', border: '1px solid rgba(52, 211, 153, 0.2)' }}>Live Scanner</span>
         </div>
 
         <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '16px' }}>
-          Auto-scanning major job portals for active posts matching your custom target roles. Enable browser permissions to get push notifications!
+          Auto-scanning major job portals for active posts matching your custom target roles, preferred cities, and work modes. Enable browser permissions to get push notifications!
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
@@ -717,15 +707,142 @@ Return the output strictly in the following JSON format:
           ))}
         </div>
 
-        {/* Quick Job Search Links */}
-        <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text2)', marginBottom: '10px' }}>Direct Search Links:</div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {selectedRoles.map(role => (
-            <a key={role} href={`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(role + ' Developer')}`} target="_blank" rel="noopener noreferrer"
-              style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border2)', borderRadius: '10px', color: 'var(--text)', fontSize: '11px', textDecoration: 'none', fontWeight: 600 }}>
-              🔗 LinkedIn {role} Search
-            </a>
-          ))}
+        {/* 🔍 Dynamic Multi-Platform Search Console */}
+        <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)', marginTop: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <Sparkles size={16} color="var(--accent)" />
+            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>🔎 Dynamic Multi-Platform Search Console</div>
+          </div>
+          
+          {/* Target Role Pills */}
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '6px' }}>Select Target Role:</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {selectedRoles.map(role => (
+                <div key={role} onClick={() => {
+                  setActiveSearchRole(role);
+                  setCustomSearchRole('');
+                }}
+                  style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '11px', cursor: 'pointer', background: (activeSearchRole === role && !customSearchRole) ? 'var(--accent)' : 'var(--bg3)', color: (activeSearchRole === role && !customSearchRole) ? '#000' : 'var(--text2)', border: `1px solid ${(activeSearchRole === role && !customSearchRole) ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
+                  {role}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Preferred Location Pills */}
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '6px' }}>Select Preferred City:</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {preferredLocs.map(loc => (
+                <div key={loc} onClick={() => {
+                  setActiveSearchLoc(loc);
+                  setCustomSearchLoc('');
+                }}
+                  style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '11px', cursor: 'pointer', background: (activeSearchLoc === loc && !customSearchLoc) ? '#4D9FFF' : 'var(--bg3)', color: (activeSearchLoc === loc && !customSearchLoc) ? '#000' : 'var(--text2)', border: `1px solid ${(activeSearchLoc === loc && !customSearchLoc) ? '#4D9FFF' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
+                  📍 {loc}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Work Mode Selector */}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '6px' }}>Select Work Mode:</div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {workModes.map(mode => (
+                <div key={mode} onClick={() => setActiveSearchMode(mode)}
+                  style={{ flex: 1, padding: '8px', borderRadius: '8px', fontSize: '11px', textAlign: 'center', cursor: 'pointer', background: activeSearchMode === mode ? 'var(--accent)' : 'var(--bg3)', color: activeSearchMode === mode ? '#000' : 'var(--text2)', border: `1px solid ${activeSearchMode === mode ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
+                  {mode === 'Remote' ? '🏠 Remote' : mode === 'Hybrid' ? '🤝 Hybrid' : '🏢 On-site'}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom Search (Ad-hoc override) */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', position: 'relative' }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Custom Job Name:</div>
+              <input type="text" placeholder="e.g. Python Dev" value={customSearchRole} onChange={e => setCustomSearchRole(e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px', boxSizing: 'border-box' }} />
+              {customSearchRole.trim() && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '8px', marginTop: '4px', zIndex: 10, maxHeight: '120px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                  {[
+                    'React Developer', 'WordPress Developer', 'Frontend Developer', 'Fullstack Developer', 
+                    'Node.js Developer', 'Django Developer', 'Python Developer', 'Java Developer', 
+                    'UI/UX Designer', 'Mobile App Developer', 'DevOps Engineer', 'WordPress Plugin Engineer'
+                  ]
+                    .filter(item => item.toLowerCase().includes(customSearchRole.toLowerCase()) && item.toLowerCase() !== customSearchRole.toLowerCase())
+                    .map(item => (
+                      <div key={item} onClick={() => setCustomSearchRole(item)}
+                        style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text2)', cursor: 'pointer', borderBottom: '1px solid var(--border2)', transition: 'background 0.2s' }}
+                        onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                        onMouseLeave={e => e.target.style.background = 'transparent'}>
+                        🔍 {item}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ flex: 1, position: 'relative' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Custom City:</div>
+              <input type="text" placeholder="e.g. Delhi, London" value={customSearchLoc} onChange={e => setCustomSearchLoc(e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px', boxSizing: 'border-box' }} />
+              {customSearchLoc.trim() && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '8px', marginTop: '4px', zIndex: 10, maxHeight: '120px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                  {[
+                    'Bangalore', 'Chennai', 'Hyderabad', 'Mumbai', 'Pune', 'Delhi', 'Noida', 
+                    'Gurgaon', 'Kolkata', 'San Francisco', 'New York', 'London', 'Remote'
+                  ]
+                    .filter(item => item.toLowerCase().includes(customSearchLoc.toLowerCase()) && item.toLowerCase() !== customSearchLoc.toLowerCase())
+                    .map(item => (
+                      <div key={item} onClick={() => setCustomSearchLoc(item)}
+                        style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text2)', cursor: 'pointer', borderBottom: '1px solid var(--border2)', transition: 'background 0.2s' }}
+                        onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                        onMouseLeave={e => e.target.style.background = 'transparent'}>
+                        📍 {item}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Active Job Query Summary */}
+          {(() => {
+            const finalRole = customSearchRole.trim() || activeSearchRole;
+            const finalLoc = customSearchLoc.trim() || activeSearchLoc;
+            const queryKeywords = `${finalRole} ${activeSearchMode}`;
+            const queryLocation = finalLoc === 'Remote' ? '' : finalLoc;
+
+            return (
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--accent)', marginBottom: '10px', background: 'rgba(200, 241, 53, 0.05)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(200, 241, 53, 0.1)' }}>
+                  🚀 Launching: <span style={{ color: '#fff' }}>"{finalRole}"</span> in <span style={{ color: '#fff' }}>"{finalLoc}"</span> ({activeSearchMode})
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <a href={`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(queryKeywords)}&location=${encodeURIComponent(queryLocation || 'Remote')}`} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', background: 'rgba(10, 102, 194, 0.1)', border: '1px solid rgba(10, 102, 194, 0.3)', borderRadius: '10px', color: '#0A66C2', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold', transition: 'all 0.2s' }}>
+                    🔵 LinkedIn
+                  </a>
+                  <a href={`https://www.indeed.com/jobs?q=${encodeURIComponent(queryKeywords)}&l=${encodeURIComponent(queryLocation || 'Remote')}`} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', background: 'rgba(37, 87, 224, 0.1)', border: '1px solid rgba(37, 87, 224, 0.3)', borderRadius: '10px', color: '#2557E0', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold', transition: 'all 0.2s' }}>
+                    🔵 Indeed
+                  </a>
+                  <a href={`https://www.upwork.com/nx/search/jobs/?q=${encodeURIComponent(finalRole + ' ' + finalLoc + ' ' + activeSearchMode)}`} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', background: 'rgba(20, 168, 0, 0.1)', border: '1px solid rgba(20, 168, 0, 0.3)', borderRadius: '10px', color: '#14A800', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold', transition: 'all 0.2s' }}>
+                    🔵 Upwork
+                  </a>
+                  <a href={`https://www.ziprecruiter.com/jobs-search?search=${encodeURIComponent(queryKeywords)}&location=${encodeURIComponent(queryLocation || 'Remote')}`} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', background: 'rgba(0, 178, 169, 0.1)', border: '1px solid rgba(0, 178, 169, 0.3)', borderRadius: '10px', color: '#00B2A9', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold', transition: 'all 0.2s' }}>
+                    🔵 ZipRecruiter
+                  </a>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 

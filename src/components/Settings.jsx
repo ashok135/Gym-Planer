@@ -20,17 +20,23 @@ function Accordion({ title, subtitle, children, defaultOpen = false }) {
   );
 }
 
-export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, BUDGET, STUDY, syncAiSettings, profileInfo = { name: '', resume: '', targetRoles: ['React', 'WordPress'] }, syncProfileInfo }) {
+export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, BUDGET, STUDY, syncAiSettings, profileInfo = { name: '', resume: '', targetRoles: ['React Developer', 'WordPress Developer', 'Frontend Developer'], preferredLocations: ['Bangalore', 'Chennai', 'Remote'], workTypes: ['Remote', 'Hybrid'] }, syncProfileInfo }) {
   const [localNames, setLocalNames] = useState(NAMES);
   const [profileName, setProfileName] = useState(profileInfo?.name || '');
   const [profileResume, setProfileResume] = useState(profileInfo?.resume || '');
-  const [targetRoles, setTargetRoles] = useState(profileInfo?.targetRoles || ['React', 'WordPress']);
+  const [targetRoles, setTargetRoles] = useState(profileInfo?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer']);
+  const [newRoleInput, setNewRoleInput] = useState('');
+  const [preferredLocations, setPreferredLocations] = useState(profileInfo?.preferredLocations || ['Bangalore', 'Chennai', 'Remote']);
+  const [newLocationInput, setNewLocationInput] = useState('');
+  const [workTypes, setWorkTypes] = useState(profileInfo?.workTypes || ['Remote', 'Hybrid']);
   const [profileMsg, setProfileMsg] = useState(false);
 
   useEffect(() => {
     setProfileName(profileInfo?.name || '');
     setProfileResume(profileInfo?.resume || '');
-    setTargetRoles(profileInfo?.targetRoles || ['React', 'WordPress']);
+    setTargetRoles(profileInfo?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer']);
+    setPreferredLocations(profileInfo?.preferredLocations || ['Bangalore', 'Chennai', 'Remote']);
+    setWorkTypes(profileInfo?.workTypes || ['Remote', 'Hybrid']);
   }, [profileInfo]);
   const [saveMsg, setSaveMsg] = useState(false);
   
@@ -415,32 +421,93 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
             style={{ width: '100%', height: '120px', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical', outline: 'none' }} />
         </div>
 
+        {/* Preferred Locations Input & Tags */}
         <div style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Target Job Roles</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Preferred Job Locations (Cities / Remote)</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+            {preferredLocations.map(loc => (
+              <div key={loc}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', background: 'rgba(77, 159, 255, 0.1)', color: '#4D9FFF', border: '1px solid rgba(77, 159, 255, 0.3)', fontWeight: 700 }}>
+                <span>📍 {loc}</span>
+                <span onClick={() => {
+                  if (preferredLocations.length > 1) {
+                    setPreferredLocations(preferredLocations.filter(l => l !== loc));
+                  }
+                }} style={{ cursor: 'pointer', color: 'var(--red)', fontSize: '14px', marginLeft: '4px', fontWeight: 'bold' }}>×</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input type="text" placeholder="Add location (e.g. Hyderabad, Chennai)" value={newLocationInput} onChange={e => setNewLocationInput(e.target.value)}
+              style={{ flex: 1, padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px' }} />
+            <button onClick={() => {
+              if (newLocationInput.trim() && !preferredLocations.includes(newLocationInput.trim())) {
+                setPreferredLocations([...preferredLocations, newLocationInput.trim()]);
+                setNewLocationInput('');
+              }
+            }}
+              style={{ padding: '8px 14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>
+              + Add
+            </button>
+          </div>
+        </div>
+
+        {/* Work Type Checkbox Selector */}
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Preferred Work Modes</div>
+          <div style={{ display: 'flex', gap: '8px' }}>
             {[
-              { id: 'React', label: '⚛️ React Developer' },
-              { id: 'WordPress', label: '📝 WordPress Developer' },
-              { id: 'Fullstack', label: '💻 Fullstack Developer' },
-              { id: 'UI/UX', label: '🎨 UI/UX Designer' },
-              { id: 'Mobile', label: '📱 Mobile Developer' }
-            ].map(role => {
-              const isSelected = targetRoles.includes(role.id);
+              { id: 'Remote', label: '🏠 Remote' },
+              { id: 'Hybrid', label: '🤝 Hybrid' },
+              { id: 'On-site', label: '🏢 On-site (Office)' }
+            ].map(mode => {
+              const isSelected = workTypes.includes(mode.id);
               return (
-                <div key={role.id} onClick={() => {
+                <div key={mode.id} onClick={() => {
                   if (isSelected) {
-                    if (targetRoles.length > 1) {
-                      setTargetRoles(targetRoles.filter(r => r !== role.id));
+                    if (workTypes.length > 1) {
+                      setWorkTypes(workTypes.filter(t => t !== mode.id));
                     }
                   } else {
-                    setTargetRoles([...targetRoles, role.id]);
+                    setWorkTypes([...workTypes, mode.id]);
                   }
                 }}
-                  style={{ padding: '8px 14px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer', background: isSelected ? 'var(--accent)' : 'var(--bg3)', color: isSelected ? '#000' : 'var(--text2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
-                  {role.label}
+                  style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '12px', textAlign: 'center', cursor: 'pointer', background: isSelected ? 'var(--accent)' : 'var(--bg3)', color: isSelected ? '#000' : 'var(--text2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
+                  {mode.label}
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* Custom Target Roles Tag Box */}
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Target Job Roles</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+            {targetRoles.map(role => (
+              <div key={role}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', background: 'rgba(200, 241, 53, 0.1)', color: 'var(--accent)', border: '1px solid rgba(200, 241, 53, 0.3)', fontWeight: 700 }}>
+                <span>⚛️ {role}</span>
+                <span onClick={() => {
+                  if (targetRoles.length > 1) {
+                    setTargetRoles(targetRoles.filter(r => r !== role));
+                  }
+                }} style={{ cursor: 'pointer', color: 'var(--red)', fontSize: '14px', marginLeft: '4px', fontWeight: 'bold' }}>×</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input type="text" placeholder="Add custom role (e.g. Node Developer)" value={newRoleInput} onChange={e => setNewRoleInput(e.target.value)}
+              style={{ flex: 1, padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px' }} />
+            <button onClick={() => {
+              if (newRoleInput.trim() && !targetRoles.includes(newRoleInput.trim())) {
+                setTargetRoles([...targetRoles, newRoleInput.trim()]);
+                setNewRoleInput('');
+              }
+            }}
+              style={{ padding: '8px 14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>
+              + Add
+            </button>
           </div>
         </div>
 
@@ -450,7 +517,9 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
               await syncProfileInfo({ 
                 name: profileName.trim(), 
                 resume: profileResume.trim(),
-                targetRoles
+                targetRoles,
+                preferredLocations,
+                workTypes
               });
               setProfileMsg(true);
               setTimeout(() => setProfileMsg(false), 2000);

@@ -50,10 +50,18 @@ export default function App() {
       return {
         name: saved?.name || '',
         resume: saved?.resume || '',
-        targetRoles: saved?.targetRoles || ['React', 'WordPress']
+        targetRoles: saved?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'],
+        preferredLocations: saved?.preferredLocations || ['Bangalore', 'Chennai', 'Remote'],
+        workTypes: saved?.workTypes || ['Remote', 'Hybrid']
       };
     } catch(e) {
-      return { name: '', resume: '', targetRoles: ['React', 'WordPress'] };
+      return { 
+        name: '', 
+        resume: '', 
+        targetRoles: ['React Developer', 'WordPress Developer', 'Frontend Developer'], 
+        preferredLocations: ['Bangalore', 'Chennai', 'Remote'], 
+        workTypes: ['Remote', 'Hybrid'] 
+      };
     }
   });
 
@@ -101,7 +109,9 @@ export default function App() {
               const info = {
                 name: data.profileInfo.name || '',
                 resume: data.profileInfo.resume || '',
-                targetRoles: data.profileInfo.targetRoles || ['React', 'WordPress']
+                targetRoles: data.profileInfo.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'],
+                preferredLocations: data.profileInfo.preferredLocations || ['Bangalore', 'Chennai', 'Remote'],
+                workTypes: data.profileInfo.workTypes || ['Remote', 'Hybrid']
               };
               setProfileInfo(info);
               localStorage.setItem('gprofileInfo', JSON.stringify(info));
@@ -123,7 +133,9 @@ export default function App() {
             setProfileInfo({
               name: saved?.name || '',
               resume: saved?.resume || '',
-              targetRoles: saved?.targetRoles || ['React', 'WordPress']
+              targetRoles: saved?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'],
+              preferredLocations: saved?.preferredLocations || ['Bangalore', 'Chennai', 'Remote'],
+              workTypes: saved?.workTypes || ['Remote', 'Hybrid']
             });
           } catch(e) {}
         }
