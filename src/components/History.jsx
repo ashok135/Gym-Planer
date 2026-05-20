@@ -46,7 +46,8 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
     const plan = DEFAULT_PLAN[currentPlanId] || DEFAULT_PLAN[0];
     const entry = DB[dk] || {};
     const hasAbs = Object.keys(entry).some(k => k.startsWith('Abs_'));
-    const planLabel = plan.label + (hasAbs ? ' & Abs' : '');
+    const hasProgressive = Object.keys(entry).some(k => k.startsWith('Progressive_'));
+    const planLabel = plan.label + (hasAbs ? ' & Abs' : '') + (hasProgressive ? ' & Progressive' : '');
     
     const vol = getDayVol(entry);
     const isToday = dk === dateKey(now);
@@ -90,6 +91,10 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
     if (hasAbs) {
       plan.muscles.push({ name: 'Abs', exercises: ['Crunch', 'Plank', 'Leg Raises'] });
     }
+    const hasProgressive = Object.keys(entry).some(k => k.startsWith('Progressive_'));
+    if (hasProgressive) {
+      plan.muscles.push({ name: 'Progressive', exercises: ['Back Squat (Heavy)', 'Deadlift (Heavy)', 'Overhead Press (Heavy)', 'Weighted Pull-ups', 'Barbell Row (Heavy)'] });
+    }
     
     const savedF = FOOD[modalDk] || { items: {} };
     let dayP = 0;
@@ -111,7 +116,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
           <button className="modal-close" onClick={() => setModalDk(null)}>×</button>
           
           <div className="modal-title">{DAYS_FULL[dow]}, {formatFull(d)}</div>
-          <div className="modal-sub">{plan.label}{hasAbs ? ' & Abs' : ''} · {vol ? vol.toLocaleString()+' kg total' : 'No volume logged'}</div>
+          <div className="modal-sub">{plan.label}{hasAbs ? ' & Abs' : ''}{hasProgressive ? ' & Progressive' : ''} · {vol ? vol.toLocaleString()+' kg total' : 'No volume logged'}</div>
           
           {(meta.notes || meta.bw || meta.start) && (
             <div style={{background:'var(--bg3)',padding:'12px',borderRadius:'8px',marginBottom:'16px',fontSize:'12px',color:'var(--text2)'}}>

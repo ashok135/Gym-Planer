@@ -90,6 +90,15 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
           }
         });
       }
+      if (m.progressiveEnabled || Object.keys(entry).some(key => key.startsWith('Progressive_'))) {
+        ['Back Squat (Heavy)', 'Deadlift (Heavy)', 'Overhead Press (Heavy)', 'Weighted Pull-ups', 'Barbell Row (Heavy)'].forEach((ex, idx) => {
+          todayTotalExercises++;
+          const ek = `Progressive_${idx}`;
+          if(entry[ek] && (entry[ek].done || (entry[ek].s && entry[ek].r && entry[ek].w))) {
+            todayDoneExercises++;
+          }
+        });
+      }
     }
 
     if(vol > 0 || m.status === 'Completed' || m.status === 'Partial') {

@@ -21,6 +21,10 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
     name: 'Abs',
     exercises: ['Crunches', 'Leg Raises', 'Plank']
   });
+  plan.muscles.push({
+    name: 'Progressive',
+    exercises: ['Back Squat (Heavy)', 'Deadlift (Heavy)', 'Overhead Press (Heavy)', 'Weighted Pull-ups', 'Barbell Row (Heavy)']
+  });
 
   plan.muscles.forEach(m => {
     m.exercises = m.exercises.map((ex, i) => {
@@ -36,10 +40,18 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
   const [showAbs, setShowAbs] = useState(() => {
     return meta.absEnabled || Object.keys(saved).some(k => k.startsWith('Abs_'));
   });
+  const [showProgressive, setShowProgressive] = useState(() => {
+    return meta.progressiveEnabled || Object.keys(saved).some(k => k.startsWith('Progressive_'));
+  });
 
   const addAbs = () => {
     setShowAbs(true);
     handleMetaChange('absEnabled', true);
+  };
+
+  const addProgressive = () => {
+    setShowProgressive(true);
+    handleMetaChange('progressiveEnabled', true);
   };
 
   const removeAbs = () => {
@@ -49,6 +61,18 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
     if (newDB[key]) {
       Object.keys(newDB[key]).forEach(k => {
         if (k.startsWith('Abs_')) delete newDB[key][k];
+      });
+    }
+    syncData(newDB, NAMES, META, FOOD, SCHEDULE);
+  };
+
+  const removeProgressive = () => {
+    setShowProgressive(false);
+    handleMetaChange('progressiveEnabled', false);
+    const newDB = { ...DB };
+    if (newDB[key]) {
+      Object.keys(newDB[key]).forEach(k => {
+        if (k.startsWith('Progressive_')) delete newDB[key][k];
       });
     }
     syncData(newDB, NAMES, META, FOOD, SCHEDULE);
@@ -125,7 +149,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
     <div id="today-content" style={{padding:'20px 0'}}>
       <div className="workout-hero">
         <div className="workout-type">{DAYS_FULL[dow]}</div>
-        <div className="workout-name">{plan.label}{showAbs ? ' & Abs' : ''}</div>
+        <div className="workout-name">{plan.label}{showAbs ? ' & Abs' : ''}{showProgressive ? ' & Progressive' : ''}</div>
         <div className="workout-meta">
           <span><strong>{plan.muscles.reduce((s,m)=>s+m.exercises.length,0)}</strong> exercises</span>
           <span><strong>{plan.muscles.length}</strong> muscle groups</span>
@@ -183,12 +207,20 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
           );
         }
 
+        if(m.name === 'Progressive' && !showProgressive) {
+          return (
+            <div className="muscle-block" key={m.name} onClick={() => !isSkipped && addProgressive()} style={{cursor: isSkipped ? 'not-allowed' : 'pointer', opacity: isSkipped ? 0.4 : 0.8, textAlign: 'center', padding: '16px', background: 'var(--bg3)', borderRadius: 'var(--radius)', border: '1px dashed var(--border2)', marginTop: '8px'}}>
+              <div style={{fontSize: '12px', fontWeight: 600, color: 'var(--text2)', letterSpacing: '0.1em'}}>+ ADD PROGRESSIVE WORKOUT</div>
+            </div>
+          );
+        }
+
         return (
         <div className="muscle-block" key={m.name} style={{ opacity: isSkipped ? 0.5 : 1 }}>
           <div className="muscle-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
             <div style={{display:'flex', alignItems:'center'}}><div className="muscle-dot"></div><div className="muscle-name">{m.name}</div></div>
-            {m.name === 'Abs' && (
-              <button onClick={() => !isSkipped && removeAbs()} disabled={isSkipped} style={{background:'transparent', border:'none', color:'var(--red)', fontSize:'12px', fontWeight:'bold', cursor: isSkipped ? 'not-allowed' : 'pointer', padding:'4px 8px'}}>REMOVE</button>
+            {(m.name === 'Abs' || m.name === 'Progressive') && (
+              <button onClick={() => !isSkipped && (m.name === 'Abs' ? removeAbs() : removeProgressive())} disabled={isSkipped} style={{background:'transparent', border:'none', color:'var(--red)', fontSize:'12px', fontWeight:'bold', cursor: isSkipped ? 'not-allowed' : 'pointer', padding:'4px 8px'}}>REMOVE</button>
             )}
           </div>
           {m.exercises.map((ex, i) => {

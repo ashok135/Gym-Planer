@@ -23,8 +23,9 @@ export const DEFAULT_PLAN = {
     {name:'Back',exercises:['Deadlift','Lat Pulldown','Bent Over Barbell Row','Seated Cable Row','Single Arm Dumbbell Row']},
     {name:'Biceps',exercises:['Barbell Curl','Incline Dumbbell Curl','Hammer Curl','Concentration Curl','Cable Curl']}
   ]},
-  6:{label:'Progressive Overload',muscles:[
-    {name:'Progressive',exercises:['Back Squat (Heavy)','Deadlift (Heavy)','Overhead Press (Heavy)','Weighted Pull-ups','Barbell Row (Heavy)']}
+  6:{label:'Legs & Shoulders',muscles:[
+    {name:'Legs',exercises:['Barbell Squat','Romanian Deadlift','Leg Press','Leg Curl','Calf Raises']},
+    {name:'Shoulders',exercises:['Overhead Press','Dumbbell Lateral Raise','Front Raise','Face Pulls','Arnold Press']}
   ]},
   0:{label:'Rest Day',muscles:[]}
 };

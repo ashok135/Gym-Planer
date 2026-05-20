@@ -98,7 +98,6 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
     { id: 1, label: 'Chest & Triceps' },
     { id: 2, label: 'Back & Biceps' },
     { id: 3, label: 'Legs & Shoulders' },
-    { id: 6, label: 'Progressive Overload' },
   ];
 
   const saveSchedule = (type) => {
