@@ -45,7 +45,7 @@ export default function Study({ STUDY = {}, syncStudy, STUDY_SETTINGS, isReport,
     try {
       const provider = localStorage.getItem('ai_provider') || 'gemini';
       const apiKey = provider === 'gemini' ? localStorage.getItem('gemini_api_key') : localStorage.getItem('openrouter_api_key');
-      const model = provider === 'gemini' ? (localStorage.getItem('ai_model') || 'gemini-1.5-flash') : (localStorage.getItem('openrouter_model') || 'openrouter/free');
+      const model = provider === 'gemini' ? (localStorage.getItem('ai_model') || 'gemini-2.5-flash') : (localStorage.getItem('openrouter_model') || 'openrouter/free');
 
       if (!apiKey) throw new Error('No API Key');
 
@@ -103,7 +103,7 @@ Be direct and ask only the question. Avoid greetings or conversational filler. A
     try {
       const provider = localStorage.getItem('ai_provider') || 'gemini';
       const apiKey = provider === 'gemini' ? localStorage.getItem('gemini_api_key') : localStorage.getItem('openrouter_api_key');
-      const model = provider === 'gemini' ? (localStorage.getItem('ai_model') || 'gemini-1.5-flash') : (localStorage.getItem('openrouter_model') || 'openrouter/free');
+      const model = provider === 'gemini' ? (localStorage.getItem('ai_model') || 'gemini-2.5-flash') : (localStorage.getItem('openrouter_model') || 'openrouter/free');
 
       if (!apiKey) throw new Error('No API Key');
 
@@ -166,7 +166,7 @@ Provide a detailed evaluation in this strict JSON format:
     try {
       const provider = localStorage.getItem('ai_provider') || 'gemini';
       const apiKey = provider === 'gemini' ? localStorage.getItem('gemini_api_key') : localStorage.getItem('openrouter_api_key');
-      const model = provider === 'gemini' ? (localStorage.getItem('ai_model') || 'gemini-1.5-flash') : (localStorage.getItem('openrouter_model') || 'openrouter/free');
+      const model = provider === 'gemini' ? (localStorage.getItem('ai_model') || 'gemini-2.5-flash') : (localStorage.getItem('openrouter_model') || 'openrouter/free');
       
       if (!apiKey) throw new Error('No API Key');
 
@@ -239,7 +239,7 @@ Return the output strictly in the following JSON format:
     try {
       const provider = localStorage.getItem('ai_provider') || 'gemini';
       const apiKey = provider === 'gemini' ? localStorage.getItem('gemini_api_key') : localStorage.getItem('openrouter_api_key');
-      const model = provider === 'gemini' ? (localStorage.getItem('ai_model') || 'gemini-1.5-flash') : (localStorage.getItem('openrouter_model') || 'openrouter/free');
+      const model = provider === 'gemini' ? (localStorage.getItem('ai_model') || 'gemini-2.5-flash') : (localStorage.getItem('openrouter_model') || 'openrouter/free');
 
       if (!apiKey) throw new Error('No API Key');
 
