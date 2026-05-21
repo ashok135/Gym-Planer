@@ -259,7 +259,8 @@ select.meta-input { appearance: none; }
 
 .splash-title span {
   display: inline-block;
-  animation: letterWave 1.8s ease-in-out infinite;
+  animation: letterWave 1.6s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  will-change: transform;
 }
 
 .splash-tagline {
@@ -269,17 +270,30 @@ select.meta-input { appearance: none; }
   letter-spacing: 3px;
   color: var(--text3);
   text-transform: uppercase;
-  animation: shimmerTag 3s ease-in-out infinite;
+  animation: shimmerTag 2.5s ease-in-out infinite;
+  will-change: opacity;
 }
 
 @keyframes letterWave {
-  0%, 100% { transform: translateY(0); color: #ffffff; }
-  50% { transform: translateY(-6px); color: var(--accent); text-shadow: 0 0 12px rgba(200, 241, 53, 0.4); }
+  0%, 100% { 
+    transform: translate3d(0, 0, 0); 
+    color: #ffffff; 
+  }
+  50% { 
+    transform: translate3d(0, -6px, 0); 
+    color: var(--accent); 
+  }
 }
 
 @keyframes shimmerTag {
-  0%, 100% { opacity: 0.4; color: var(--text3); }
-  50% { opacity: 0.9; color: var(--accent); text-shadow: 0 0 8px rgba(200, 241, 53, 0.2); }
+  0%, 100% { 
+    opacity: 0.45; 
+    color: var(--text3); 
+  }
+  50% { 
+    opacity: 0.95; 
+    color: var(--accent); 
+  }
 }
 
 
