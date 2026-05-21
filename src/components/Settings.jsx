@@ -51,6 +51,32 @@ export default function Settings({
   const [selectedSplitToEdit, setSelectedSplitToEdit] = useState(1);
   const [newMuscleGroupName, setNewMuscleGroupName] = useState('');
 
+  useEffect(() => {
+    if (NAMES) setLocalNames(NAMES);
+  }, [NAMES]);
+
+  useEffect(() => {
+    if (SCHEDULE?.fullTime) {
+      setLocalSchedule({ ...SCHEDULE.fullTime });
+    }
+  }, [SCHEDULE]);
+
+  useEffect(() => {
+    if (BUDGET_SETTINGS) {
+      setLocalIncome(BUDGET_SETTINGS.income || 22400);
+      if (BUDGET_SETTINGS.categories?.length) {
+        setLocalCategories(BUDGET_SETTINGS.categories);
+      }
+    }
+  }, [BUDGET_SETTINGS]);
+
+  useEffect(() => {
+    if (STUDY_SETTINGS) {
+      setLocalDailyTarget(STUDY_SETTINGS.dailyTarget || 4);
+      setLocalSubjects(STUDY_SETTINGS.subjects || []);
+    }
+  }, [STUDY_SETTINGS]);
+
   const plansArray = useMemo(() => {
     if (!workoutPlans) return [];
     if (Array.isArray(workoutPlans)) return workoutPlans;
@@ -249,101 +275,135 @@ export default function Settings({
   };
 
   const exportCSV = () => {
-    const allKeys = Array.from(new Set([...Object.keys(DB), ...Object.keys(META), ...Object.keys(FOOD)])).sort();
-    let csv = 'Date,Day_Name,Day,Month,Year,Category,Item_Name,Sets,Reps,Weight_kg,Protein_g,Notes_or_Status\n';
-    
-    const escapeCSV = (str) => {
-      if(str === null || str === undefined) return '';
-      const s = String(str);
-      if(s.includes(',') || s.includes('"') || s.includes('\n')) {
-        return `"${s.replace(/"/g, '""')}"`;
-      }
-      return s;
-    };
-
-    allKeys.forEach(k => {
-      const kd = new Date(k);
-      const dow = kd.getDay();
-      const dayName = DAYS_FULL[dow];
-      const dayNum = kd.getDate();
-      const monthName = MONTHS[kd.getMonth()];
-      const year = kd.getFullYear();
-      const dateCols = `${k},${dayName},${dayNum},${monthName},${year}`;
+    try {
+      const allKeys = Array.from(new Set([
+        ...Object.keys(DB || {}), 
+        ...Object.keys(META || {}), 
+        ...Object.keys(FOOD || {})
+      ])).sort();
+      let csv = 'Date,Day_Name,Day,Month,Year,Category,Item_Name,Sets,Reps,Weight_kg,Protein_g,Notes_or_Status\n';
       
-      const m = META[k];
-      if(m) {
-        if(m.status) csv += `${dateCols},Meta,Daily Status,,,,,"${m.status}"\n`;
-        if(m.bw) csv += `${dateCols},Meta,Bodyweight,,,,,"${m.bw} kg"\n`;
-        if(m.energy) csv += `${dateCols},Meta,Energy,,,,,"${m.energy} stars"\n`;
-        if(m.notes) csv += `${dateCols},Meta,Notes,,,,,${escapeCSV(m.notes)}\n`;
-      }
-      
-      const entry = DB[k];
-      if(entry) {
-        Object.keys(entry).filter(ek => !['meta', 'customName'].includes(ek)).forEach(ek => {
-          const v = entry[ek];
-          if(v.s || v.r || v.w) {
-            const customKey = Object.keys(localNames).find(nameKey => nameKey.endsWith('_' + ek));
-            let exName = customKey ? localNames[customKey] : ek;
-            if(entry[ek].customName) exName = entry[ek].customName;
-            csv += `${dateCols},Workout,${escapeCSV(exName)},${v.s||0},${v.r||0},${v.w||0},,\n`;
-          }
-        });
-      }
-      
-      const f = FOOD[k];
-      if(f) {
-        if(f.water) csv += `${dateCols},Habit,Water 3-4L,,,,,Completed\n`;
-        if(f.sleep) csv += `${dateCols},Habit,Sleep 7-8h,,,,,Completed\n`;
-        if(f.junk) csv += `${dateCols},Habit,No Junk,,,,,Completed\n`;
-        
-        if(f.items) {
-          const dietPlan = DEFAULT_DIET_PLAN[dow] || DEFAULT_DIET_PLAN[1];
-          dietPlan.forEach(meal => meal.items.forEach(i => {
-            if(f.items[i.id]) {
-              const customName = (f.custom && f.custom[i.id]) ? f.custom[i.id] : i.name;
-              csv += `${dateCols},Diet,${escapeCSV(customName)},,,,${i.p},\n`;
-            }
-          }));
+      const escapeCSV = (str) => {
+        if(str === null || str === undefined) return '';
+        const s = String(str);
+        if(s.includes(',') || s.includes('"') || s.includes('\n')) {
+          return `"${s.replace(/"/g, '""')}"`;
         }
-      }
-    });
+        return s;
+      };
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'LifeTraker_Full_Export.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+      allKeys.forEach(k => {
+        const kd = new Date(k);
+        if (isNaN(kd.getTime())) return;
+        const dow = kd.getDay();
+        const dayName = DAYS_FULL[dow] || '';
+        const dayNum = kd.getDate();
+        const monthName = MONTHS[kd.getMonth()] || '';
+        const year = kd.getFullYear();
+        const dateCols = `${k},${dayName},${dayNum},${monthName},${year}`;
+        
+        const m = META?.[k];
+        if(m) {
+          if(m.status) csv += `${dateCols},Meta,Daily Status,,,,,"${m.status}"\n`;
+          if(m.bw) csv += `${dateCols},Meta,Bodyweight,,,,,"${m.bw} kg"\n`;
+          if(m.energy) csv += `${dateCols},Meta,Energy,,,,,"${m.energy} stars"\n`;
+          if(m.notes) csv += `${dateCols},Meta,Notes,,,,,${escapeCSV(m.notes)}\n`;
+        }
+        
+        const entry = DB?.[k];
+        if(entry) {
+          Object.keys(entry).filter(ek => !['meta', 'customName'].includes(ek)).forEach(ek => {
+            const v = entry[ek];
+            if(v && (v.s || v.r || v.w)) {
+              const customKey = Object.keys(localNames || {}).find(nameKey => nameKey.endsWith('_' + ek));
+              let exName = customKey ? localNames[customKey] : ek;
+              if(entry[ek].customName) exName = entry[ek].customName;
+              csv += `${dateCols},Workout,${escapeCSV(exName)},${v.s||0},${v.r||0},${v.w||0},,\n`;
+            }
+          });
+        }
+        
+        const f = FOOD?.[k];
+        if(f) {
+          if(f.water) csv += `${dateCols},Habit,Water 3-4L,,,,,Completed\n`;
+          if(f.sleep) csv += `${dateCols},Habit,Sleep 7-8h,,,,,Completed\n`;
+          if(f.junk) csv += `${dateCols},Habit,No Junk,,,,,Completed\n`;
+          
+          if(f.items) {
+            const activePlan = (DIET_PLAN && DIET_PLAN[dow]?.length) ? DIET_PLAN[dow] : (DEFAULT_DIET_PLAN[dow] || DEFAULT_DIET_PLAN[1]);
+            if (activePlan) {
+              activePlan.forEach(meal => {
+                if (meal && meal.items) {
+                  meal.items.forEach(i => {
+                    if(f.items[i.id]) {
+                      const customName = (f.custom && f.custom[i.id]) ? f.custom[i.id] : i.name;
+                      csv += `${dateCols},Diet,${escapeCSV(customName)},,,,${i.p || 0},\n`;
+                    }
+                  });
+                }
+              });
+            }
+          }
+        }
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'LifeTraker_Full_Export.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("CSV Gym/Habits/Diet export failed:", err);
+      alert("Failed to export Gym/Habits/Diet CSV. Check browser console for details.");
+    }
   };
 
   const exportBudgetCSV = () => {
-    let csv = 'Date,Category,Amount,Note\n';
-    Object.entries(BUDGET).forEach(([mk, md]) => {
-      (md.entries || []).forEach(e => {
-        csv += `${e.date},${e.category},${e.amount},"${(e.note||'').replace(/"/g,'""')}"\n`;
+    try {
+      let csv = 'Date,Category,Amount,Note\n';
+      Object.entries(BUDGET || {}).forEach(([mk, md]) => {
+        if (md && md.entries) {
+          md.entries.forEach(e => {
+            if (e) {
+              csv += `${e.date || ''},${e.category || ''},${e.amount || 0},"${(e.note||'').replace(/"/g,'""')}"\n`;
+            }
+          });
+        }
       });
-    });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'LifeTraker_Budget.csv'; a.click();
-    URL.revokeObjectURL(url);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'LifeTraker_Budget.csv'; a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Budget CSV export failed:", err);
+      alert("Failed to export Budget CSV.");
+    }
   };
 
   const exportStudyCSV = () => {
-    let csv = 'Date,Subject,Hours,Learned\n';
-    Object.entries(STUDY).forEach(([dk, sd]) => {
-      (sd.sessions || []).forEach(s => {
-        csv += `${dk},${s.subjectId},${s.hours},"${(s.learned||'').replace(/"/g,'""')}"\n`;
+    try {
+      let csv = 'Date,Subject,Hours,Learned\n';
+      Object.entries(STUDY || {}).forEach(([dk, sd]) => {
+        if (sd && sd.sessions) {
+          sd.sessions.forEach(s => {
+            if (s) {
+              csv += `${dk},${s.subjectId || ''},${s.hours || 0},"${(s.learned||'').replace(/"/g,'""')}"\n`;
+            }
+          });
+        }
       });
-    });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'LifeTraker_Study.csv'; a.click();
-    URL.revokeObjectURL(url);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'LifeTraker_Study.csv'; a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Study CSV export failed:", err);
+      alert("Failed to export Study CSV.");
+    }
   };
 
   return (
