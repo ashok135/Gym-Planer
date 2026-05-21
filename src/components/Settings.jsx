@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DEFAULT_PLAN, DAYS_FULL, DEFAULT_DIET_PLAN, MONTHS, dateKey } from '../data';
 import { Beaker } from 'lucide-react';
 import { generateSeedData } from '../utils/seeder';
@@ -50,8 +50,17 @@ export default function Settings({
   const [selectedSplitToEdit, setSelectedSplitToEdit] = useState(1);
   const [newMuscleGroupName, setNewMuscleGroupName] = useState('');
 
+  const plansArray = useMemo(() => {
+    if (!workoutPlans) return [];
+    if (Array.isArray(workoutPlans)) return workoutPlans;
+    return Object.entries(workoutPlans).map(([id, val]) => ({
+      id: Number(id),
+      ...val
+    }));
+  }, [workoutPlans]);
+
   const deleteMuscleGroup = (splitId, muscleName) => {
-    const updated = workoutPlans.map(p => {
+    const updated = plansArray.map(p => {
       if (p.id === splitId) {
         return {
           ...p,
@@ -60,11 +69,17 @@ export default function Settings({
       }
       return p;
     });
-    syncWorkoutPlans(updated);
+    if (!Array.isArray(workoutPlans)) {
+      const obj = {};
+      updated.forEach(x => { obj[x.id] = x; });
+      syncWorkoutPlans(obj);
+    } else {
+      syncWorkoutPlans(updated);
+    }
   };
 
   const deleteExercise = (splitId, muscleName, exerciseName) => {
-    const updated = workoutPlans.map(p => {
+    const updated = plansArray.map(p => {
       if (p.id === splitId) {
         return {
           ...p,
@@ -81,12 +96,18 @@ export default function Settings({
       }
       return p;
     });
-    syncWorkoutPlans(updated);
+    if (!Array.isArray(workoutPlans)) {
+      const obj = {};
+      updated.forEach(x => { obj[x.id] = x; });
+      syncWorkoutPlans(obj);
+    } else {
+      syncWorkoutPlans(updated);
+    }
   };
 
   const addCustomExercise = (splitId, muscleName, exerciseName) => {
     if (!exerciseName.trim()) return;
-    const updated = workoutPlans.map(p => {
+    const updated = plansArray.map(p => {
       if (p.id === splitId) {
         return {
           ...p,
@@ -103,12 +124,18 @@ export default function Settings({
       }
       return p;
     });
-    syncWorkoutPlans(updated);
+    if (!Array.isArray(workoutPlans)) {
+      const obj = {};
+      updated.forEach(x => { obj[x.id] = x; });
+      syncWorkoutPlans(obj);
+    } else {
+      syncWorkoutPlans(updated);
+    }
   };
 
   const addMuscleGroup = (splitId) => {
     if (!newMuscleGroupName.trim()) return;
-    const updated = workoutPlans.map(p => {
+    const updated = plansArray.map(p => {
       if (p.id === splitId) {
         if (p.muscles.some(m => m.name.toLowerCase() === newMuscleGroupName.trim().toLowerCase())) return p;
         return {
@@ -118,7 +145,13 @@ export default function Settings({
       }
       return p;
     });
-    syncWorkoutPlans(updated);
+    if (!Array.isArray(workoutPlans)) {
+      const obj = {};
+      updated.forEach(x => { obj[x.id] = x; });
+      syncWorkoutPlans(obj);
+    } else {
+      syncWorkoutPlans(updated);
+    }
     setNewMuscleGroupName('');
   };
 
@@ -319,7 +352,7 @@ export default function Settings({
                 <div style={{ fontWeight: 500, color: 'var(--text)', width: '90px', fontSize: '13px' }}>{DAYS_FULL[dow]}</div>
                 <select style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', outline: 'none', fontSize: '13px' }}
                   value={currentSplit} onChange={e => setLocalSchedule(prev => ({ ...prev, [dow]: parseInt(e.target.value) }))}>
-                  {workoutPlans.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  {plansArray.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                 </select>
               </div>
             );
@@ -346,12 +379,12 @@ export default function Settings({
             <div style={{ fontSize: '12px', color: 'var(--text2)' }}>Select Workout Split to Customize</div>
             <select value={selectedSplitToEdit} onChange={e => setSelectedSplitToEdit(Number(e.target.value))}
               style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', outline: 'none', fontSize: '13px', fontWeight: 600 }}>
-              {workoutPlans.map(p => <option key={p.id} value={p.id}>{p.label} (Split ID: {p.id})</option>)}
+              {plansArray.map(p => <option key={p.id} value={p.id}>{p.label} (Split ID: {p.id})</option>)}
             </select>
           </div>
 
           {(() => {
-            const currentPlan = workoutPlans.find(p => p.id === selectedSplitToEdit) || workoutPlans[0];
+            const currentPlan = plansArray.find(p => p.id === selectedSplitToEdit) || plansArray[0];
             return (
               <div style={{ background: 'var(--bg3)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
@@ -427,7 +460,7 @@ export default function Settings({
 
       {/* CUSTOM EXERCISES */}
       <Accordion title="🏋️ Custom Exercises" subtitle="Rename default exercises">
-        {workoutPlans.filter(p => p.id !== 0).map(p => {
+        {plansArray.filter(p => p.id !== 0).map(p => {
           return (
             <div className="settings-section" key={p.id} style={{ marginBottom: '16px' }}>
               <div className="settings-label">{p.label} (Split ID: {p.id})</div>

@@ -10,6 +10,7 @@ import Settings from './components/Settings';
 import Budget from './components/Budget';
 import Study from './components/Study';
 import AIChat from './components/AIChat';
+import { DEFAULT_PLAN } from './data';
 import './index.css';
 
 const DEFAULT_BUDGET_SETTINGS = { income: 22400, currency: '₹' };
