@@ -300,7 +300,7 @@ export default function App() {
             </span>
           ))}
         </div>
-        <div className="splash-tagline">Track • Adapt • Succeed</div>
+        <div className="splash-tagline">Trust the Process</div>
       </div>
     );
   }
