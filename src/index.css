@@ -285,7 +285,7 @@ select.meta-input { appearance: none; }
   height: 30px;
   fill: var(--accent);
   filter: drop-shadow(0 0 6px rgba(200, 241, 53, 0.4));
-  animation: rotateIcon 4s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+  animation: pulseIcon 2s infinite ease-in-out;
 }
 
 .splash-title {
@@ -333,10 +333,12 @@ select.meta-input { appearance: none; }
   100% { transform: scale(1.04); box-shadow: 0 0 45px rgba(200, 241, 53, 0.5); }
 }
 
-@keyframes rotateIcon {
-  0%, 15% { transform: rotate(0deg); }
-  45%, 55% { transform: rotate(180deg); }
-  85%, 100% { transform: rotate(360deg); }
+@keyframes pulseIcon {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(200, 241, 53, 0.4)); }
+  15% { transform: scale(1.18); filter: drop-shadow(0 0 12px rgba(200, 241, 53, 0.7)); }
+  30% { transform: scale(1.04); }
+  45% { transform: scale(1.22); filter: drop-shadow(0 0 15px rgba(200, 241, 53, 0.8)); }
+  70% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(200, 241, 53, 0.4)); }
 }
 
 @keyframes letterWave {

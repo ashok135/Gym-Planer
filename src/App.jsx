@@ -287,9 +287,12 @@ export default function App() {
       <div className="splash-bg">
         <div className="splash-ring">
           <div className="splash-core">
-            {/* Beautiful Custom SVG Animated Barbell Logo */}
-            <svg className="splash-icon" viewBox="0 0 24 24">
-              <path d="M5 9a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm19-6a2 2 0 1 0-4 0 2 2 0 0 0 4 0zm0 6a2 2 0 1 0-4 0 2 2 0 0 0 4 0zm-18-5h1c.6 0 1-.4 1-1V8c0-.6-.4-1-1-1H6c-.6 0-1 .4-1 1v1c0 .6.4 1 1 1zm11 0h1c.6 0 1-.4 1-1V8c0-.6-.4-1-1-1h-1c-.6 0-1 .4-1 1v1c0 .6.4 1 1 1zM7 11h10v2H7zM5 14h2v-4H5zm12 0h2v-4h-2z" />
+            {/* Beautiful Custom SVG Heartbeat & Progress Trending Arrow Logo (LifeTraker) */}
+            <svg className="splash-icon" viewBox="0 0 36 36" style={{ fill: 'none', stroke: 'var(--accent)', strokeWidth: '3.5', strokeLinecap: 'round', strokeLinejoin: 'round' }}>
+              {/* Pulse & Rising Arrow Line */}
+              <path d="M 3 18 L 9 18 L 11 25 L 14 7 L 17 21 L 20 18 L 24 18 L 29 11 L 33 6" />
+              {/* Arrow Head */}
+              <path d="M 26 6 L 33 6 L 33 13" />
             </svg>
           </div>
         </div>
