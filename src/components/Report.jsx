@@ -304,69 +304,219 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
               healthText = 'FAIR';
             }
 
+            const now = new Date();
+            const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const monthlySalary = BUDGET_SETTINGS?.income || 22400;
+            const currentMonthExtra = (BUDGET[currentMonthKey]?.extraIncome || []).reduce((sum, i) => sum + Number(i.amount), 0);
+            const totalMonthlyResources = monthlySalary + currentMonthExtra;
+            
+            const currentMonthExpenses = (BUDGET[currentMonthKey]?.entries || [])
+              .filter(e => e.category !== 'repayment')
+              .reduce((sum, e) => sum + Number(e.amount), 0);
+
+            // Inflow vs Outflow data for Round Diagram 1
+            const cashFlowData = [
+              { name: 'Assets Inflow', value: totalMonthlyResources, color: '#34D399' },
+              { name: 'Liabilities Outflow', value: currentMonthExpenses + totalOutstandingDebt, color: 'var(--red)' }
+            ];
+
+            // Next month pre-committed burden ratio (Debt-to-Income Ratio)
+            const nextMonthBurdenPct = Math.round((totalOutstandingDebt / (monthlySalary || 1)) * 100);
+
+            // Category Spending data for Round Diagram 2
+            const categoryTotals = {};
+            (BUDGET[currentMonthKey]?.entries || []).forEach(e => {
+              categoryTotals[e.category] = (categoryTotals[e.category] || 0) + Number(e.amount);
+            });
+            
+            const CATEGORY_MAP = {
+              food: '🍔 Food & Dining',
+              rent: '🏠 House Rent',
+              bills: '🔌 Utility Bills',
+              supplements: '💊 Supplements',
+              fees: '🏋️ Gym Fees',
+              transport: '🚗 Transport',
+              entertainment: '🍿 Fun & Movies',
+              repayment: '💸 Repayments',
+              others: '📦 Others'
+            };
+
+            const categoryChartData = Object.entries(categoryTotals).map(([cat, val]) => ({
+              name: CATEGORY_MAP[cat] || cat,
+              value: val,
+              color: cat === 'repayment' ? 'var(--blue)' : `hsl(${(Object.keys(CATEGORY_MAP).indexOf(cat) * 40) % 360}, 75%, 55%)`
+            })).filter(d => d.value > 0);
+
             return (
-              <div style={{ marginTop: '24px', padding: '24px', background: 'var(--bg2)', borderRadius: '24px', border: '1px solid var(--border2)' }}>
-                <div style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px', color: 'var(--accent)' }}>📊 Credit & Liabilities Summary</div>
+              <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 
-                {/* Credit Score Dial */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', background: 'var(--bg3)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)', marginBottom: '20px' }}>
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', border: `4px solid ${healthColor}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text)' }}>{creditHealthScore}</span>
-                    <span style={{ fontSize: '8px', color: 'var(--text3)', fontWeight: 'bold', marginTop: '2px' }}>FICO</span>
+                {/* 1. CREDIT SCORE & DTI STATEMENT REPORT */}
+                <div style={{ padding: '24px', background: 'var(--bg2)', borderRadius: '24px', border: '1px solid var(--border2)' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px', color: 'var(--accent)' }}>📊 Credit & Liabilities Summary</div>
+                  
+                  {/* Credit Score & Health Indicator */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', background: 'var(--bg3)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)', marginBottom: '20px' }}>
+                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', border: `4px solid ${healthColor}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text)' }}>{creditHealthScore}</span>
+                      <span style={{ fontSize: '8px', color: 'var(--text3)', fontWeight: 'bold', marginTop: '2px' }}>FICO</span>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 800, color: healthColor }}>HEALTH RATING: {healthText}</div>
+                      <p style={{ fontSize: '11px', color: 'var(--text3)', margin: '4px 0 0', lineHeight: 1.4 }}>
+                        Based on your leverage ratio and repayment speed. Settle outstanding dues on time to boost your score.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: healthColor }}>HEALTH RATING: {healthText}</div>
-                    <p style={{ fontSize: '11px', color: 'var(--text3)', margin: '4px 0 0', lineHeight: 1.4 }}>
-                      Based on your leverage ratio and repayment speed. Settle outstanding dues on time to boost your score.
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                    <div style={{ background: 'var(--bg3)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border2)' }}>
+                      <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Friend Borrowed Dues</div>
+                      <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--blue)' }}>₹{friendLoans.toLocaleString()}</div>
+                    </div>
+                    <div style={{ background: 'var(--bg3)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border2)' }}>
+                      <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Credit Card Balance</div>
+                      <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--red)' }}>₹{creditDues.toLocaleString()}</div>
+                    </div>
+                  </div>
+
+                  {/* Stacked Repayment Progress */}
+                  {totalBorrowed > 0 && (
+                    <div style={{ marginBottom: '20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text2)', marginBottom: '6px' }}>
+                        <span>Repayment Clearance:</span>
+                        <span style={{ fontWeight: 'bold' }}>{Math.round((totalRepaid / totalBorrowed) * 100)}%</span>
+                      </div>
+                      <div style={{ height: '10px', background: 'rgba(255,255,255,0.06)', borderRadius: '5px', overflow: 'hidden', display: 'flex' }}>
+                        <div style={{ width: `${(totalRepaid / totalBorrowed) * 100}%`, background: '#34D399' }} />
+                        <div style={{ width: `${(totalOutstandingDebt / totalBorrowed) * 100}%`, background: 'var(--red)' }} />
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '10px', color: 'var(--text3)' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34D399' }}></div> Repaid (₹{totalRepaid.toLocaleString()})</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--red)' }}></div> Active Debt (₹{totalOutstandingDebt.toLocaleString()})</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Personal Finance Coach Lucy Advice */}
+                  <div style={{ padding: '16px', background: 'rgba(200,241,53,0.03)', borderRadius: '16px', border: '1px dashed var(--accent)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '16px' }}>🤖</span>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase' }}>Lucy's Credit Advice</span>
+                    </div>
+                    <p style={{ fontSize: '11px', color: 'var(--text2)', margin: 0, lineHeight: 1.5 }}>
+                      {totalOutstandingDebt === 0 ? (
+                        "Spotless balance sheet! You have zero active liabilities. Since you are fully liquid, this is the perfect time to build your emergency fund or invest in growth assets."
+                      ) : friendLoans > creditDues ? (
+                        "Your primary liability consists of interest-free loans borrowed from friends. Although friend loans don't affect your formal credit score, honor your word and settle Rahul's dues soon to secure trust!"
+                      ) : (
+                        "Caution! You have outstanding bank credit card dues. Standard credit cards carry high interest rates if unpaid. Prioritize clearing credit platform balances to avoid debt traps."
+                      )}
                     </p>
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-                  <div style={{ background: 'var(--bg3)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border2)' }}>
-                    <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Friend Borrowed Dues</div>
-                    <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--blue)' }}>₹{friendLoans.toLocaleString()}</div>
+                {/* 2. ROUND DIAGRAM: ASSETS VS LIABILITIES FLOWS */}
+                <div style={{ padding: '24px', background: 'var(--bg2)', borderRadius: '24px', border: '1px solid var(--border2)' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px', color: 'var(--accent)' }}>🔄 Inflow Assets vs Outflow Liabilities</div>
+                  
+                  <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ width: '130px', height: '130px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                      <PieChart width={130} height={130}>
+                        <Pie data={cashFlowData} dataKey="value" cx="50%" cy="50%" innerRadius={42} outerRadius={58} stroke="none" cornerRadius={6} paddingAngle={3}>
+                          {cashFlowData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                        </Pie>
+                      </PieChart>
+                      <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Balance</span>
+                        <span style={{ fontSize: '14px', fontWeight: 900, color: totalMonthlyResources >= (currentMonthExpenses + totalOutstandingDebt) ? '#34D399' : 'var(--red)' }}>
+                          ₹{(totalMonthlyResources - (currentMonthExpenses + totalOutstandingDebt)).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: '180px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg3)', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border2)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34D399' }} />
+                          <span style={{ fontSize: '11px', color: 'var(--text2)' }}>Inflow Assets</span>
+                        </div>
+                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#34D399' }}>₹{totalMonthlyResources.toLocaleString()}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg3)', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border2)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--red)' }} />
+                          <span style={{ fontSize: '11px', color: 'var(--text2)' }}>Outflow Liabilities</span>
+                        </div>
+                        <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--red)' }}>₹{(currentMonthExpenses + totalOutstandingDebt).toLocaleString()}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ background: 'var(--bg3)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border2)' }}>
-                    <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Credit Card Balance</div>
-                    <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--red)' }}>₹{creditDues.toLocaleString()}</div>
+
+                  {/* 3. NEXT MONTH COMMITMENT FORECAST & DEBT BURDEN INDEX */}
+                  <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border2)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 800 }}>Next Month Repayment Commit</div>
+                        <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '2px' }}>Pre-committed to settle all borrowed loans & credit cards</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '18px', fontWeight: 900, color: 'var(--red)' }}>₹{totalOutstandingDebt.toLocaleString()}</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ position: 'relative', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="60" height="60" viewBox="0 0 36 36">
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={nextMonthBurdenPct > 40 ? 'var(--red)' : nextMonthBurdenPct > 20 ? 'var(--orange)' : 'var(--blue)'} strokeWidth="3" strokeDasharray={`${Math.min(100, nextMonthBurdenPct)}, 100`} />
+                        </svg>
+                        <span style={{ position: 'absolute', fontSize: '11px', fontWeight: 800, color: 'var(--text)' }}>{nextMonthBurdenPct}%</span>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: nextMonthBurdenPct > 40 ? 'var(--red)' : nextMonthBurdenPct > 20 ? 'var(--orange)' : 'var(--blue)' }}>
+                          {nextMonthBurdenPct > 40 ? '⚠️ High Debt Burden Ratio' : nextMonthBurdenPct > 20 ? '⚡ Moderate Debt Burden Ratio' : '🟢 Healthy Liquidity Coverage'}
+                        </div>
+                        <p style={{ fontSize: '10px', color: 'var(--text3)', margin: '2px 0 0', lineHeight: 1.3 }}>
+                          Outstanding commitments claim **{nextMonthBurdenPct}%** of your standard ₹{monthlySalary.toLocaleString()} salary resources.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Stacked Repayment Progress */}
-                {totalBorrowed > 0 && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text2)', marginBottom: '6px' }}>
-                      <span>Repayment Clearance:</span>
-                      <span style={{ fontWeight: 'bold' }}>{Math.round((totalRepaid / totalBorrowed) * 100)}%</span>
+                {/* 4. ROUND DIAGRAM: CATEGORY EXPENSE BREAKDOWN */}
+                <div style={{ padding: '24px', background: 'var(--bg2)', borderRadius: '24px', border: '1px solid var(--border2)' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px', color: 'var(--accent)' }}>🏷️ Category Spending Breakdown Chart</div>
+                  
+                  {categoryChartData.length === 0 ? (
+                    <div style={{ background: 'var(--bg3)', borderRadius: '16px', padding: '24px', textAlign: 'center', color: 'var(--text3)', fontSize: '12px', border: '1px dashed var(--border2)' }}>
+                      📝 Log expense transactions under standard categories to build your donut breakdown chart!
                     </div>
-                    <div style={{ height: '10px', background: 'rgba(255,255,255,0.06)', borderRadius: '5px', overflow: 'hidden', display: 'flex' }}>
-                      <div style={{ width: `${(totalRepaid / totalBorrowed) * 100}%`, background: '#34D399' }} />
-                      <div style={{ width: `${(totalOutstandingDebt / totalBorrowed) * 100}%`, background: 'var(--red)' }} />
+                  ) : (
+                    <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <div style={{ width: '130px', height: '130px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <PieChart width={130} height={130}>
+                          <Pie data={categoryChartData} dataKey="value" cx="50%" cy="50%" innerRadius={42} outerRadius={58} stroke="none" cornerRadius={6} paddingAngle={3}>
+                            {categoryChartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                          </Pie>
+                        </PieChart>
+                      </div>
+                      
+                      <div style={{ flex: 1, minWidth: '180px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {categoryChartData.sort((a,b) => b.value - a.value).map(d => (
+                          <div key={d.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color }} />
+                              <span style={{ color: 'var(--text2)' }}>{d.name}</span>
+                            </div>
+                            <span style={{ fontWeight: 700, color: 'var(--text)' }}>₹{d.value.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '10px', color: 'var(--text3)' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34D399' }}></div> Repaid (₹{totalRepaid.toLocaleString()})</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--red)' }}></div> Active Debt (₹{totalOutstandingDebt.toLocaleString()})</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Personal Finance Coach Lucy Advice */}
-                <div style={{ padding: '16px', background: 'rgba(200,241,53,0.03)', borderRadius: '16px', border: '1px dashed var(--accent)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>🤖</span>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase' }}>Lucy's Credit Advice</span>
-                  </div>
-                  <p style={{ fontSize: '11px', color: 'var(--text2)', margin: 0, lineHeight: 1.5 }}>
-                    {totalOutstandingDebt === 0 ? (
-                      "Spotless balance sheet! You have zero active liabilities. Since you are fully liquid, this is the perfect time to build your emergency fund or invest in growth assets."
-                    ) : friendLoans > creditDues ? (
-                      "Your primary liability consists of interest-free loans borrowed from friends. Although friend loans don't affect your formal credit score, honor your word and settle Rahul's dues soon to secure trust!"
-                    ) : (
-                      "Caution! You have outstanding bank credit card dues. Standard credit cards carry high interest rates if unpaid. Prioritize clearing credit platform balances to avoid debt traps."
-                    )}
-                  </p>
+                  )}
                 </div>
+
               </div>
             );
           })()}
