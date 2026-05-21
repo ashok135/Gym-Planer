@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -10,7 +10,8 @@ import Settings from './components/Settings';
 import Budget from './components/Budget';
 import Study from './components/Study';
 import AIChat from './components/AIChat';
-import { DEFAULT_PLAN } from './data';
+import { DEFAULT_PLAN, DEFAULT_DIET_PLAN } from './data';
+import { requestNotificationPermission, scheduleDailyReminders, registerServiceWorker } from './utils/pushNotifications';
 import './index.css';
 
 const DEFAULT_BUDGET_SETTINGS = { income: 22400, currency: '₹' };
@@ -45,6 +46,8 @@ export default function App() {
   const [BUDGET_SETTINGS, setBUDGET_SETTINGS] = useState(DEFAULT_BUDGET_SETTINGS);
   const [STUDY, setSTUDY] = useState({});
   const [STUDY_SETTINGS, setSTUDY_SETTINGS] = useState(DEFAULT_STUDY_SETTINGS);
+  const [DIET_PLAN, setDIET_PLAN] = useState(DEFAULT_DIET_PLAN);
+  const notifTimers = useRef([]);
 
   const [workoutPlans, setWorkoutPlans] = useState(() => {
     try {
@@ -112,6 +115,7 @@ export default function App() {
             setBUDGET_SETTINGS(data.budgetSettings || DEFAULT_BUDGET_SETTINGS);
             setSTUDY(data.study || {});
             setSTUDY_SETTINGS(data.studySettings || DEFAULT_STUDY_SETTINGS);
+            if (data.dietPlan) setDIET_PLAN(data.dietPlan);
 
             if (data.workoutPlans) {
               setWorkoutPlans(data.workoutPlans);
@@ -160,6 +164,7 @@ export default function App() {
           setBUDGET_SETTINGS(JSON.parse(localStorage.getItem('gbudgetSettings')||JSON.stringify(DEFAULT_BUDGET_SETTINGS)));
           setSTUDY(JSON.parse(localStorage.getItem('gstudy')||'{}'));
           setSTUDY_SETTINGS(JSON.parse(localStorage.getItem('gstudySettings')||JSON.stringify(DEFAULT_STUDY_SETTINGS)));
+          try { const dp = JSON.parse(localStorage.getItem('gdietPlan')); if(dp) setDIET_PLAN(dp); } catch(e) {}
           try {
             const savedPlans = JSON.parse(localStorage.getItem('gworkoutPlans'));
             if (savedPlans) setWorkoutPlans(savedPlans);
@@ -182,6 +187,16 @@ export default function App() {
         }
       }
       setLoading(false);
+      // Setup push notifications after login
+      if (u) {
+        registerServiceWorker();
+        requestNotificationPermission().then(granted => {
+          if (granted) {
+            notifTimers.current.forEach(clearTimeout);
+            notifTimers.current = scheduleDailyReminders();
+          }
+        });
+      }
     });
     return unsub;
   }, []);
@@ -265,6 +280,23 @@ export default function App() {
           workoutPlans
         });
       } catch(e) { console.error("Cloud save failed", e); }
+    }
+  };
+
+  const syncDietPlan = async (newPlan) => {
+    setDIET_PLAN(newPlan);
+    localStorage.setItem('gdietPlan', JSON.stringify(newPlan));
+    if (user) {
+      try {
+        await setDoc(doc(db, 'users', user.uid), {
+          workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
+          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
+          aiSettings: getAiSettingsFromLocalStorage(),
+          profileInfo,
+          workoutPlans,
+          dietPlan: newPlan
+        });
+      } catch(e) { console.error('Cloud save for dietPlan failed', e); }
     }
   };
 
@@ -411,7 +443,7 @@ export default function App() {
       </div>
       <div className="screen active" onScroll={handleScroll} style={{paddingBottom:'90px', flex:1, overflowY:'auto'}}>
         {activeTab === 'today'    && <Today    DB={DB} NAMES={NAMES} META={META} syncData={syncData} FOOD={FOOD} SCHEDULE={SCHEDULE} workoutPlans={workoutPlans} />}
-        {activeTab === 'diet'     && <Diet     FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} profileInfo={profileInfo} />}
+        {activeTab === 'diet'     && <Diet     FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} profileInfo={profileInfo} DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} />}
         {activeTab === 'budget'   && <Budget   BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} />}
         {activeTab === 'study'    && <Study    STUDY={STUDY} syncStudy={syncStudy} STUDY_SETTINGS={STUDY_SETTINGS} profileInfo={profileInfo} />}
         {activeTab === 'report'   && <Report   DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} BUDGET={BUDGET} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY={STUDY} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} workoutPlans={workoutPlans} />}

@@ -295,24 +295,21 @@ Guidelines for Lucy:
 
     const userMsg = input.trim();
     setInput('');
-    
-    // Optimistically update the UI with the user's message
+
     const updatedMessages = [...messages, { role: 'user', text: userMsg }];
     setMessages(updatedMessages);
-    setLoading(false); // Reset in case it got stuck
     setLoading(true);
+
+    // Add a placeholder bot message we'll stream into
+    const botMsgIndex = updatedMessages.length; // position after push
+    setMessages(prev => [...prev, { role: 'bot', text: '', streaming: true }]);
 
     try {
       const context = buildContext();
-      let reply = '';
-      
+
       if (provider === 'gemini') {
-        // Construct standard Gemini chat history (alternating user/model role parts)
         const chatContents = [];
-        
-        // Skip the initial bot greeting at index 0 to ensure alternating pattern starts with user
         const historySlice = updatedMessages.slice(1);
-        
         historySlice.forEach(m => {
           chatContents.push({
             role: m.role === 'user' ? 'user' : 'model',
@@ -320,33 +317,68 @@ Guidelines for Lucy:
           });
         });
 
-        // Use systemInstruction for perfect adherence on Gemini 1.5+ models
         const requestBody = {
           contents: chatContents,
-          systemInstruction: {
-            parts: [{ text: context }]
-          }
+          systemInstruction: { parts: [{ text: context }] }
         };
 
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
-        });
-        
-        const data = await res.json();
-        if (data.error) {
-          reply = `⚠️ Gemini API Error: ${data.error.message} (Code: ${data.error.code})`;
-        } else {
-          reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, couldn't get a response. Please verify your API Key and try again!";
-        }
-      } else {
-        // Construct OpenRouter chat messages array with system context
-        const chatMessages = [
-          { role: 'system', content: context }
-        ];
+        // Use streamGenerateContent endpoint for real-time streaming
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+          }
+        );
 
-        // Include all messages except initial bot greeting (handled by standard system system)
+        if (!res.ok) {
+          const errData = await res.json();
+          setMessages(prev => prev.map((m, i) => i === botMsgIndex
+            ? { role: 'bot', text: `⚠️ Gemini Error: ${errData?.error?.message || res.statusText}`, streaming: false }
+            : m));
+          setLoading(false);
+          return;
+        }
+
+        const reader  = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let   buffer  = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop(); // keep incomplete last line
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === '[DONE]') break;
+            try {
+              const chunk = JSON.parse(jsonStr);
+              const token = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+              if (token) {
+                setMessages(prev => prev.map((m, i) =>
+                  i === botMsgIndex
+                    ? { ...m, text: m.text + token }
+                    : m
+                ));
+              }
+            } catch (_) { /* malformed chunk — skip */ }
+          }
+        }
+
+        // Mark streaming as done
+        setMessages(prev => prev.map((m, i) =>
+          i === botMsgIndex ? { ...m, streaming: false } : m
+        ));
+
+      } else {
+        // OpenRouter streaming via SSE
+        const chatMessages = [{ role: 'system', content: context }];
         updatedMessages.slice(1).forEach(m => {
           chatMessages.push({
             role: m.role === 'user' ? 'user' : 'assistant',
@@ -364,24 +396,64 @@ Guidelines for Lucy:
           },
           body: JSON.stringify({
             model: openrouterModel,
-            messages: chatMessages
+            messages: chatMessages,
+            stream: true
           })
         });
 
-        const data = await res.json();
-        if (data.error) {
-          reply = `⚠️ OpenRouter API Error: ${data.error.message || JSON.stringify(data.error)}`;
-        } else {
-          reply = data?.choices?.[0]?.message?.content || "Sorry, couldn't get a response. Please verify your API Key and try again!";
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          setMessages(prev => prev.map((m, i) => i === botMsgIndex
+            ? { role: 'bot', text: `⚠️ OpenRouter Error: ${errData?.error?.message || res.statusText}`, streaming: false }
+            : m));
+          setLoading(false);
+          return;
         }
+
+        const reader  = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let   buffer  = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === '[DONE]') break;
+            try {
+              const chunk = JSON.parse(jsonStr);
+              const token = chunk?.choices?.[0]?.delta?.content || '';
+              if (token) {
+                setMessages(prev => prev.map((m, i) =>
+                  i === botMsgIndex
+                    ? { ...m, text: m.text + token }
+                    : m
+                ));
+              }
+            } catch (_) { /* malformed chunk — skip */ }
+          }
+        }
+
+        setMessages(prev => prev.map((m, i) =>
+          i === botMsgIndex ? { ...m, streaming: false } : m
+        ));
       }
-      
-      setMessages(prev => [...prev, { role: 'bot', text: reply }]);
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'bot', text: `⚠️ Connection Error: Failed to connect to ${provider === 'gemini' ? 'Gemini' : 'OpenRouter'}. Please check your internet connection.` }]);
+      setMessages(prev => prev.map((m, i) =>
+        i === botMsgIndex
+          ? { role: 'bot', text: `⚠️ Connection Error: ${e.message || 'Failed to connect. Check your internet.'}`, streaming: false }
+          : m
+      ));
     }
     setLoading(false);
   };
+
 
   const saveKey = () => {
     if (tempKey.trim()) {
@@ -569,6 +641,14 @@ Guidelines for Lucy:
                   fontSize: '13px', lineHeight: 1.5, whiteSpace: 'pre-wrap'
                 }}>
                   {msg.text}
+                  {msg.streaming && (
+                    <span style={{
+                      display: 'inline-block', width: '2px', height: '14px',
+                      background: 'var(--accent)', marginLeft: '2px',
+                      verticalAlign: 'text-bottom',
+                      animation: 'blink 0.8s step-start infinite'
+                    }} />
+                  )}
                 </div>
               </div>
             ))}
@@ -582,7 +662,7 @@ Guidelines for Lucy:
                 )}
               </div>
             )}
-            {loading && (
+            {loading && messages[messages.length - 1]?.text === '' && (
               <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
                 <div style={{ padding: '10px 14px', background: 'var(--bg3)', borderRadius: '16px 16px 16px 4px', fontSize: '13px', color: 'var(--text3)' }}>
                   ✨ Thinking...
