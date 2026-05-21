@@ -809,7 +809,7 @@ Guidelines for Lucy:
           bottom: 'calc(90px + env(safe-area-inset-bottom))', 
           right: '12px', 
           left: '12px', 
-          maxWidth: '500px', 
+          maxWidth: '680px', 
           margin: '0 auto', 
           background: 'rgba(15, 23, 42, 0.88)', 
           backdropFilter: 'blur(20px)',
@@ -949,7 +949,8 @@ Guidelines for Lucy:
             {messages.map((msg, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 <div style={{
-                  maxWidth: '85%', 
+                  maxWidth: msg.role === 'user' ? '80%' : '100%', 
+                  width: msg.role === 'user' ? 'auto' : '100%',
                   padding: '10px 32px 10px 14px',
                   borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                   background: msg.role === 'user' ? 'var(--accent)' : 'var(--bg3)',
