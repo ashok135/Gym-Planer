@@ -148,6 +148,17 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
   const bonusIncome = Math.max(0, totalIncome - baseSalary);
   const extraIncome = (BUDGET[selectedMonth] || {}).extraIncome || [];
 
+  const allDebts = [];
+  Object.entries(BUDGET).forEach(([mk, md]) => {
+    (md.debts || []).forEach(d => {
+      allDebts.push({ ...d, mk });
+    });
+  });
+
+  const unpaidDebts = allDebts.filter(d => d.status !== 'paid');
+  const totalOutstandingDebt = unpaidDebts.reduce((sum, d) => sum + (Number(d.amount) - Number(d.paid || 0)), 0);
+  const netLiquidity = remaining - totalOutstandingDebt;
+
   const addEntry = () => {
     if (!form.amount || isNaN(form.amount) || Number(form.amount) <= 0) return;
     const d = new Date(); const mk = monthKey(d); const dk = dayKey(d); const tm = formatTime(d); const ts = d.getTime();
