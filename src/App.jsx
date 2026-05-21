@@ -284,18 +284,10 @@ export default function App() {
 
   if(loading) {
     return (
-      <div className="splash-bg">
-        <div className="splash-logo-container">
-          {/* Option 2: The Infinite Spark Logo */}
-          <svg className="splash-icon" viewBox="0 0 48 48">
-            {/* The Infinite Loop with Rising Spike */}
-            <path d="M 24 24 C 18 32, 8 32, 8 24 C 8 16, 18 16, 24 24 C 30 32, 40 32, 40 24 C 40 18, 36 14, 34 10 L 38 6 M 38 6 L 31 6 M 38 6 L 38 13" />
-            {/* The Spark Dot */}
-            <circle cx="24" cy="24" r="3.5" fill="var(--accent)" stroke="none" />
-          </svg>
+      <div className="screen active" style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'var(--bg)'}}>
+        <div style={{color:'var(--accent)',fontWeight:700,fontSize:'26px',letterSpacing:'4px',textTransform:'uppercase',animation:'pulse 1.5s infinite alternate'}}>
+          LIFETRAKER
         </div>
-        <div className="splash-title">LIFETRAKER</div>
-        <div className="splash-tagline">Trust the Process</div>
       </div>
     );
   }
