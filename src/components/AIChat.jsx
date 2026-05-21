@@ -866,6 +866,7 @@ Guidelines for Lucy:
                 <input type="password" placeholder={`Paste ${provider === 'gemini' ? 'Gemini' : 'OpenRouter'} key...`} value={tempKey} onChange={e => setTempKey(e.target.value)}
                   style={{ flex: 1, padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px' }} />
                 <button onClick={saveKey} style={{ padding: '8px 14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}>Save</button>
+                <button onClick={() => setShowKeyInput(false)} style={{ padding: '8px 14px', background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border2)', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>Cancel</button>
               </div>
               {activeKeyExists && <div style={{ fontSize: '10px', color: 'var(--accent)', marginTop: '6px' }}>✅ Key saved!</div>}
             </div>
