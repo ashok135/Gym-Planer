@@ -20,12 +20,12 @@ const API_SOURCES = {
   
   // RemoteOK - No auth required for basic usage
   REMOTEOK: {
-    baseUrl: 'https://remoteok.com/api',
+    baseUrl: 'https://corsproxy.io/?https://remoteok.com/api',
   },
   
   // GitHub Jobs Alternative - Remotive API
   REMOTIVE: {
-    baseUrl: 'https://remotive.com/api/remote-jobs',
+    baseUrl: 'https://corsproxy.io/?https://remotive.com/api/remote-jobs',
   }
 };
 
@@ -117,11 +117,7 @@ const fetchFromRemoteOK = async (role, workMode) => {
       return [];
     }
 
-    const response = await fetch(`${API_SOURCES.REMOTEOK.baseUrl}`, {
-      headers: {
-        'User-Agent': 'JobSearchApp/1.0'
-      }
-    });
+    const response = await fetch(API_SOURCES.REMOTEOK.baseUrl);
     
     if (!response.ok) throw new Error('RemoteOK API failed');
     
