@@ -11,7 +11,6 @@ import Budget from './components/Budget';
 import Study from './components/Study';
 import AIChat from './components/AIChat';
 import { DEFAULT_PLAN, DEFAULT_DIET_PLAN } from './data';
-import { requestNotificationPermission, scheduleDailyReminders, registerServiceWorker } from './utils/pushNotifications';
 import './index.css';
 
 const DEFAULT_BUDGET_SETTINGS = { income: 22400, currency: '₹' };
@@ -108,6 +107,8 @@ export default function App() {
     }
   });
 
+
+
   useEffect(() => {
     const handleStorage = () => {
       setAiEnabled(localStorage.getItem('ai_enabled') === 'true');
@@ -170,6 +171,8 @@ export default function App() {
               setProfileInfo(info);
               localStorage.setItem('gprofileInfo', JSON.stringify(info));
             }
+
+
           }
         } catch(e) {
           console.error("Cloud fetch failed, using local", e);
@@ -187,6 +190,7 @@ export default function App() {
             const savedPlans = JSON.parse(localStorage.getItem('gworkoutPlans'));
             if (savedPlans) setWorkoutPlans(savedPlans);
           } catch(e) {}
+
           try {
             const saved = JSON.parse(localStorage.getItem('gprofileInfo'));
             setProfileInfo({
@@ -205,17 +209,12 @@ export default function App() {
         }
       }
       setLoading(false);
-      // Setup push notifications after login
-      if (u) {
-        registerServiceWorker();
-        requestNotificationPermission().then(granted => {
-          if (granted) {
-            notifTimers.current.forEach(clearTimeout);
-            notifTimers.current = scheduleDailyReminders();
-          }
-        });
+      // Setup local offline service worker
+      if (u && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
       }
     });
+
     return unsub;
   }, []);
 
@@ -231,21 +230,36 @@ export default function App() {
     };
   };
 
+  const saveToFirestore = async (overrideFields = {}) => {
+    if (!user) return;
+    try {
+      const defaultPayload = {
+        workouts: DB,
+        names: NAMES,
+        meta: META,
+        food: FOOD,
+        schedule: SCHEDULE,
+        budget: BUDGET,
+        budgetSettings: BUDGET_SETTINGS,
+        study: STUDY,
+        studySettings: STUDY_SETTINGS,
+        dietPlan: DIET_PLAN,
+        aiSettings: getAiSettingsFromLocalStorage(),
+        profileInfo,
+        workoutPlans
+      };
+      const mergedPayload = { ...defaultPayload, ...overrideFields };
+      const payload = sanitizeForFirestore(mergedPayload);
+      await setDoc(doc(db, "users", user.uid), payload);
+    } catch(e) {
+      console.error("Cloud save failed", e);
+    }
+  };
+
   const syncWorkoutPlans = async (newPlans) => {
     setWorkoutPlans(newPlans);
     localStorage.setItem('gworkoutPlans', JSON.stringify(newPlans));
-    if(user) {
-      try {
-        const payload = sanitizeForFirestore({
-          workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
-          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
-          aiSettings: getAiSettingsFromLocalStorage(),
-          profileInfo,
-          workoutPlans: newPlans
-        });
-        await setDoc(doc(db, "users", user.uid), payload);
-      } catch(e) { console.error("Cloud save failed", e); }
-    }
+    await saveToFirestore({ workoutPlans: newPlans });
   };
 
   const syncData = async (newDB, newNAMES, newMETA, newFOOD, newSCHEDULE = SCHEDULE) => {
@@ -255,71 +269,27 @@ export default function App() {
     localStorage.setItem('gmeta', JSON.stringify(newMETA));
     localStorage.setItem('gfood', JSON.stringify(newFOOD));
     localStorage.setItem('gschedule', JSON.stringify(newSCHEDULE));
-    if(user) {
-      try {
-        const payload = sanitizeForFirestore({
-          workouts: newDB, names: newNAMES, meta: newMETA, food: newFOOD, schedule: newSCHEDULE,
-          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
-          aiSettings: getAiSettingsFromLocalStorage(),
-          profileInfo,
-          workoutPlans
-        });
-        await setDoc(doc(db, "users", user.uid), payload);
-      } catch(e) { console.error("Cloud save failed", e); }
-    }
+    await saveToFirestore({ workouts: newDB, names: newNAMES, meta: newMETA, food: newFOOD, schedule: newSCHEDULE });
   };
 
   const syncBudget = async (newBudget, newSettings = BUDGET_SETTINGS) => {
     setBUDGET(newBudget); setBUDGET_SETTINGS(newSettings);
     localStorage.setItem('gbudget', JSON.stringify(newBudget));
     localStorage.setItem('gbudgetSettings', JSON.stringify(newSettings));
-    if(user) {
-      try {
-        const payload = sanitizeForFirestore({
-          workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
-          budget: newBudget, budgetSettings: newSettings, study: STUDY, studySettings: STUDY_SETTINGS,
-          aiSettings: getAiSettingsFromLocalStorage(),
-          profileInfo,
-          workoutPlans
-        });
-        await setDoc(doc(db, "users", user.uid), payload);
-      } catch(e) { console.error("Cloud save failed", e); }
-    }
+    await saveToFirestore({ budget: newBudget, budgetSettings: newSettings });
   };
 
   const syncStudy = async (newStudy, newSettings = STUDY_SETTINGS) => {
     setSTUDY(newStudy); setSTUDY_SETTINGS(newSettings);
     localStorage.setItem('gstudy', JSON.stringify(newStudy));
     localStorage.setItem('gstudySettings', JSON.stringify(newSettings));
-    if(user) {
-      try {
-        const payload = sanitizeForFirestore({
-          workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
-          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: newStudy, studySettings: newSettings,
-          aiSettings: getAiSettingsFromLocalStorage(),
-          profileInfo,
-          workoutPlans
-        });
-        await setDoc(doc(db, "users", user.uid), payload);
-      } catch(e) { console.error("Cloud save failed", e); }
-    }
+    await saveToFirestore({ study: newStudy, studySettings: newSettings });
   };
 
   const syncDietPlan = async (newPlan) => {
     setDIET_PLAN(newPlan);
     localStorage.setItem('gdietPlan', JSON.stringify(newPlan));
-    if (user) {
-      try {
-        await setDoc(doc(db, 'users', user.uid), {
-          workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
-          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
-          aiSettings: getAiSettingsFromLocalStorage(),
-          profileInfo,
-          workoutPlans,
-          dietPlan: newPlan
-        });
-      } catch(e) { console.error('Cloud save for dietPlan failed', e); }
-    }
+    await saveToFirestore({ dietPlan: newPlan });
   };
 
   const syncAiSettings = async (newSettings) => {
@@ -334,35 +304,16 @@ export default function App() {
     setAiEnabled(localStorage.getItem('ai_enabled') === 'true');
     window.dispatchEvent(new Event('storage'));
 
-    if(user) {
-      try {
-        const mergedSettings = getAiSettingsFromLocalStorage();
-        await setDoc(doc(db, "users", user.uid), {
-          workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
-          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
-          aiSettings: mergedSettings,
-          profileInfo,
-          workoutPlans
-        });
-      } catch(e) { console.error("Cloud save for AI settings failed", e); }
-    }
+    await saveToFirestore({ aiSettings: getAiSettingsFromLocalStorage() });
   };
 
   const syncProfileInfo = async (newProfile) => {
     setProfileInfo(newProfile);
     localStorage.setItem('gprofileInfo', JSON.stringify(newProfile));
-    if(user) {
-      try {
-        await setDoc(doc(db, "users", user.uid), {
-          workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
-          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
-          aiSettings: getAiSettingsFromLocalStorage(),
-          profileInfo: newProfile,
-          workoutPlans
-        });
-      } catch(e) { console.error("Cloud save for profile failed", e); }
-    }
+    await saveToFirestore({ profileInfo: newProfile });
   };
+
+
 
   const handleReset = async (e) => {
     e.preventDefault();
@@ -469,7 +420,7 @@ export default function App() {
         {activeTab === 'budget'   && <Budget   BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} />}
         {activeTab === 'study'    && <Study    STUDY={STUDY} syncStudy={syncStudy} STUDY_SETTINGS={STUDY_SETTINGS} profileInfo={profileInfo} />}
         {activeTab === 'report'   && <Report   DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} BUDGET={BUDGET} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY={STUDY} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} workoutPlans={workoutPlans} />}
-        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} syncAiSettings={syncAiSettings} profileInfo={profileInfo} syncProfileInfo={syncProfileInfo} workoutPlans={workoutPlans} syncWorkoutPlans={syncWorkoutPlans} DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} />}
+        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} syncAiSettings={syncAiSettings} profileInfo={profileInfo} syncProfileInfo={syncProfileInfo} workoutPlans={workoutPlans} syncWorkoutPlans={syncWorkoutPlans} DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} user={user} />}
       </div>
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} showNav={showNav} />
       {aiEnabled && <AIChat DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} syncAiSettings={syncAiSettings} profileInfo={profileInfo} workoutPlans={workoutPlans} />}

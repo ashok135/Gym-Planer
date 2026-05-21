@@ -1,31 +1,27 @@
-// LifeTraker Service Worker — push notifications
-self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-  const title = data.title || '💪 LifeTraker';
-  const options = {
-    body: data.body || 'Time to check your progress!',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    tag: data.tag || 'lifetraker',
-    renotify: true,
-    vibrate: [200, 100, 200],
-    data: { url: data.url || '/' }
-  };
-  event.waitUntil(self.registration.showNotification(title, options));
+const CACHE_NAME = 'gym-tracker-v1';
+const ASSETS = [
+  './index.html',
+  './manifest.json'
+];
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+  );
+  self.skipWaiting();
 });
 
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url && 'focus' in client) return client.focus();
-      }
-      if (clients.openWindow) return clients.openWindow('/');
-    })
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    fetch(e.request).catch(() => caches.match(e.request))
   );
 });
-
-// Install & activate — no caching, keep it simple
-self.addEventListener('install',   () => self.skipWaiting());
-self.addEventListener('activate',  (e) => e.waitUntil(clients.claim()));

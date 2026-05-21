@@ -7,14 +7,18 @@ import ProfileSettings from './settings/ProfileSettings';
 import AISettings from './settings/AISettings';
 import DietPlanBuilder from './diet/DietPlanBuilder';
 
+
 export default function Settings({ 
   NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, 
   BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, 
   BUDGET, STUDY, syncAiSettings, profileInfo, syncProfileInfo,
-  workoutPlans, syncWorkoutPlans, DIET_PLAN, syncDietPlan
+  workoutPlans, syncWorkoutPlans, DIET_PLAN, syncDietPlan, user
 }) {
   const [localNames, setLocalNames] = useState(NAMES);
   const [saveMsg, setSaveMsg] = useState(false);
+  
+
+  
   
   const getFullSchedule = (sched) => {
     const full = {};
@@ -234,6 +238,7 @@ export default function Settings({
     setTimeout(() => setStudyMsg(false), 2000);
   };
 
+
   const SPLITS = [
     { id: 0, label: 'Rest Day' },
     { id: 1, label: 'Chest & Triceps' },
@@ -243,23 +248,28 @@ export default function Settings({
   ];
 
   const saveSchedule = (type) => {
-    const newSched = { fullTime: { ...(SCHEDULE?.fullTime || {}) }, thisWeek: { ...(SCHEDULE?.thisWeek || {}) } };
-    if (type === 'fullTime') {
-      newSched.fullTime = { ...localSchedule };
-    } else {
-      const today = new Date();
-      for(let i=0; i<7; i++) {
-        const d = new Date(today);
-        d.setDate(today.getDate() + i);
-        const dk = dateKey(d);
-        const dow = d.getDay();
-        newSched.thisWeek[dk] = localSchedule[dow] !== undefined ? localSchedule[dow] : (DEFAULT_PLAN[dow]?.id || dow);
+    try {
+      const newSched = { fullTime: { ...(SCHEDULE?.fullTime || {}) }, thisWeek: { ...(SCHEDULE?.thisWeek || {}) } };
+      if (type === 'fullTime') {
+        newSched.fullTime = { ...(localSchedule || {}) };
+      } else {
+        const today = new Date();
+        for(let i=0; i<7; i++) {
+          const d = new Date(today);
+          d.setDate(today.getDate() + i);
+          const dk = dateKey(d);
+          const dow = d.getDay();
+          newSched.thisWeek[dk] = (localSchedule && localSchedule[dow] !== undefined) ? localSchedule[dow] : (DEFAULT_PLAN?.[dow]?.id || dow);
+        }
       }
+      syncData(DB, NAMES, META, FOOD, newSched);
+      setShowSchedModal(false);
+      setSchedMsg(true);
+      setTimeout(() => setSchedMsg(false), 2000);
+    } catch (err) {
+      console.error("Save schedule failed:", err);
+      alert("Failed to save schedule settings: " + err.message);
     }
-    syncData(DB, NAMES, META, FOOD, newSched);
-    setShowSchedModal(false);
-    setSchedMsg(true);
-    setTimeout(() => setSchedMsg(false), 2000);
   };
 
   const handleNameChange = (k, val) => {
@@ -321,32 +331,32 @@ export default function Settings({
         }
         
         const entry = DB?.[k];
-        if(entry) {
+        if(entry && typeof entry === 'object') {
           Object.keys(entry).filter(ek => !['meta', 'customName'].includes(ek)).forEach(ek => {
             const v = entry[ek];
-            if(v && (v.s || v.r || v.w)) {
+            if(v && typeof v === 'object' && (v.s || v.r || v.w)) {
               const customKey = Object.keys(localNames || {}).find(nameKey => nameKey.endsWith('_' + ek));
               let exName = customKey ? localNames[customKey] : ek;
-              if(entry[ek].customName) exName = entry[ek].customName;
+              if(v.customName) exName = v.customName;
               csv += `${dateCols},Workout,${escapeCSV(exName)},${v.s||0},${v.r||0},${v.w||0},,\n`;
             }
           });
         }
         
         const f = FOOD?.[k];
-        if(f) {
+        if(f && typeof f === 'object') {
           if(f.water) csv += `${dateCols},Habit,Water 3-4L,,,,,Completed\n`;
           if(f.sleep) csv += `${dateCols},Habit,Sleep 7-8h,,,,,Completed\n`;
           if(f.junk) csv += `${dateCols},Habit,No Junk,,,,,Completed\n`;
           
-          if(f.items) {
+          if(f.items && typeof f.items === 'object') {
             const activePlan = (DIET_PLAN && DIET_PLAN[dow]?.length) ? DIET_PLAN[dow] : (DEFAULT_DIET_PLAN[dow] || DEFAULT_DIET_PLAN[1]);
-            if (activePlan) {
+            if (activePlan && Array.isArray(activePlan)) {
               activePlan.forEach(meal => {
-                if (meal && meal.items) {
+                if (meal && meal.items && Array.isArray(meal.items)) {
                   meal.items.forEach(i => {
                     if(f.items[i.id]) {
-                      const customName = (f.custom && f.custom[i.id]) ? f.custom[i.id] : i.name;
+                      const customName = (f.custom && typeof f.custom === 'object' && f.custom[i.id]) ? f.custom[i.id] : i.name;
                       csv += `${dateCols},Diet,${escapeCSV(customName)},,,,${i.p || 0},\n`;
                     }
                   });
@@ -374,7 +384,7 @@ export default function Settings({
     try {
       let csv = 'Date,Category,Amount,Note\n';
       Object.entries(BUDGET || {}).forEach(([mk, md]) => {
-        if (md && md.entries) {
+        if (md && Array.isArray(md.entries)) {
           md.entries.forEach(e => {
             if (e) {
               csv += `${e.date || ''},${e.category || ''},${e.amount || 0},"${(e.note||'').replace(/"/g,'""')}"\n`;
@@ -389,7 +399,7 @@ export default function Settings({
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Budget CSV export failed:", err);
-      alert("Failed to export Budget CSV.");
+      alert("Failed to export Budget CSV: " + err.message);
     }
   };
 
@@ -397,7 +407,7 @@ export default function Settings({
     try {
       let csv = 'Date,Subject,Hours,Learned\n';
       Object.entries(STUDY || {}).forEach(([dk, sd]) => {
-        if (sd && sd.sessions) {
+        if (sd && Array.isArray(sd.sessions)) {
           sd.sessions.forEach(s => {
             if (s) {
               csv += `${dk},${s.subjectId || ''},${s.hours || 0},"${(s.learned||'').replace(/"/g,'""')}"\n`;
@@ -412,7 +422,7 @@ export default function Settings({
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Study CSV export failed:", err);
-      alert("Failed to export Study CSV.");
+      alert("Failed to export Study CSV: " + err.message);
     }
   };
 
@@ -653,6 +663,8 @@ export default function Settings({
           CSV exports your gym, diet, budget and study data. Full Backup saves everything as a JSON file.
         </div>
       </Accordion>
+
+
 
       {/* DEVELOPER OPTIONS */}
       <Accordion title="🧪 Developer Options" subtitle="Tools for testing and debugging">

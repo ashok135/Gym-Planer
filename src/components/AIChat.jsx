@@ -1,8 +1,248 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Bot, Key, Sparkles } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, Key, Sparkles, Copy, Check } from 'lucide-react';
 import { DEFAULT_PLAN, DEFAULT_DIET_PLAN } from '../data';
 
 const GEMINI_KEY_STORAGE = 'gemini_api_key';
+
+const renderMessageContent = (text) => {
+  if (!text) return null;
+
+  const lines = text.split('\n');
+  const elements = [];
+  let currentTable = null;
+  let currentList = null;
+  let isNumberedList = false;
+
+  const parseInlineStyles = (str) => {
+    if (typeof str !== 'string') return str;
+    const parts = [];
+    const boldRegex = /\*\*([^*]+)\*\*/g;
+    let match;
+    let lastIndex = 0;
+
+    while ((match = boldRegex.exec(str)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(str.substring(lastIndex, match.index));
+      }
+      parts.push(<strong key={match.index} style={{ fontWeight: '800', color: 'var(--accent)' }}>{match[1]}</strong>);
+      lastIndex = boldRegex.lastIndex;
+    }
+    
+    if (lastIndex < str.length) {
+      parts.push(str.substring(lastIndex));
+    }
+    
+    return parts.length > 0 ? parts : str;
+  };
+
+  const flushTable = (key) => {
+    if (!currentTable || currentTable.length === 0) return null;
+    const tableLines = currentTable;
+    currentTable = null;
+
+    // Filter out rows that are only hyphens, colons, pipes (e.g. |---|---|)
+    const activeLines = tableLines.filter(line => {
+      const clean = line.replace(/[|\s-:]/g, '');
+      return clean.length > 0;
+    });
+
+    if (activeLines.length === 0) return null;
+
+    const rows = activeLines.map(line => {
+      const parts = line.split('|').map(p => p.trim());
+      if (parts[0] === '') parts.shift();
+      if (parts[parts.length - 1] === '') parts.pop();
+      return parts;
+    });
+
+    // Check if the original table had a separator row as the second row
+    const hasSeparator = tableLines[1] && /^[|\s-:]+$/.test(tableLines[1].trim());
+    const headers = hasSeparator ? rows[0] : null;
+    const bodyRows = hasSeparator ? rows.slice(1) : rows;
+
+    return (
+      <div key={key} style={{ overflowX: 'auto', margin: '8px 0', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left', background: 'rgba(0,0,0,0.2)' }}>
+          {headers && (
+            <thead>
+              <tr style={{ borderBottom: '2px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)' }}>
+                {headers.map((h, i) => (
+                  <th key={i} style={{ padding: '8px 12px', fontWeight: 'bold', color: 'var(--accent)' }}>
+                    {parseInlineStyles(h)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          )}
+          <tbody>
+            {bodyRows.map((row, ri) => (
+              <tr key={ri} style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                {row.map((cell, ci) => (
+                  <td key={ci} style={{ padding: '8px 12px', color: 'var(--text)' }}>
+                    {parseInlineStyles(cell)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const flushList = (key) => {
+    if (!currentList || currentList.length === 0) return null;
+    const listItems = currentList;
+    currentList = null;
+
+    if (isNumberedList) {
+      return (
+        <ol key={key} style={{ paddingLeft: '20px', margin: '6px 0', listStyleType: 'decimal', color: 'var(--text)' }}>
+          {listItems.map((item, idx) => (
+            <li key={idx} style={{ marginBottom: '4px' }}>{parseInlineStyles(item)}</li>
+          ))}
+        </ol>
+      );
+    } else {
+      return (
+        <ul key={key} style={{ paddingLeft: '20px', margin: '6px 0', listStyleType: 'disc', color: 'var(--text)' }}>
+          {listItems.map((item, idx) => (
+            <li key={idx} style={{ marginBottom: '4px' }}>{parseInlineStyles(item)}</li>
+          ))}
+        </ul>
+      );
+    }
+  };
+
+  for (let idx = 0; idx < lines.length; idx++) {
+    const line = lines[idx];
+    const trimmed = line.trim();
+
+    // Check if line is a table row
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      if (currentList) {
+        elements.push(flushList(`list-${idx}`));
+      }
+      if (!currentTable) {
+        currentTable = [];
+      }
+      currentTable.push(line);
+      continue;
+    }
+
+    if (currentTable) {
+      elements.push(flushTable(`table-${idx}`));
+    }
+
+    // Check for unordered lists
+    const bulletMatch = line.match(/^(\s*)[*-]\s+(.*)$/);
+    if (bulletMatch) {
+      if (!currentList || isNumberedList) {
+        if (currentList) elements.push(flushList(`list-${idx}`));
+        currentList = [];
+        isNumberedList = false;
+      }
+      currentList.push(bulletMatch[2]);
+      continue;
+    }
+
+    // Check for numbered lists
+    const numberMatch = line.match(/^(\s*)\d+\.\s+(.*)$/);
+    if (numberMatch) {
+      if (!currentList || !isNumberedList) {
+        if (currentList) elements.push(flushList(`list-${idx}`));
+        currentList = [];
+        isNumberedList = true;
+      }
+      currentList.push(numberMatch[2]);
+      continue;
+    }
+
+    if (currentList) {
+      elements.push(flushList(`list-${idx}`));
+    }
+
+    if (trimmed === '') {
+      elements.push(<div key={`space-${idx}`} style={{ height: '6px' }} />);
+    } else {
+      elements.push(
+        <div key={`p-${idx}`} style={{ margin: '3px 0' }}>
+          {parseInlineStyles(line)}
+        </div>
+      );
+    }
+  }
+
+  if (currentTable) {
+    elements.push(flushTable(`table-end`));
+  }
+  if (currentList) {
+    elements.push(flushList(`list-end`));
+  }
+
+  return elements;
+};
+
+const CopyButton = ({ text, isUser }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      let textToCopy = text;
+
+      if (text) {
+        // 1. Check for multi-line markdown code blocks: ``` ... ```
+        const codeBlockRegex = /```(?:[a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g;
+        const blockMatches = [...text.matchAll(codeBlockRegex)];
+        
+        if (blockMatches.length > 0) {
+          textToCopy = blockMatches.map(m => m[1].trim()).join('\n\n');
+        } else {
+          // 2. Check for inline code backticks: `code`
+          const inlineCodeRegex = /`([^`\n]+)`/g;
+          const inlineMatches = [...text.matchAll(inlineCodeRegex)];
+          
+          if (inlineMatches.length > 0) {
+            textToCopy = inlineMatches.map(m => m[1].trim()).join('\n');
+          }
+        }
+      }
+
+      await navigator.clipboard.writeText(textToCopy);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      style={{
+        position: 'absolute',
+        top: '6px',
+        right: '6px',
+        background: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '4px',
+        borderRadius: '6px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: isUser ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)',
+        transition: 'all 0.2s ease-in-out',
+        outline: 'none'
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = isUser ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.85)'; e.currentTarget.style.background = isUser ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = isUser ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)'; e.currentTarget.style.background = 'transparent'; }}
+      title="Copy to clipboard"
+    >
+      {copied ? <Check size={12} strokeWidth={2.5} color={isUser ? '#000' : 'var(--accent)'} /> : <Copy size={12} strokeWidth={2} />}
+    </button>
+  );
+};
 
 export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHEDULE, syncAiSettings, profileInfo = { name: '', resume: '' } }) {
   const [open, setOpen] = useState(false);
@@ -267,7 +507,8 @@ Guidelines for Lucy:
    - If they ask about budget comparison, compare 'This Month' total spent vs 'Last Month' spent and give sharp, motivating advice.
    - If they ask about study topics to cover, identify which subjects have "Never" been studied, have 0 hours, or have the oldest 'Last studied' date and push them to study those!
    - If they ask "when did I eat high protein" or query their diet or protein history, inspect the 'Recent Protein & Meal Logs' listed above. List the exact dates where they ate high protein (>= 70g) or what they ate, celebrate their discipline, and push them to keep hit their macros!
-3. Style: Max 3-5 sentences. Keep it punchy, high-impact, and fully friendly!`;
+3. Style: Keep responses motivating, friendly, and highly engaging.
+4. Formatting: When presenting lists, comparisons, exercise splits, study stats, numbers, addresses, contact details, or any structured comparative data, ALWAYS format it inside a clean Markdown table (using '| Header 1 | Header 2 |' style). This renders as a beautiful interactive table for the user!`;
   };
 
   const [tempKey, setTempKey] = useState('');
@@ -635,12 +876,20 @@ Guidelines for Lucy:
             {messages.map((msg, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 <div style={{
-                  maxWidth: '85%', padding: '10px 14px', borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                  maxWidth: '85%', 
+                  padding: '10px 32px 10px 14px',
+                  borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                   background: msg.role === 'user' ? 'var(--accent)' : 'var(--bg3)',
                   color: msg.role === 'user' ? '#000' : 'var(--text)',
-                  fontSize: '13px', lineHeight: 1.5, whiteSpace: 'pre-wrap'
+                  fontSize: '13px', 
+                  lineHeight: 1.5, 
+                  whiteSpace: 'pre-wrap',
+                  position: 'relative'
                 }}>
-                  {msg.text}
+                  {msg.role === 'user' ? msg.text : renderMessageContent(msg.text)}
+                  {!msg.streaming && (
+                    <CopyButton text={msg.text} isUser={msg.role === 'user'} />
+                  )}
                   {msg.streaming && (
                     <span className="claude-pulse-dot" />
                   )}
