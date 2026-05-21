@@ -101,3 +101,49 @@ export const getDayVol = (e) => {
     const v = e[k]; return s + (v.s||0)*(v.r||0)*(v.w||0);
   }, 0));
 };
+
+export const EXERCISE_GIFS = {
+  'barbell bench press': 'https://fitnessprogramer.com/wp-content/uploads/2015/11/Barbell-Bench-Press.gif',
+  'incline dumbbell press': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Incline-Dumbbell-Press.gif',
+  'cable chest fly': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Cable-Crossover.gif',
+  'decline bench press': 'https://fitnessprogramer.com/wp-content/uploads/2021/01/Decline-Barbell-Bench-Press.gif',
+  'dumbbell pullover': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Pullover.gif',
+  
+  'tricep pushdown': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Pushdown.gif',
+  'skull crushers': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Lying-Triceps-Extension.gif',
+  'overhead tricep extension': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Overhead-Triceps-Extension.gif',
+  'close grip bench press': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Close-Grip-Bench-Press.gif',
+  'diamond push-ups': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Diamond-Push-up.gif',
+
+  'deadlift': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Deadlift.gif',
+  'lat pulldown': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Lat-Pulldown.gif',
+  'bent over barbell row': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Bent-Over-Row.gif',
+  'seated cable row': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Seated-Cable-Row.gif',
+  'single arm dumbbell row': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Row.gif',
+
+  'barbell curl': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Curl.gif',
+  'incline dumbbell curl': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Incline-Dumbbell-Curl.gif',
+  'hammer curl': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Hammer-Curl.gif',
+  'concentration curl': 'https://fitnessprogramer.com/wp-content/uploads/2015/11/Concentration-Curl.gif',
+  'cable curl': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Cable-Curl.gif',
+
+  'barbell squat': 'https://fitnessprogramer.com/wp-content/uploads/2021/01/Barbell-Squat.gif',
+  'back squat': 'https://fitnessprogramer.com/wp-content/uploads/2021/01/Barbell-Squat.gif',
+  'romanian deadlift': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Romanian-Deadlift.gif',
+  'leg press': 'https://fitnessprogramer.com/wp-content/uploads/2015/11/Leg-Press.gif',
+  'leg curl': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Seated-Leg-Curl.gif',
+  'calf raises': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Standing-Calf-Raise.gif',
+
+  'overhead press': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Overhead-Press.gif',
+  'dumbbell lateral raise': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif',
+  'front raise': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Front-Raise.gif',
+  'face pulls': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Face-Pull.gif',
+  'arnold press': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Arnold-Press.gif',
+
+  'crunches': 'https://fitnessprogramer.com/wp-content/uploads/2015/11/Crunch.gif',
+  'leg raises': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Lying-Leg-Raise.gif',
+  'plank': 'https://fitnessprogramer.com/wp-content/uploads/2021/01/Plank.gif',
+
+  'weighted pull-ups': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Pull-up.gif',
+  'barbell row': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Bent-Over-Row.gif'
+};

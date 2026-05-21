@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DEFAULT_PLAN, DAYS_FULL, DEFAULT_DIET_PLAN, MONTHS, dateKey } from '../data';
+import { DEFAULT_PLAN, DAYS_FULL, DEFAULT_DIET_PLAN, MONTHS, dateKey, EXERCISE_GIFS } from '../data';
 import { Beaker } from 'lucide-react';
 import { generateSeedData } from '../utils/seeder';
 import Accordion from './shared/Accordion';
@@ -58,6 +58,16 @@ export default function Settings({
       ...val
     }));
   }, [workoutPlans]);
+
+  const exerciseSuggestions = useMemo(() => {
+    if (!EXERCISE_GIFS) return [];
+    return Object.keys(EXERCISE_GIFS).map(name => {
+      return name
+        .split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+    });
+  }, []);
 
   const deleteMuscleGroup = (splitId, muscleName) => {
     const updated = plansArray.map(p => {
@@ -418,7 +428,7 @@ export default function Settings({
                       </div>
 
                       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                        <input type="text" placeholder={`Add exercise to ${muscle.name}...`} id={`new-ex-${muscle.name}`}
+                        <input type="text" placeholder={`Add exercise to ${muscle.name}...`} id={`new-ex-${muscle.name}`} list="exercise-suggestions"
                           style={{ flex: 1, padding: '6px 10px', background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '6px', color: 'var(--text)', fontSize: '12px' }}
                           onKeyDown={e => {
                             if (e.key === 'Enter') {
@@ -437,6 +447,11 @@ export default function Settings({
                           + Add
                         </button>
                       </div>
+                      <datalist id="exercise-suggestions">
+                        {exerciseSuggestions.map(name => (
+                          <option key={name} value={name} />
+                        ))}
+                      </datalist>
                     </div>
                   ))
                 )}
