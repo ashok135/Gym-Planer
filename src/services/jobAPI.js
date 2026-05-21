@@ -97,6 +97,7 @@ const fetchFromAdzuna = async (role, location, workMode) => {
       description: job.description?.substring(0, 200) || '',
       url: job.redirect_url,
       postedDate: job.created ? new Date(job.created).toLocaleDateString() : 'Recently',
+      postedTimestamp: job.created ? new Date(job.created).getTime() : Date.now(),
       salary: job.salary_min ? `₹${formatSalary(job.salary_min)} - ₹${formatSalary(job.salary_max)}` : null,
       source: 'Adzuna',
       color: '#4D9FFF'
@@ -142,6 +143,7 @@ const fetchFromRemoteOK = async (role, workMode) => {
       description: job.description?.substring(0, 200) || '',
       url: job.url || `https://remoteok.com/remote-jobs/${job.id}`,
       postedDate: job.date ? new Date(job.date * 1000).toLocaleDateString() : 'Recently',
+      postedTimestamp: job.date ? job.date * 1000 : Date.now(),
       salary: job.salary_min ? `$${formatSalary(job.salary_min)} - $${formatSalary(job.salary_max)}` : null,
       tags: job.tags || [],
       source: 'RemoteOK',
@@ -189,6 +191,7 @@ const fetchFromRemotive = async (role, workMode) => {
       description: job.description?.substring(0, 200) || '',
       url: job.url,
       postedDate: job.publication_date ? new Date(job.publication_date).toLocaleDateString() : 'Recently',
+      postedTimestamp: job.publication_date ? new Date(job.publication_date).getTime() : Date.now(),
       salary: job.salary || null,
       tags: job.tags || [],
       source: 'Remotive',
@@ -289,6 +292,7 @@ export const fetchRealJobs = async (role, location = 'Remote', workMode = 'Remot
           description: `Search for ${role} positions on LinkedIn`,
           url: generateLinkedInURL(role, location, workMode),
           postedDate: 'Search Now',
+          postedTimestamp: 0,
           source: 'LinkedIn',
           color: '#0A66C2',
           isFallback: true
@@ -308,6 +312,7 @@ export const fetchRealJobs = async (role, location = 'Remote', workMode = 'Remot
             description: `Browse ${role} openings on Naukri`,
             url: naukriUrl,
             postedDate: 'Search Now',
+            postedTimestamp: 0,
             source: 'Naukri',
             color: '#FF6B35',
             isFallback: true
@@ -327,7 +332,7 @@ export const fetchRealJobs = async (role, location = 'Remote', workMode = 'Remot
     uniqueJobs.sort((a, b) => {
       if (a.isFallback && !b.isFallback) return 1;
       if (!a.isFallback && b.isFallback) return -1;
-      return 0;
+      return (b.postedTimestamp || 0) - (a.postedTimestamp || 0);
     });
     
     return uniqueJobs;
