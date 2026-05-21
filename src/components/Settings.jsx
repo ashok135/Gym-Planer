@@ -5,12 +5,13 @@ import { generateSeedData } from '../utils/seeder';
 import Accordion from './shared/Accordion';
 import ProfileSettings from './settings/ProfileSettings';
 import AISettings from './settings/AISettings';
+import DietPlanBuilder from './diet/DietPlanBuilder';
 
 export default function Settings({ 
   NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, 
   BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, 
   BUDGET, STUDY, syncAiSettings, profileInfo, syncProfileInfo,
-  workoutPlans, syncWorkoutPlans
+  workoutPlans, syncWorkoutPlans, DIET_PLAN, syncDietPlan
 }) {
   const [localNames, setLocalNames] = useState(NAMES);
   const [saveMsg, setSaveMsg] = useState(false);
@@ -470,6 +471,13 @@ export default function Settings({
               </div>
             );
           })()}
+        </div>
+      </Accordion>
+
+      {/* 🍽️ DIET PLAN BUILDER */}
+      <Accordion title="🍽️ Diet Plan Builder" subtitle="Configure daily meals, dishes, and protein values">
+        <div style={{ margin: '-10px -16px -16px' }}>
+          <DietPlanBuilder DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} />
         </div>
       </Accordion>
 

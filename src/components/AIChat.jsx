@@ -7,7 +7,7 @@ const GEMINI_KEY_STORAGE = 'gemini_api_key';
 export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHEDULE, syncAiSettings, profileInfo = { name: '', resume: '' } }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'bot', text: "Hi! I'm Lucy 🤖 Ask me anything about your workouts, diet, budget, or study progress!" }
+    { role: 'bot', text: "Hi! I'm Lucy 🤖 Ask me anything about your workouts, diet, budget, personal information or study progress!" }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);

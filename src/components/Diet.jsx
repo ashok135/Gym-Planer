@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
-import { BookOpen, Wrench, Calculator } from 'lucide-react';
 import DietLog from './diet/DietLog';
-import DietPlanBuilder from './diet/DietPlanBuilder';
 import HealthCalc from './diet/HealthCalc';
 
 const TABS = [
   { id: 'log',     label: "Today's Log",   icon: '📋' },
-  { id: 'builder', label: 'Plan Builder',  icon: '🍽️' },
   { id: 'calc',    label: 'Calculators',   icon: '📊' },
 ];
 
-export default function Diet({ FOOD, syncData, DB, NAMES, META, profileInfo, DIET_PLAN, syncDietPlan }) {
+export default function Diet({ FOOD, syncData, DB, NAMES, META, profileInfo, DIET_PLAN }) {
   const [activeTab, setActiveTab] = useState('log');
 
   return (
@@ -25,7 +22,7 @@ export default function Diet({ FOOD, syncData, DB, NAMES, META, profileInfo, DIE
         }}>
           🥗 Diet
         </div>
-        <div style={{ fontSize: '11px', color: 'var(--text3)' }}>Track meals · Build plans · Calculate macros</div>
+        <div style={{ fontSize: '11px', color: 'var(--text3)' }}>Track meals · Calculate macros</div>
       </div>
 
       {/* Sub-Tab Switcher */}
@@ -60,13 +57,6 @@ export default function Diet({ FOOD, syncData, DB, NAMES, META, profileInfo, DIE
           META={META}
           profileInfo={profileInfo}
           DIET_PLAN={DIET_PLAN}
-        />
-      )}
-
-      {activeTab === 'builder' && (
-        <DietPlanBuilder
-          DIET_PLAN={DIET_PLAN}
-          syncDietPlan={syncDietPlan}
         />
       )}
 
