@@ -73,7 +73,7 @@ const getExerciseGif = (name) => {
   return `https://fitnessprogramer.com/wp-content/uploads/2021/02/${hyphenated}.gif`;
 };
 
-export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
+export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, workoutPlans }) {
   const today = new Date();
   const dow = today.getDay();
   const key = dateKey(today);
@@ -87,7 +87,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
   if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[key] !== undefined) currentPlanId = SCHEDULE.thisWeek[key];
 
   // Create deep copy of plan
-  const plan = JSON.parse(JSON.stringify(DEFAULT_PLAN[currentPlanId] || DEFAULT_PLAN[0]));
+  const plan = JSON.parse(JSON.stringify(workoutPlans[currentPlanId] || workoutPlans[0]));
   plan.muscles.push({
     name: 'Abs',
     exercises: ['Crunches', 'Leg Raises', 'Plank']

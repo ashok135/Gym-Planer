@@ -26,7 +26,7 @@ const WATER_LABELS = ['0L', '1-2L', '2-3L', '3-4L'];
 const SLEEP_LABELS = ['< 5h', '5-6h', '6-7h', '7-8h'];
 const JUNK_LABELS = ['Failed', 'Small Cheat', 'Very Little', 'Perfect'];
 
-export default function Diet({ FOOD, syncData, DB, NAMES, META }) {
+export default function Diet({ FOOD, syncData, DB, NAMES, META, profileInfo }) {
   const today = new Date();
   const dow = today.getDay();
   const key = dateKey(today);
@@ -89,7 +89,25 @@ export default function Diet({ FOOD, syncData, DB, NAMES, META }) {
   });
   totalP = Math.round(totalP);
 
-  const pct = Math.min(100, Math.round((totalP / 100) * 100));
+  const proteinTarget = Number(profileInfo?.dailyProteinTarget || 100);
+  const waterTarget = Number(profileInfo?.dailyWaterTarget || 4);
+  const sleepTarget = Number(profileInfo?.dailySleepTarget || 8);
+
+  const pct = Math.min(100, Math.round((totalP / proteinTarget) * 100));
+
+  const getWaterLabel = (level) => {
+    if (level === 0) return '0 L';
+    if (level === 1) return `1-${Math.round(waterTarget * 0.4)} L`;
+    if (level === 2) return `${Math.round(waterTarget * 0.4)}-${Math.round(waterTarget * 0.75)} L`;
+    return `${Math.round(waterTarget * 0.75)}+ L (Target: ${waterTarget}L)`;
+  };
+
+  const getSleepLabel = (level) => {
+    if (level === 0) return `< ${Math.round(sleepTarget * 0.6)} hrs`;
+    if (level === 1) return `${Math.round(sleepTarget * 0.6)}-${Math.round(sleepTarget * 0.8)} hrs`;
+    if (level === 2) return `${Math.round(sleepTarget * 0.8)}-${sleepTarget} hrs`;
+    return `${sleepTarget}+ hrs (Target: ${sleepTarget}h)`;
+  };
 
   return (
     <div id="food-content" style={{padding: '20px 0'}}>
@@ -101,7 +119,7 @@ export default function Diet({ FOOD, syncData, DB, NAMES, META }) {
         <div className="food-ring" style={{background: `conic-gradient(var(--accent) ${pct}%, var(--bg3) 0%)`}}>
           <div className="food-ring-inner">
             <div className="food-ring-val">{totalP}g</div>
-            <div className="food-ring-label">of 100g Protein</div>
+            <div className="food-ring-label">of {proteinTarget}g Protein</div>
           </div>
         </div>
       </div>
@@ -113,7 +131,7 @@ export default function Diet({ FOOD, syncData, DB, NAMES, META }) {
             <div className="habit-label" style={{margin:0}}>Water</div>
           </div>
           <div style={{display:'flex', justifyContent:'space-between', width:'100%', alignItems:'center'}}>
-            <div style={{fontSize:'11px', color:'var(--text2)', fontWeight:600}}>{WATER_LABELS[getVal(saved.water)]}</div>
+            <div style={{fontSize:'11px', color:'var(--text2)', fontWeight:600}}>{getWaterLabel(getVal(saved.water))}</div>
             <SegmentBar val={getVal(saved.water)} onChange={(v) => handleHabit('water', v)} color="var(--blue)" />
           </div>
         </div>
@@ -123,7 +141,7 @@ export default function Diet({ FOOD, syncData, DB, NAMES, META }) {
             <div className="habit-label" style={{margin:0}}>Sleep</div>
           </div>
           <div style={{display:'flex', justifyContent:'space-between', width:'100%', alignItems:'center'}}>
-            <div style={{fontSize:'11px', color:'var(--text2)', fontWeight:600}}>{SLEEP_LABELS[getVal(saved.sleep)]}</div>
+            <div style={{fontSize:'11px', color:'var(--text2)', fontWeight:600}}>{getSleepLabel(getVal(saved.sleep))}</div>
             <SegmentBar val={getVal(saved.sleep)} onChange={(v) => handleHabit('sleep', v)} color="var(--accent)" />
           </div>
         </div>

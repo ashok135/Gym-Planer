@@ -9,7 +9,8 @@ import AISettings from './settings/AISettings';
 export default function Settings({ 
   NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, 
   BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, 
-  BUDGET, STUDY, syncAiSettings, profileInfo, syncProfileInfo 
+  BUDGET, STUDY, syncAiSettings, profileInfo, syncProfileInfo,
+  workoutPlans, syncWorkoutPlans
 }) {
   const [localNames, setLocalNames] = useState(NAMES);
   const [saveMsg, setSaveMsg] = useState(false);
@@ -45,6 +46,81 @@ export default function Settings({
   const [catMsg, setCatMsg] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [devMode, setDevMode] = useState(() => localStorage.getItem('dev_mode') === 'true');
+
+  const [selectedSplitToEdit, setSelectedSplitToEdit] = useState(1);
+  const [newMuscleGroupName, setNewMuscleGroupName] = useState('');
+
+  const deleteMuscleGroup = (splitId, muscleName) => {
+    const updated = workoutPlans.map(p => {
+      if (p.id === splitId) {
+        return {
+          ...p,
+          muscles: p.muscles.filter(m => m.name !== muscleName)
+        };
+      }
+      return p;
+    });
+    syncWorkoutPlans(updated);
+  };
+
+  const deleteExercise = (splitId, muscleName, exerciseName) => {
+    const updated = workoutPlans.map(p => {
+      if (p.id === splitId) {
+        return {
+          ...p,
+          muscles: p.muscles.map(m => {
+            if (m.name === muscleName) {
+              return {
+                ...m,
+                exercises: m.exercises.filter(ex => ex !== exerciseName)
+              };
+            }
+            return m;
+          })
+        };
+      }
+      return p;
+    });
+    syncWorkoutPlans(updated);
+  };
+
+  const addCustomExercise = (splitId, muscleName, exerciseName) => {
+    if (!exerciseName.trim()) return;
+    const updated = workoutPlans.map(p => {
+      if (p.id === splitId) {
+        return {
+          ...p,
+          muscles: p.muscles.map(m => {
+            if (m.name === muscleName) {
+              return {
+                ...m,
+                exercises: [...m.exercises, exerciseName.trim()]
+              };
+            }
+            return m;
+          })
+        };
+      }
+      return p;
+    });
+    syncWorkoutPlans(updated);
+  };
+
+  const addMuscleGroup = (splitId) => {
+    if (!newMuscleGroupName.trim()) return;
+    const updated = workoutPlans.map(p => {
+      if (p.id === splitId) {
+        if (p.muscles.some(m => m.name.toLowerCase() === newMuscleGroupName.trim().toLowerCase())) return p;
+        return {
+          ...p,
+          muscles: [...p.muscles, { name: newMuscleGroupName.trim(), exercises: [] }]
+        };
+      }
+      return p;
+    });
+    syncWorkoutPlans(updated);
+    setNewMuscleGroupName('');
+  };
 
   const addCategory = () => {
     if (!newCatLabel.trim()) return;
@@ -243,7 +319,7 @@ export default function Settings({
                 <div style={{ fontWeight: 500, color: 'var(--text)', width: '90px', fontSize: '13px' }}>{DAYS_FULL[dow]}</div>
                 <select style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', outline: 'none', fontSize: '13px' }}
                   value={currentSplit} onChange={e => setLocalSchedule(prev => ({ ...prev, [dow]: parseInt(e.target.value) }))}>
-                  {SPLITS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  {workoutPlans.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                 </select>
               </div>
             );
@@ -263,18 +339,103 @@ export default function Settings({
         </div>
       </Accordion>
 
+      {/* 💪 CUSTOM WORKOUT SPLITS BUILDER */}
+      <Accordion title="💪 Workout Split Builder" subtitle="Add muscle groups, custom exercises, or delete routines">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text2)' }}>Select Workout Split to Customize</div>
+            <select value={selectedSplitToEdit} onChange={e => setSelectedSplitToEdit(Number(e.target.value))}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', outline: 'none', fontSize: '13px', fontWeight: 600 }}>
+              {workoutPlans.map(p => <option key={p.id} value={p.id}>{p.label} (Split ID: {p.id})</option>)}
+            </select>
+          </div>
+
+          {(() => {
+            const currentPlan = workoutPlans.find(p => p.id === selectedSplitToEdit) || workoutPlans[0];
+            return (
+              <div style={{ background: 'var(--bg3)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <div style={{ fontWeight: 'bold', color: 'var(--accent)', fontSize: '14px' }}>{currentPlan.label}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{currentPlan.muscles.length} Muscle Groups</div>
+                </div>
+
+                {currentPlan.muscles.length === 0 ? (
+                  <div style={{ fontSize: '12px', color: 'var(--text3)', textAlign: 'center', padding: '20px 0' }}>No muscle groups in this split. Add one below!</div>
+                ) : (
+                  currentPlan.muscles.map((muscle, mIdx) => (
+                    <div key={muscle.name} style={{ marginBottom: '14px', borderBottom: mIdx < currentPlan.muscles.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', paddingBottom: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>{muscle.name}</span>
+                        <button onClick={() => deleteMuscleGroup(selectedSplitToEdit, muscle.name)}
+                          style={{ background: 'transparent', border: 'none', color: 'var(--red)', fontSize: '11px', cursor: 'pointer' }}>
+                          Remove Group
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
+                        {muscle.exercises.map((ex, exIdx) => (
+                          <div key={exIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                            <span style={{ fontSize: '12px', color: 'var(--text2)' }}>{ex}</span>
+                            <button onClick={() => deleteExercise(selectedSplitToEdit, muscle.name, ex)}
+                              style={{ background: 'transparent', border: 'none', color: 'var(--red)', fontSize: '13px', cursor: 'pointer', padding: '0 4px', fontWeight: 'bold' }}>
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                        <input type="text" placeholder={`Add exercise to ${muscle.name}...`} id={`new-ex-${muscle.name}`}
+                          style={{ flex: 1, padding: '6px 10px', background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '6px', color: 'var(--text)', fontSize: '12px' }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              addCustomExercise(selectedSplitToEdit, muscle.name, e.target.value);
+                              e.target.value = '';
+                            }
+                          }} />
+                        <button onClick={() => {
+                          const input = document.getElementById(`new-ex-${muscle.name}`);
+                          if (input && input.value.trim()) {
+                            addCustomExercise(selectedSplitToEdit, muscle.name, input.value.trim());
+                            input.value = '';
+                          }
+                        }}
+                          style={{ padding: '4px 10px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '6px', color: 'var(--text)', fontSize: '12px', cursor: 'pointer' }}>
+                          + Add
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+
+                <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed var(--border2)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '6px' }}>Add New Muscle Group to split</div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input type="text" placeholder="e.g. Forearms, Core" value={newMuscleGroupName} onChange={e => setNewMuscleGroupName(e.target.value)}
+                      style={{ flex: 1, padding: '8px 12px', background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px' }} />
+                    <button onClick={() => addMuscleGroup(selectedSplitToEdit)}
+                      style={{ padding: '8px 14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>
+                      + Add Group
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </Accordion>
+
       {/* CUSTOM EXERCISES */}
       <Accordion title="🏋️ Custom Exercises" subtitle="Rename default exercises">
-        {[1,2,3].map(dow => {
-          const p = DEFAULT_PLAN[dow];
+        {workoutPlans.filter(p => p.id !== 0).map(p => {
           return (
-            <div className="settings-section" key={dow} style={{ marginBottom: '16px' }}>
-              <div className="settings-label">{p.label} — {DAYS_FULL[dow]}</div>
+            <div className="settings-section" key={p.id} style={{ marginBottom: '16px' }}>
+              <div className="settings-label">{p.label} (Split ID: {p.id})</div>
               {p.muscles.map(m => (
                 <div key={m.name}>
                   <div style={{ fontSize: '11px', color: 'var(--text3)', margin: '8px 0 6px', letterSpacing: '.05em' }}>{m.name}</div>
                   {m.exercises.map((ex, i) => {
-                    const k = `${dow}_${m.name}_${i}`;
+                    const k = `${p.id}_${m.name}_${i}`;
                     const val = localNames[k] !== undefined ? localNames[k] : ex;
                     return (
                       <div className="exercise-edit-row" key={k}>

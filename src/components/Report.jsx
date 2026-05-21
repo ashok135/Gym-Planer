@@ -21,11 +21,12 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
-export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET_SETTINGS, syncBudget, STUDY, STUDY_SETTINGS, syncStudy }) {
+export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET_SETTINGS, syncBudget, STUDY, STUDY_SETTINGS, syncStudy, workoutPlans }) {
   const [activeSection, setActiveSection] = useState('gym');
   const [timeRange, setTimeRange] = useState('Today');
   const [budgetRange, setBudgetRange] = useState('Monthly');
   const [studyRange, setStudyRange] = useState('Weekly');
+  const [selectedProgressionExercise, setSelectedProgressionExercise] = useState('Barbell Bench Press');
 
   // ResizeObserver-based chart width — avoids ResponsiveContainer infinite loop
   const chartAreaRef = useRef(null);
@@ -83,7 +84,7 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
     }
     gymMonthsData.push({ name: MONTHS[m].slice(0, 3), days: monthDays });
   }
-  Object.values(DEFAULT_PLAN).forEach(p => p.muscles.forEach(m => m.exercises.forEach((ex, i) => {
+  Object.values(workoutPlans).forEach(p => p.muscles.forEach(m => m.exercises.forEach((ex, i) => {
     allExercises[`${m.name}_${i}`] = ex;
   })));
   
@@ -111,7 +112,7 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
     const m = META[k] || {};
     
     if(timeRange === 'Today') {
-      const plan = DEFAULT_PLAN[d.getDay()] || DEFAULT_PLAN[0];
+      const plan = workoutPlans[d.getDay()] || workoutPlans[0];
       plan.muscles.forEach(mu => {
         mu.exercises.forEach((ex, idx) => {
           todayTotalExercises++;
@@ -498,6 +499,135 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
               </div>
             </div>
           </div>
+
+          {/* LIFT PROGRESSION ANALYTICS */}
+          {(() => {
+            const loggedExercisesList = [];
+            Object.keys(DB).forEach(k => {
+              const e = DB[k] || {};
+              Object.keys(e).filter(ek => !['meta', 'customName', 'done'].includes(ek)).forEach(ek => {
+                const customKey = Object.keys(NAMES).find(nameKey => nameKey.endsWith('_' + ek));
+                const name = customKey ? NAMES[customKey] : (allExercises[ek] || ek);
+                if (name && !loggedExercisesList.includes(name)) {
+                  loggedExercisesList.push(name);
+                }
+              });
+            });
+            if (loggedExercisesList.length === 0) {
+              loggedExercisesList.push('Barbell Bench Press', 'Barbell Squat', 'Deadlift (Heavy)');
+            }
+
+            const progressionData = [];
+            Object.keys(DB).sort().forEach(date => {
+              const dayLog = DB[date] || {};
+              let weight = 0;
+              let volume = 0;
+              
+              Object.keys(dayLog).forEach(ek => {
+                const customKey = Object.keys(NAMES).find(nameKey => nameKey.endsWith('_' + ek));
+                const name = customKey ? NAMES[customKey] : (allExercises[ek] || ek);
+                if (name === selectedProgressionExercise && dayLog[ek]) {
+                  const val = dayLog[ek];
+                  weight = Math.max(weight, parseFloat(val.w) || 0);
+                  volume = (parseFloat(val.s) || 0) * (parseFloat(val.r) || 0) * (parseFloat(val.w) || 0);
+                }
+              });
+              
+              if (weight > 0) {
+                progressionData.push({
+                  date: date.substring(5),
+                  weight,
+                  volume
+                });
+              }
+            });
+
+            // Make sure the active selected exercise is in the list
+            const currentSelectedInList = loggedExercisesList.includes(selectedProgressionExercise) ? selectedProgressionExercise : loggedExercisesList[0];
+
+            return (
+              <div style={{marginTop: '40px'}}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div className="dash-val" style={{fontSize: '18px'}}>💪 Lift Progression Analytics</div>
+                  <select value={currentSelectedInList} onChange={e => setSelectedProgressionExercise(e.target.value)}
+                    style={{ padding: '8px 12px', borderRadius: '10px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', outline: 'none', fontSize: '13px', maxWidth: '240px', fontWeight: 600 }}>
+                    {loggedExercisesList.map(ex => <option key={ex} value={ex}>{ex}</option>)}
+                  </select>
+                </div>
+                <div className="dash-card full" style={{background: 'var(--bg2)', padding: '24px', border: '1px solid var(--border2)', borderRadius: '24px', position: 'relative', display: 'block'}}>
+                  <div className="dash-glow accent" style={{opacity: 0.08}}></div>
+                  <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Peak Weight Lifted Progress for {currentSelectedInList}</div>
+                  
+                  {(() => {
+                    if (progressionData.length < 2) {
+                      return (
+                        <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: '13px', padding: '36px 0', border: '1px dashed var(--border2)', borderRadius: '16px', marginTop: '16px' }}>
+                          🏋️ Log this exercise on at least 2 different days to generate progression curves!
+                        </div>
+                      );
+                    }
+
+                    const width = 500;
+                    const height = 150;
+                    const padding = 20;
+
+                    const weights = progressionData.map(d => d.weight);
+                    const maxW = Math.max(...weights);
+                    const minW = Math.min(...weights);
+                    const rangeW = maxW - minW || 10;
+
+                    const points = progressionData.map((d, idx) => {
+                      const x = padding + (idx / (progressionData.length - 1)) * (width - 2 * padding);
+                      const y = height - padding - ((d.weight - minW) / rangeW) * (height - 2 * padding);
+                      return { x, y, ...d };
+                    });
+
+                    const pathD = points.reduce((acc, p, idx) => 
+                      idx === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, ''
+                    );
+
+                    return (
+                      <div style={{ position: 'relative', marginTop: '16px' }}>
+                        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+                          <defs>
+                            <linearGradient id="glowArea" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.25} />
+                              <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+
+                          {/* Area Fill */}
+                          <path d={`${pathD} L ${points[points.length-1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`} fill="url(#glowArea)" />
+
+                          {/* Path Line */}
+                          <path d={pathD} fill="none" stroke="var(--accent)" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" />
+
+                          {/* Grid Lines */}
+                          <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="var(--border2)" strokeWidth={1} strokeDasharray="3 3" />
+                          <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="var(--border2)" strokeWidth={1} strokeDasharray="3 3" />
+
+                          {/* Markers */}
+                          {points.map((p, idx) => (
+                            <g key={idx}>
+                              <circle cx={p.x} cy={p.y} r={5} fill="#000" stroke="var(--accent)" strokeWidth={2.5} />
+                              {/* Weight Tooltip */}
+                              <text x={p.x} y={p.y - 12} textAnchor="middle" fill="var(--text)" fontSize="10" fontWeight="bold">
+                                {p.weight}kg
+                              </text>
+                              {/* Date Label */}
+                              <text x={p.x} y={height - 2} textAnchor="middle" fill="var(--text3)" fontSize="8">
+                                {p.date}
+                              </text>
+                            </g>
+                          ))}
+                        </svg>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            );
+          })()}
 
           <div style={{marginTop: '40px'}}>
             <div className="dash-val" style={{fontSize: '18px', marginBottom: '16px'}}>🏆 Hall of Fame</div>

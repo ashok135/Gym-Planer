@@ -31,6 +31,132 @@ export default function Study({ STUDY = {}, syncStudy, STUDY_SETTINGS, isReport,
   const [aiLoading, setAiLoading] = useState(false);
   const [aiContent, setAiContent] = useState(null);
 
+  const [interviewLoading, setInterviewLoading] = useState(false);
+  const [interviewQuestion, setInterviewQuestion] = useState('');
+  const [userAnswer, setUserAnswer] = useState('');
+  const [interviewFeedback, setInterviewFeedback] = useState(null);
+
+  const startMockInterview = async () => {
+    setAiLoading(true);
+    setAiContent(null);
+    setInterviewFeedback(null);
+    setUserAnswer('');
+    try {
+      const provider = localStorage.getItem('ai_provider') || 'gemini';
+      const apiKey = provider === 'gemini' ? localStorage.getItem('gemini_api_key') : localStorage.getItem('openrouter_api_key');
+      const model = provider === 'gemini' ? (localStorage.getItem('ai_model') || 'gemini-1.5-flash') : (localStorage.getItem('openrouter_model') || 'openrouter/free');
+
+      if (!apiKey) throw new Error('No API Key');
+
+      const targetRolesStr = profileInfo?.targetRoles?.join(', ') || 'Frontend Developer';
+      const resumeStr = profileInfo?.resume || 'Student ready to work';
+
+      const prompt = `Act as an expert technical interviewer for roles: ${targetRolesStr}.
+Candidate Resume: ${resumeStr}.
+
+Generate a single challenging technical interview question tailored to the candidate's target roles and experience.
+Be direct and ask only the question. Avoid greetings or conversational filler. Ask about specific technical concepts, patterns, architecture, coding tradeoffs, or performance optimizations.`;
+
+      let resultText = '';
+      if (provider === 'gemini') {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        });
+        const data = await res.json();
+        resultText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      } else {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: prompt }]
+          })
+        });
+        const data = await res.json();
+        resultText = data?.choices?.[0]?.message?.content || '';
+      }
+
+      setInterviewQuestion(resultText.trim());
+      setAiContent({ type: 'interview' });
+    } catch(e) {
+      console.error(e);
+      setAiContent({
+        type: 'error',
+        text: '⚠️ Make sure you have configured a valid API Key in the AI Coach settings first!'
+      });
+    }
+    setAiLoading(false);
+  };
+
+  const evaluateAnswer = async () => {
+    if (!userAnswer.trim()) return;
+    setInterviewLoading(true);
+    try {
+      const provider = localStorage.getItem('ai_provider') || 'gemini';
+      const apiKey = provider === 'gemini' ? localStorage.getItem('gemini_api_key') : localStorage.getItem('openrouter_api_key');
+      const model = provider === 'gemini' ? (localStorage.getItem('ai_model') || 'gemini-1.5-flash') : (localStorage.getItem('openrouter_model') || 'openrouter/free');
+
+      if (!apiKey) throw new Error('No API Key');
+
+      const prompt = `Evaluate this candidate's technical interview answer.
+Question: ${interviewQuestion}
+Candidate's Answer: ${userAnswer}
+
+Provide a detailed evaluation in this strict JSON format:
+{
+  "grade": "A|B|C|D|F",
+  "score": "Out of 100",
+  "strengths": "What they explained well...",
+  "weaknesses": "What concepts or keywords they missed or got wrong...",
+  "modelAnswer": "How a perfect senior engineer would answer this question...",
+  "critique": "A brief encouraging mentoring note..."
+}`;
+
+      let resultText = '';
+      if (provider === 'gemini') {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        });
+        const data = await res.json();
+        resultText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      } else {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: prompt }]
+          })
+        });
+        const data = await res.json();
+        resultText = data?.choices?.[0]?.message?.content || '';
+      }
+
+      const cleanJson = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
+      setInterviewFeedback(parsed);
+    } catch(e) {
+      console.error(e);
+      alert('Failed to evaluate answer. Make sure response is standard JSON. Please try again!');
+    }
+    setInterviewLoading(false);
+  };
+
   const preferredLocs = profileInfo?.preferredLocations || ['Bangalore', 'Chennai', 'Remote'];
 
   const generateQuiz = async () => {
@@ -515,24 +641,85 @@ Return the output strictly in the following JSON format:
         </div>
         
         <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '16px' }}>
-          Generate custom quizzes or get expert interview advice tailored precisely to your background!
+          Generate custom quizzes, get expert tips, or start an AI Mock Interview tailored to your resume!
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
           <button onClick={generateQuiz} disabled={aiLoading}
-            style={{ flex: 1, padding: '10px 14px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--accent)', fontWeight: 700, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', outline: 'none' }}>
+            style={{ flex: 1, minWidth: '100px', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--accent)', fontWeight: 700, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', outline: 'none' }}>
             ⚡ JS/React Quiz
           </button>
           <button onClick={generateTip} disabled={aiLoading}
-            style={{ flex: 1, padding: '10px 14px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--accent)', fontWeight: 700, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', outline: 'none' }}>
+            style={{ flex: 1, minWidth: '100px', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--accent)', fontWeight: 700, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', outline: 'none' }}>
             🤝 Interview Tip
+          </button>
+          <button onClick={startMockInterview} disabled={aiLoading || interviewLoading}
+            style={{ flex: 1, minWidth: '120px', padding: '10px 12px', background: 'var(--accent)', border: 'none', borderRadius: '12px', color: '#000', fontWeight: 700, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', outline: 'none' }}>
+            🎯 Mock Interview
           </button>
         </div>
 
-        {aiLoading && (
+        {(aiLoading || interviewLoading) && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', gap: '10px' }}>
             <div className="spinner" style={{ width: '24px', height: '24px', border: '2px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent)', borderRadius: '50%' }}></div>
             <div style={{ fontSize: '12px', color: 'var(--text3)' }}>Consulting Lucy...</div>
+          </div>
+        )}
+
+        {aiContent && aiContent.type === 'interview' && (
+          <div style={{ padding: '16px', background: 'var(--bg3)', borderRadius: '16px', border: '1px solid var(--border2)' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--accent)', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>💬 Question from Lucy</span>
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginBottom: '14px', lineHeight: 1.4 }}>
+              {interviewQuestion}
+            </div>
+
+            {!interviewFeedback ? (
+              <>
+                <textarea placeholder="Type your detailed answer here... (explain concepts, mention keywords, discuss trade-offs)" value={userAnswer}
+                  onChange={e => setUserAnswer(e.target.value)} rows={4}
+                  style={{ width: '100%', padding: '12px 14px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', marginBottom: '12px', resize: 'vertical', outline: 'none', fontFamily: 'inherit' }} />
+                <button onClick={evaluateAnswer} disabled={!userAnswer.trim() || interviewLoading}
+                  style={{ width: '100%', padding: '12px', background: 'var(--accent)', color: '#000', fontWeight: 'bold', border: 'none', borderRadius: '10px', fontSize: '13px', cursor: userAnswer.trim() ? 'pointer' : 'not-allowed', opacity: userAnswer.trim() ? 1 : 0.6 }}>
+                  Submit Answer & Get Grade
+                </button>
+              </>
+            ) : (
+              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--accent)', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900 }}>
+                    {interviewFeedback.grade}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)' }}>Evaluation Score</div>
+                    <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>{interviewFeedback.score}%</div>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '12px', lineHeight: 1.5 }}>
+                  <div style={{ color: '#34D399', fontWeight: 700, marginBottom: '4px' }}>🟢 Strengths:</div>
+                  <p style={{ color: 'var(--text2)', margin: '0 0 10px 0' }}>{interviewFeedback.strengths}</p>
+
+                  <div style={{ color: '#F472B6', fontWeight: 700, marginBottom: '4px' }}>🔴 Areas to Improve:</div>
+                  <p style={{ color: 'var(--text2)', margin: '0 0 10px 0' }}>{interviewFeedback.weaknesses}</p>
+
+                  <div style={{ color: 'var(--accent)', fontWeight: 700, marginBottom: '4px' }}>💡 Model Answer:</div>
+                  <p style={{ color: 'var(--text2)', margin: '0 0 12px 0', background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '8px', borderLeft: '3px solid var(--accent)', fontStyle: 'italic' }}>
+                    {interviewFeedback.modelAnswer}
+                  </p>
+
+                  <div style={{ color: 'var(--text3)', fontStyle: 'italic', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
+                    👩‍🏫 <strong>Lucy's Mentoring Note:</strong> {interviewFeedback.critique}
+                  </div>
+                </div>
+
+                <button onClick={startMockInterview}
+                  style={{ width: '100%', padding: '10px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '10px', color: 'var(--text)', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+                  🔄 Try Another Question
+                </button>
+              </div>
+            )}
           </div>
         )}
 

@@ -63,6 +63,9 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
   const [newLocationInput, setNewLocationInput] = useState('');
   const [workTypes, setWorkTypes] = useState(profileInfo?.workTypes || ['Remote', 'Hybrid']);
   const [experienceLevel, setExperienceLevel] = useState(profileInfo?.experienceLevel || 'Fresher');
+  const [proteinTarget, setProteinTarget] = useState(profileInfo?.dailyProteinTarget || 100);
+  const [waterTarget, setWaterTarget] = useState(profileInfo?.dailyWaterTarget || 4);
+  const [sleepTarget, setSleepTarget] = useState(profileInfo?.dailySleepTarget || 8);
   const [profileMsg, setProfileMsg] = useState(false);
   const [roleFocused, setRoleFocused] = useState(false);
   const [locFocused, setLocFocused] = useState(false);
@@ -74,6 +77,9 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
     setPreferredLocations(profileInfo?.preferredLocations || ['Bangalore', 'Chennai', 'Remote']);
     setWorkTypes(profileInfo?.workTypes || ['Remote', 'Hybrid']);
     setExperienceLevel(profileInfo?.experienceLevel || 'Fresher');
+    setProteinTarget(profileInfo?.dailyProteinTarget || 100);
+    setWaterTarget(profileInfo?.dailyWaterTarget || 4);
+    setSleepTarget(profileInfo?.dailySleepTarget || 8);
   }, [profileInfo]);
 
   return (
@@ -243,6 +249,38 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
         </div>
       </div>
 
+      {/* ⚙️ Customizable Targets */}
+      <div style={{ marginTop: '20px', borderTop: '1px solid var(--border2)', paddingTop: '16px', marginBottom: '16px' }}>
+        <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--accent)', marginBottom: '14px', letterSpacing: '0.02em' }}>⚙️ Customizable Fitness Targets</div>
+        
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>
+            <span>Daily Protein Target</span>
+            <span style={{ fontWeight: 'bold', color: 'var(--accent)' }}>{proteinTarget}g</span>
+          </div>
+          <input type="range" min="50" max="250" step="5" value={proteinTarget} onChange={e => setProteinTarget(Number(e.target.value))}
+            style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer', height: '6px', background: 'var(--border2)', borderRadius: '3px' }} />
+        </div>
+
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>
+            <span>Daily Water Target</span>
+            <span style={{ fontWeight: 'bold', color: 'var(--blue)' }}>{waterTarget} Liters</span>
+          </div>
+          <input type="range" min="2" max="8" step="0.5" value={waterTarget} onChange={e => setWaterTarget(Number(e.target.value))}
+            style={{ width: '100%', accentColor: 'var(--blue)', cursor: 'pointer', height: '6px', background: 'var(--border2)', borderRadius: '3px' }} />
+        </div>
+
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>
+            <span>Daily Sleep Target</span>
+            <span style={{ fontWeight: 'bold', color: 'var(--orange)' }}>{sleepTarget} Hours</span>
+          </div>
+          <input type="range" min="5" max="12" step="0.5" value={sleepTarget} onChange={e => setSleepTarget(Number(e.target.value))}
+            style={{ width: '100%', accentColor: 'var(--orange)', cursor: 'pointer', height: '6px', background: 'var(--border2)', borderRadius: '3px' }} />
+        </div>
+      </div>
+
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px', width: '100%' }}>
         <button className="settings-save" onClick={async () => {
           if (syncProfileInfo) {
@@ -252,7 +290,10 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
               targetRoles,
               preferredLocations,
               workTypes,
-              experienceLevel
+              experienceLevel,
+              dailyProteinTarget: Number(proteinTarget),
+              dailyWaterTarget: Number(waterTarget),
+              dailySleepTarget: Number(sleepTarget)
             });
             setProfileMsg(true);
             setTimeout(() => setProfileMsg(false), 2000);

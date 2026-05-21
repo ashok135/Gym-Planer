@@ -45,6 +45,15 @@ export default function App() {
   const [STUDY, setSTUDY] = useState({});
   const [STUDY_SETTINGS, setSTUDY_SETTINGS] = useState(DEFAULT_STUDY_SETTINGS);
 
+  const [workoutPlans, setWorkoutPlans] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('gworkoutPlans'));
+      return saved || DEFAULT_PLAN;
+    } catch(e) {
+      return DEFAULT_PLAN;
+    }
+  });
+
   const [aiEnabled, setAiEnabled] = useState(() => localStorage.getItem('ai_enabled') === 'true');
   const [profileInfo, setProfileInfo] = useState(() => {
     try {
@@ -55,7 +64,10 @@ export default function App() {
         targetRoles: saved?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'],
         preferredLocations: saved?.preferredLocations || ['Bangalore', 'Chennai', 'Remote'],
         workTypes: saved?.workTypes || ['Remote', 'Hybrid'],
-        experienceLevel: saved?.experienceLevel || 'Fresher'
+        experienceLevel: saved?.experienceLevel || 'Fresher',
+        dailyProteinTarget: Number(saved?.dailyProteinTarget || 100),
+        dailyWaterTarget: Number(saved?.dailyWaterTarget || 4),
+        dailySleepTarget: Number(saved?.dailySleepTarget || 8)
       };
     } catch(e) {
       return { 
@@ -64,7 +76,10 @@ export default function App() {
         targetRoles: ['React Developer', 'WordPress Developer', 'Frontend Developer'], 
         preferredLocations: ['Bangalore', 'Chennai', 'Remote'], 
         workTypes: ['Remote', 'Hybrid'],
-        experienceLevel: 'Fresher'
+        experienceLevel: 'Fresher',
+        dailyProteinTarget: 100,
+        dailyWaterTarget: 4,
+        dailySleepTarget: 8
       };
     }
   });
@@ -94,6 +109,11 @@ export default function App() {
             setBUDGET_SETTINGS(data.budgetSettings || DEFAULT_BUDGET_SETTINGS);
             setSTUDY(data.study || {});
             setSTUDY_SETTINGS(data.studySettings || DEFAULT_STUDY_SETTINGS);
+
+            if (data.workoutPlans) {
+              setWorkoutPlans(data.workoutPlans);
+              localStorage.setItem('gworkoutPlans', JSON.stringify(data.workoutPlans));
+            }
             
             // Sync AI settings from Firebase to localStorage if they exist
             if (data.aiSettings) {
@@ -116,7 +136,10 @@ export default function App() {
                 targetRoles: data.profileInfo.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'],
                 preferredLocations: data.profileInfo.preferredLocations || ['Bangalore', 'Chennai', 'Remote'],
                 workTypes: data.profileInfo.workTypes || ['Remote', 'Hybrid'],
-                experienceLevel: data.profileInfo.experienceLevel || 'Fresher'
+                experienceLevel: data.profileInfo.experienceLevel || 'Fresher',
+                dailyProteinTarget: Number(data.profileInfo.dailyProteinTarget || 100),
+                dailyWaterTarget: Number(data.profileInfo.dailyWaterTarget || 4),
+                dailySleepTarget: Number(data.profileInfo.dailySleepTarget || 8)
               };
               setProfileInfo(info);
               localStorage.setItem('gprofileInfo', JSON.stringify(info));
@@ -134,6 +157,10 @@ export default function App() {
           setSTUDY(JSON.parse(localStorage.getItem('gstudy')||'{}'));
           setSTUDY_SETTINGS(JSON.parse(localStorage.getItem('gstudySettings')||JSON.stringify(DEFAULT_STUDY_SETTINGS)));
           try {
+            const savedPlans = JSON.parse(localStorage.getItem('gworkoutPlans'));
+            if (savedPlans) setWorkoutPlans(savedPlans);
+          } catch(e) {}
+          try {
             const saved = JSON.parse(localStorage.getItem('gprofileInfo'));
             setProfileInfo({
               name: saved?.name || '',
@@ -141,7 +168,10 @@ export default function App() {
               targetRoles: saved?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'],
               preferredLocations: saved?.preferredLocations || ['Bangalore', 'Chennai', 'Remote'],
               workTypes: saved?.workTypes || ['Remote', 'Hybrid'],
-              experienceLevel: saved?.experienceLevel || 'Fresher'
+              experienceLevel: saved?.experienceLevel || 'Fresher',
+              dailyProteinTarget: Number(saved?.dailyProteinTarget || 100),
+              dailyWaterTarget: Number(saved?.dailyWaterTarget || 4),
+              dailySleepTarget: Number(saved?.dailySleepTarget || 8)
             });
           } catch(e) {}
         }
@@ -163,6 +193,22 @@ export default function App() {
     };
   };
 
+  const syncWorkoutPlans = async (newPlans) => {
+    setWorkoutPlans(newPlans);
+    localStorage.setItem('gworkoutPlans', JSON.stringify(newPlans));
+    if(user) {
+      try {
+        await setDoc(doc(db, "users", user.uid), {
+          workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
+          budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
+          aiSettings: getAiSettingsFromLocalStorage(),
+          profileInfo,
+          workoutPlans: newPlans
+        });
+      } catch(e) { console.error("Cloud save failed", e); }
+    }
+  };
+
   const syncData = async (newDB, newNAMES, newMETA, newFOOD, newSCHEDULE = SCHEDULE) => {
     setDB(newDB); setNAMES(newNAMES); setMETA(newMETA); setFOOD(newFOOD); setSCHEDULE(newSCHEDULE);
     localStorage.setItem('gdb', JSON.stringify(newDB));
@@ -176,7 +222,8 @@ export default function App() {
           workouts: newDB, names: newNAMES, meta: newMETA, food: newFOOD, schedule: newSCHEDULE,
           budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
           aiSettings: getAiSettingsFromLocalStorage(),
-          profileInfo
+          profileInfo,
+          workoutPlans
         });
       } catch(e) { console.error("Cloud save failed", e); }
     }
@@ -192,7 +239,8 @@ export default function App() {
           workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
           budget: newBudget, budgetSettings: newSettings, study: STUDY, studySettings: STUDY_SETTINGS,
           aiSettings: getAiSettingsFromLocalStorage(),
-          profileInfo
+          profileInfo,
+          workoutPlans
         });
       } catch(e) { console.error("Cloud save failed", e); }
     }
@@ -208,7 +256,8 @@ export default function App() {
           workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
           budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: newStudy, studySettings: newSettings,
           aiSettings: getAiSettingsFromLocalStorage(),
-          profileInfo
+          profileInfo,
+          workoutPlans
         });
       } catch(e) { console.error("Cloud save failed", e); }
     }
@@ -233,7 +282,8 @@ export default function App() {
           workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
           budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
           aiSettings: mergedSettings,
-          profileInfo
+          profileInfo,
+          workoutPlans
         });
       } catch(e) { console.error("Cloud save for AI settings failed", e); }
     }
@@ -248,7 +298,8 @@ export default function App() {
           workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
           budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
           aiSettings: getAiSettingsFromLocalStorage(),
-          profileInfo: newProfile
+          profileInfo: newProfile,
+          workoutPlans
         });
       } catch(e) { console.error("Cloud save for profile failed", e); }
     }
@@ -354,15 +405,15 @@ export default function App() {
         </div>
       </div>
       <div className="screen active" onScroll={handleScroll} style={{paddingBottom:'90px', flex:1, overflowY:'auto'}}>
-        {activeTab === 'today'    && <Today    DB={DB} NAMES={NAMES} META={META} syncData={syncData} FOOD={FOOD} SCHEDULE={SCHEDULE} />}
-        {activeTab === 'diet'     && <Diet     FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} />}
+        {activeTab === 'today'    && <Today    DB={DB} NAMES={NAMES} META={META} syncData={syncData} FOOD={FOOD} SCHEDULE={SCHEDULE} workoutPlans={workoutPlans} />}
+        {activeTab === 'diet'     && <Diet     FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} profileInfo={profileInfo} />}
         {activeTab === 'budget'   && <Budget   BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} />}
         {activeTab === 'study'    && <Study    STUDY={STUDY} syncStudy={syncStudy} STUDY_SETTINGS={STUDY_SETTINGS} profileInfo={profileInfo} />}
-        {activeTab === 'report'   && <Report   DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} BUDGET={BUDGET} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY={STUDY} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} />}
-        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} syncAiSettings={syncAiSettings} profileInfo={profileInfo} syncProfileInfo={syncProfileInfo} />}
+        {activeTab === 'report'   && <Report   DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} BUDGET={BUDGET} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY={STUDY} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} workoutPlans={workoutPlans} />}
+        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} syncAiSettings={syncAiSettings} profileInfo={profileInfo} syncProfileInfo={syncProfileInfo} workoutPlans={workoutPlans} syncWorkoutPlans={syncWorkoutPlans} />}
       </div>
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} showNav={showNav} />
-      {aiEnabled && <AIChat DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} syncAiSettings={syncAiSettings} profileInfo={profileInfo} />}
+      {aiEnabled && <AIChat DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} syncAiSettings={syncAiSettings} profileInfo={profileInfo} workoutPlans={workoutPlans} />}
     </div>
   );
 }
