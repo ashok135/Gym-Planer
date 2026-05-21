@@ -150,6 +150,8 @@ export default function App() {
               localStorage.setItem('ai_model', data.aiSettings.model || 'gemini-2.5-flash');
               localStorage.setItem('openrouter_model', data.aiSettings.openrouterModel || 'openrouter/free');
               localStorage.setItem('ai_persona', data.aiSettings.persona || 'Motivational Fitness Coach');
+              localStorage.setItem('ai_response_style', data.aiSettings.responseStyle || 'short');
+              localStorage.setItem('ai_custom_instructions', data.aiSettings.customInstructions || '');
               setAiEnabled(data.aiSettings.enabled);
               window.dispatchEvent(new Event('storage'));
             }
@@ -226,7 +228,9 @@ export default function App() {
       provider: localStorage.getItem('ai_provider') || 'gemini',
       model: localStorage.getItem('ai_model') || 'gemini-2.5-flash',
       openrouterModel: localStorage.getItem('openrouter_model') || 'openrouter/free',
-      persona: localStorage.getItem('ai_persona') || 'Motivational Fitness Coach'
+      persona: localStorage.getItem('ai_persona') || 'Motivational Fitness Coach',
+      responseStyle: localStorage.getItem('ai_response_style') || 'short',
+      customInstructions: localStorage.getItem('ai_custom_instructions') || ''
     };
   };
 
@@ -300,6 +304,8 @@ export default function App() {
     if (newSettings.model !== undefined) localStorage.setItem('ai_model', newSettings.model);
     if (newSettings.openrouterModel !== undefined) localStorage.setItem('openrouter_model', newSettings.openrouterModel);
     if (newSettings.persona !== undefined) localStorage.setItem('ai_persona', newSettings.persona);
+    if (newSettings.responseStyle !== undefined) localStorage.setItem('ai_response_style', newSettings.responseStyle);
+    if (newSettings.customInstructions !== undefined) localStorage.setItem('ai_custom_instructions', newSettings.customInstructions);
 
     setAiEnabled(localStorage.getItem('ai_enabled') === 'true');
     window.dispatchEvent(new Event('storage'));

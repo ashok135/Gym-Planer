@@ -264,6 +264,8 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
   });
   const [openrouterModel, setOpenrouterModel] = useState(() => localStorage.getItem('openrouter_model') || 'openrouter/free');
   const [persona, setPersona] = useState(() => localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
+  const [responseStyle, setResponseStyle] = useState(() => localStorage.getItem('ai_response_style') || 'short');
+  const [customInstructions, setCustomInstructions] = useState(() => localStorage.getItem('ai_custom_instructions') || '');
   const [showKeyInput, setShowKeyInput] = useState(false);
 
   useEffect(() => {
@@ -280,6 +282,8 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
       }
       setOpenrouterModel(localStorage.getItem('openrouter_model') || 'openrouter/free');
       setPersona(localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
+      setResponseStyle(localStorage.getItem('ai_response_style') || 'short');
+      setCustomInstructions(localStorage.getItem('ai_custom_instructions') || '');
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
@@ -478,6 +482,20 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
       ? 'Scheduled Rest Day 😴'
       : `Scheduled Split: ${todayPlan.label} (${todayPlan.muscles.map(m => m.name).join(', ')})`;
 
+    let styleInstruction = '';
+    if (responseStyle === 'short') {
+      styleInstruction = `\n5. Length Constraint: You MUST write your response in a SHORT AND SWEET style. Keep the entire response extremely concise and brief—under 2-3 sentences. Absolutely avoid long explanations or redundant filler words. If rendering a table, only explain it in 1 short sentence. Make it super fast to read!`;
+    } else if (responseStyle === 'balanced') {
+      styleInstruction = `\n5. Length Constraint: Respond in a BALANCED style. Keep responses moderately detailed, focused, and informative, without being overly verbose or too long (maximum 1-2 paragraphs).`;
+    } else if (responseStyle === 'detailed') {
+      styleInstruction = `\n5. Length Constraint: Respond in a DETAILED & IN-DEPTH style. Provide thorough, comprehensive explanations, multi-step advice, and detailed breakdowns where helpful.`;
+    }
+
+    let personalInstruction = '';
+    if (customInstructions && customInstructions.trim()) {
+      personalInstruction = `\n6. User's Personal Request (Strictly respect and follow this preference): "${customInstructions.trim()}"`;
+    }
+
     return `You are Lucy, a passionate, ultra-friendly, raw, and highly energetic personal coach/assistant acting as: ${persona}.
 Embedded in the user's personal tracking app called LifeTraker.
 
@@ -521,7 +539,7 @@ Guidelines for Lucy:
    - If they ask about study topics to cover, identify which subjects have "Never" been studied, have 0 hours, or have the oldest 'Last studied' date and push them to study those!
    - If they ask "when did I eat high protein" or query their diet or protein history, inspect the 'Recent Protein & Meal Logs' listed above. List the exact dates where they ate high protein (>= 70g) or what they ate, celebrate their discipline, and push them to keep hit their macros!
 3. Style: Keep responses motivating, friendly, and highly engaging.
-4. Formatting: When presenting lists, comparisons, exercise splits, study stats, numbers, addresses, contact details, or any structured comparative data, ALWAYS format it inside a clean Markdown table (using '| Header 1 | Header 2 |' style). This renders as a beautiful interactive table for the user!`;
+4. Formatting: When presenting lists, comparisons, exercise splits, study stats, numbers, addresses, contact details, or any structured comparative data, ALWAYS format it inside a clean Markdown table (using '| Header 1 | Header 2 |' style). This renders as a beautiful interactive table for the user!${styleInstruction}${personalInstruction}`;
   };
 
   const [tempKey, setTempKey] = useState('');
@@ -867,6 +885,47 @@ Guidelines for Lucy:
                   </div>
                 </div>
               )}
+              {/* Response Length selector */}
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px', fontWeight: 600 }}>Response Style</div>
+                <select 
+                  value={responseStyle} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    setResponseStyle(val);
+                    if (syncAiSettings) {
+                      syncAiSettings({ responseStyle: val });
+                    } else {
+                      localStorage.setItem('ai_response_style', val);
+                    }
+                  }}
+                  style={{ width: '100%', padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px', outline: 'none' }}
+                >
+                  <option value="short">Short & Sweet (Concise, under 2-3 sentences)</option>
+                  <option value="balanced">Balanced (Focused, moderate length)</option>
+                  <option value="detailed">Detailed & In-Depth (Comprehensive explanations)</option>
+                </select>
+              </div>
+
+              {/* Personal Notes input */}
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px', fontWeight: 600 }}>Personal Notes / Instructions</div>
+                <input 
+                  type="text" 
+                  value={customInstructions} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    setCustomInstructions(val);
+                    if (syncAiSettings) {
+                      syncAiSettings({ customInstructions: val });
+                    } else {
+                      localStorage.setItem('ai_custom_instructions', val);
+                    }
+                  }} 
+                  placeholder="e.g. Always refer to me as Ashok. No emojis..." 
+                  style={{ width: '100%', padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px', boxSizing: 'border-box' }}
+                />
+              </div>
 
               <div style={{ fontSize: '11px', color: 'var(--text2)', marginBottom: '8px' }}>
                 {provider === 'gemini' ? (
