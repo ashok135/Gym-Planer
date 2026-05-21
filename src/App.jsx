@@ -285,24 +285,16 @@ export default function App() {
   if(loading) {
     return (
       <div className="splash-bg">
-        <div className="splash-ring">
-          <div className="splash-core">
-            {/* Beautiful Custom SVG Heartbeat & Progress Trending Arrow Logo (LifeTraker) */}
-            <svg className="splash-icon" viewBox="0 0 36 36" style={{ fill: 'none', stroke: 'var(--accent)', strokeWidth: '3.5', strokeLinecap: 'round', strokeLinejoin: 'round' }}>
-              {/* Pulse & Rising Arrow Line */}
-              <path d="M 3 18 L 9 18 L 11 25 L 14 7 L 17 21 L 20 18 L 24 18 L 29 11 L 33 6" />
-              {/* Arrow Head */}
-              <path d="M 26 6 L 33 6 L 33 13" />
-            </svg>
-          </div>
+        <div className="splash-logo-container">
+          {/* Option 2: The Infinite Spark Logo */}
+          <svg className="splash-icon" viewBox="0 0 48 48">
+            {/* The Infinite Loop with Rising Spike */}
+            <path d="M 24 24 C 18 32, 8 32, 8 24 C 8 16, 18 16, 24 24 C 30 32, 40 32, 40 24 C 40 18, 36 14, 34 10 L 38 6 M 38 6 L 31 6 M 38 6 L 38 13" />
+            {/* The Spark Dot */}
+            <circle cx="24" cy="24" r="3.5" fill="var(--accent)" stroke="none" />
+          </svg>
         </div>
-        <div className="splash-title">
-          {"LIFETRAKER".split("").map((letter, index) => (
-            <span key={index} style={{ animationDelay: `${index * 0.1}s` }}>
-              {letter}
-            </span>
-          ))}
-        </div>
+        <div className="splash-title">LIFETRAKER</div>
         <div className="splash-tagline">Trust the Process</div>
       </div>
     );
