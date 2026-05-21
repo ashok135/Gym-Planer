@@ -642,12 +642,7 @@ Guidelines for Lucy:
                 }}>
                   {msg.text}
                   {msg.streaming && (
-                    <span style={{
-                      display: 'inline-block', width: '2px', height: '14px',
-                      background: 'var(--accent)', marginLeft: '2px',
-                      verticalAlign: 'text-bottom',
-                      animation: 'blink 0.8s step-start infinite'
-                    }} />
+                    <span className="claude-pulse-dot" />
                   )}
                 </div>
               </div>
@@ -660,13 +655,6 @@ Guidelines for Lucy:
                 ) : (
                   <>To chat, please create a free key at <a href="https://openrouter.ai/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 600 }}>OpenRouter</a> and click the 🔑 **API Key** button above to paste it! okey.</>
                 )}
-              </div>
-            )}
-            {loading && messages[messages.length - 1]?.text === '' && (
-              <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                <div style={{ padding: '10px 14px', background: 'var(--bg3)', borderRadius: '16px 16px 16px 4px', fontSize: '13px', color: 'var(--text3)' }}>
-                  ✨ Thinking...
-                </div>
               </div>
             )}
             <div ref={bottomRef} />
