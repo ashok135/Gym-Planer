@@ -284,10 +284,15 @@ export default function App() {
 
   if(loading) {
     return (
-      <div className="screen active" style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'var(--bg)'}}>
-        <div style={{color:'var(--accent)',fontWeight:700,fontSize:'26px',letterSpacing:'4px',textTransform:'uppercase',animation:'pulse 1.5s infinite alternate'}}>
-          LIFETRAKER
+      <div className="splash-bg">
+        <div className="splash-title">
+          {"LIFETRAKER".split("").map((letter, index) => (
+            <span key={index} style={{ animationDelay: `${index * 0.1}s` }}>
+              {letter}
+            </span>
+          ))}
         </div>
+        <div className="splash-tagline">Trust the Process</div>
       </div>
     );
   }
