@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, Key, Sparkles } from 'lucide-react';
-import { DEFAULT_PLAN } from '../data';
+import { DEFAULT_PLAN, DEFAULT_DIET_PLAN } from '../data';
 
 const GEMINI_KEY_STORAGE = 'gemini_api_key';
 
@@ -81,6 +81,69 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
         }
       }
     }
+
+    // Helper to calculate total protein for a specific date key using the FOOD object
+    const calculateDailyProtein = (dk) => {
+      const dayData = FOOD[dk];
+      if (!dayData || !dayData.items) return 0;
+      
+      const dObj = new Date(dk);
+      const dow = dObj.getDay();
+      const dietPlan = DEFAULT_DIET_PLAN[dow] || DEFAULT_DIET_PLAN[1];
+      
+      let totalP = 0;
+      dietPlan.forEach(meal => {
+        meal.items.forEach(item => {
+          const val = dayData.items[item.id];
+          let portionRatio = 0;
+          if (val === true) portionRatio = 1;
+          else if (val === false || val === undefined) portionRatio = 0;
+          else portionRatio = Number(val) / 3;
+
+          totalP += (item.p * portionRatio);
+        });
+      });
+      return Math.round(totalP);
+    };
+
+    // Calculate daily protein for the last 7 logged days
+    const last7DaysProtein = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      
+      // Look up logged meals
+      const loggedMeals = [];
+      const dayData = FOOD[dk];
+      if (dayData && dayData.items) {
+        const dow = d.getDay();
+        const dietPlan = DEFAULT_DIET_PLAN[dow] || DEFAULT_DIET_PLAN[1];
+        dietPlan.forEach(meal => {
+          meal.items.forEach(item => {
+            const val = dayData.items[item.id];
+            if (val && val > 0) {
+              const portionStr = val === true || val === 3 ? 'Full' : (val === 2 ? '2/3' : '1/3');
+              const customName = (dayData.custom && dayData.custom[item.id]) ? dayData.custom[item.id] : item.name;
+              loggedMeals.push(`${customName} (${portionStr} portion, ~${Math.round(item.p * (Number(val)/3))}g P)`);
+            }
+          });
+        });
+      }
+
+      const dailyP = calculateDailyProtein(dk);
+      if (dailyP > 0 || FOOD[dk]) {
+        last7DaysProtein.push({
+          date: dk,
+          protein: dailyP,
+          isHigh: dailyP >= 70, // High protein threshold
+          meals: loggedMeals
+        });
+      }
+    }
+    const proteinHistoryString = last7DaysProtein.map(day => 
+      `* ${day.date}: ${day.protein}g Protein ${day.isHigh ? '🔥 (HIGH PROTEIN)' : ''} [Meals logged: ${day.meals.join(', ') || 'No specific meals logged, but custom values exist'}]`
+    ).join('\n  ');
 
     // 3. Budget comparison: Current vs Previous Month
     const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -191,6 +254,8 @@ Here is the user's compiled historical and current data. Answer any specific que
   ${Object.values(subjectStats).map(s => `* ${s.label}: Total hours studied = ${s.totalHours.toFixed(1)} hrs (Last studied: ${s.lastDate})`).join('\n  ')}
 - Today's Study Sessions: ${JSON.stringify(todayStudy.sessions || [])}
 - Today's Habits: water=${FOOD[todayKey]?.water || 0} glasses, sleep=${FOOD[todayKey]?.sleep || 0} hrs, junk=${FOOD[todayKey]?.junk || 0} items
+- Recent Protein & Meal Logs (Past 7 Days):
+  ${proteinHistoryString || 'No protein or food logs recorded yet.'}
 
 Guidelines for Lucy:
 1. Tone: Be a real buddy/coach—highly energetic, raw, honest, and athletic. Speak to the user by their name (${profileInfo?.name || 'User'}) when appropriate to feel close and personal. It is completely okay to use casual, funny, direct, and slightly raw trainer slang or mild expressions ("get your lazy butt moving", "hell yeah!", "crush this shit", "stop slacking", "no bullshit") to keep it real and friendly.
@@ -200,6 +265,7 @@ Guidelines for Lucy:
    - If they ask "when did I last do Legs", look at the 'Last Workouts by Muscle' section above and answer exactly.
    - If they ask about budget comparison, compare 'This Month' total spent vs 'Last Month' spent and give sharp, motivating advice.
    - If they ask about study topics to cover, identify which subjects have "Never" been studied, have 0 hours, or have the oldest 'Last studied' date and push them to study those!
+   - If they ask "when did I eat high protein" or query their diet or protein history, inspect the 'Recent Protein & Meal Logs' listed above. List the exact dates where they ate high protein (>= 70g) or what they ate, celebrate their discipline, and push them to keep hit their macros!
 3. Style: Max 3-5 sentences. Keep it punchy, high-impact, and fully friendly!`;
   };
 
