@@ -25,6 +25,24 @@ const DEFAULT_STUDY_SETTINGS = {
   ]
 };
 
+const sanitizeForFirestore = (val) => {
+  if (val === null || val === undefined) return null;
+  if (Array.isArray(val)) {
+    return val.map(sanitizeForFirestore).filter(v => v !== undefined);
+  }
+  if (typeof val === 'object') {
+    const res = {};
+    Object.keys(val).forEach(k => {
+      const v = sanitizeForFirestore(val[k]);
+      if (v !== undefined) {
+        res[k] = v;
+      }
+    });
+    return res;
+  }
+  return val;
+};
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -110,7 +128,7 @@ export default function App() {
             setNAMES(data.names || {});
             setMETA(data.meta || {});
             setFOOD(data.food || {});
-            setSCHEDULE(data.schedule || { fullTime: {}, thisWeek: {} });
+            setSCHEDULE(data.schedule && data.schedule.fullTime ? data.schedule : { fullTime: {}, thisWeek: {} });
             setBUDGET(data.budget || {});
             setBUDGET_SETTINGS(data.budgetSettings || DEFAULT_BUDGET_SETTINGS);
             setSTUDY(data.study || {});
@@ -218,13 +236,14 @@ export default function App() {
     localStorage.setItem('gworkoutPlans', JSON.stringify(newPlans));
     if(user) {
       try {
-        await setDoc(doc(db, "users", user.uid), {
+        const payload = sanitizeForFirestore({
           workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
           budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
           aiSettings: getAiSettingsFromLocalStorage(),
           profileInfo,
           workoutPlans: newPlans
         });
+        await setDoc(doc(db, "users", user.uid), payload);
       } catch(e) { console.error("Cloud save failed", e); }
     }
   };
@@ -238,13 +257,14 @@ export default function App() {
     localStorage.setItem('gschedule', JSON.stringify(newSCHEDULE));
     if(user) {
       try {
-        await setDoc(doc(db, "users", user.uid), {
+        const payload = sanitizeForFirestore({
           workouts: newDB, names: newNAMES, meta: newMETA, food: newFOOD, schedule: newSCHEDULE,
           budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: STUDY, studySettings: STUDY_SETTINGS,
           aiSettings: getAiSettingsFromLocalStorage(),
           profileInfo,
           workoutPlans
         });
+        await setDoc(doc(db, "users", user.uid), payload);
       } catch(e) { console.error("Cloud save failed", e); }
     }
   };
@@ -255,13 +275,14 @@ export default function App() {
     localStorage.setItem('gbudgetSettings', JSON.stringify(newSettings));
     if(user) {
       try {
-        await setDoc(doc(db, "users", user.uid), {
+        const payload = sanitizeForFirestore({
           workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
           budget: newBudget, budgetSettings: newSettings, study: STUDY, studySettings: STUDY_SETTINGS,
           aiSettings: getAiSettingsFromLocalStorage(),
           profileInfo,
           workoutPlans
         });
+        await setDoc(doc(db, "users", user.uid), payload);
       } catch(e) { console.error("Cloud save failed", e); }
     }
   };
@@ -272,13 +293,14 @@ export default function App() {
     localStorage.setItem('gstudySettings', JSON.stringify(newSettings));
     if(user) {
       try {
-        await setDoc(doc(db, "users", user.uid), {
+        const payload = sanitizeForFirestore({
           workouts: DB, names: NAMES, meta: META, food: FOOD, schedule: SCHEDULE,
           budget: BUDGET, budgetSettings: BUDGET_SETTINGS, study: newStudy, studySettings: newSettings,
           aiSettings: getAiSettingsFromLocalStorage(),
           profileInfo,
           workoutPlans
         });
+        await setDoc(doc(db, "users", user.uid), payload);
       } catch(e) { console.error("Cloud save failed", e); }
     }
   };

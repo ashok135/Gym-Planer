@@ -16,7 +16,19 @@ export default function Settings({
   const [localNames, setLocalNames] = useState(NAMES);
   const [saveMsg, setSaveMsg] = useState(false);
   
-  const [localSchedule, setLocalSchedule] = useState({ ...SCHEDULE?.fullTime });
+  const getFullSchedule = (sched) => {
+    const full = {};
+    [1, 2, 3, 4, 5, 6, 0].forEach(dow => {
+      if (sched && sched[dow] !== undefined) {
+        full[dow] = Number(sched[dow]);
+      } else {
+        full[dow] = dow === 4 ? 1 : dow === 5 ? 2 : dow === 6 ? 3 : dow;
+      }
+    });
+    return full;
+  };
+
+  const [localSchedule, setLocalSchedule] = useState(() => getFullSchedule(SCHEDULE?.fullTime));
   const [schedMsg, setSchedMsg] = useState(false);
   const [showSchedModal, setShowSchedModal] = useState(false);
 
@@ -56,9 +68,7 @@ export default function Settings({
   }, [NAMES]);
 
   useEffect(() => {
-    if (SCHEDULE?.fullTime) {
-      setLocalSchedule({ ...SCHEDULE.fullTime });
-    }
+    setLocalSchedule(getFullSchedule(SCHEDULE?.fullTime));
   }, [SCHEDULE]);
 
   useEffect(() => {
