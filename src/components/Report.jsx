@@ -329,23 +329,25 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
               categoryTotals[e.category] = (categoryTotals[e.category] || 0) + Number(e.amount);
             });
             
-            const CATEGORY_MAP = {
-              food: '🍔 Food & Dining',
-              rent: '🏠 House Rent',
-              bills: '🔌 Utility Bills',
-              supplements: '💊 Supplements',
-              fees: '🏋️ Gym Fees',
-              transport: '🚗 Transport',
-              entertainment: '🍿 Fun & Movies',
-              repayment: '💸 Repayments',
-              others: '📦 Others'
-            };
+            const CATEGORIES = BUDGET_SETTINGS?.categories?.length ? BUDGET_SETTINGS.categories : [
+              { id: 'food',      label: 'Food',          emoji: '🍕', color: '#FF6B6B' },
+              { id: 'supps',     label: 'Supplements',   emoji: '💊', color: '#C8F135' },
+              { id: 'transport', label: 'Transport',     emoji: '🚗', color: '#4D9FFF' },
+              { id: 'entertain', label: 'Entertainment', emoji: '🎮', color: '#A78BFA' },
+              { id: 'outside',   label: 'Eating Out',    emoji: '🍽️', color: '#FB923C' },
+              { id: 'gym',       label: 'Gym',           emoji: '🏋️', color: '#34D399' },
+              { id: 'repayment', label: 'Repayments',    emoji: '💸', color: '#F43F5E' },
+              { id: 'others',    label: 'Others',        emoji: '📦', color: '#94A3B8' },
+            ];
 
-            const categoryChartData = Object.entries(categoryTotals).map(([cat, val]) => ({
-              name: CATEGORY_MAP[cat] || cat,
-              value: val,
-              color: cat === 'repayment' ? 'var(--blue)' : `hsl(${(Object.keys(CATEGORY_MAP).indexOf(cat) * 40) % 360}, 75%, 55%)`
-            })).filter(d => d.value > 0);
+            const categoryChartData = Object.entries(categoryTotals).map(([cat, val]) => {
+              const matchedCat = CATEGORIES.find(c => c.id === cat);
+              return {
+                name: matchedCat ? `${matchedCat.emoji} ${matchedCat.label}` : `📦 ${cat}`,
+                value: val,
+                color: matchedCat?.color || `hsl(${(Object.keys(categoryTotals).indexOf(cat) * 60) % 360}, 70%, 60%)`
+              };
+            }).filter(d => d.value > 0);
 
             return (
               <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -493,8 +495,8 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
                       📝 Log expense transactions under standard categories to build your donut breakdown chart!
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-                      <div style={{ width: '130px', height: '130px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                      <div style={{ width: '130px', height: '130px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <PieChart width={130} height={130}>
                           <Pie data={categoryChartData} dataKey="value" cx="50%" cy="50%" innerRadius={42} outerRadius={58} stroke="none" cornerRadius={6} paddingAngle={3}>
                             {categoryChartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
@@ -502,14 +504,14 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
                         </PieChart>
                       </div>
                       
-                      <div style={{ flex: 1, minWidth: '180px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ flex: 1, minWidth: '180px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto', paddingRight: '8px' }}>
                         {categoryChartData.sort((a,b) => b.value - a.value).map(d => (
-                          <div key={d.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color }} />
-                              <span style={{ color: 'var(--text2)' }}>{d.name}</span>
+                          <div key={d.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', gap: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color, flexShrink: 0 }} />
+                              <span style={{ color: 'var(--text2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={d.name}>{d.name}</span>
                             </div>
-                            <span style={{ fontWeight: 700, color: 'var(--text)' }}>₹{d.value.toLocaleString()}</span>
+                            <span style={{ fontWeight: 700, color: 'var(--text)', flexShrink: 0 }}>₹{d.value.toLocaleString()}</span>
                           </div>
                         ))}
                       </div>
