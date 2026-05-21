@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, Key, Sparkles } from 'lucide-react';
+import { DEFAULT_PLAN } from '../data';
 
 const GEMINI_KEY_STORAGE = 'gemini_api_key';
 
@@ -121,6 +122,46 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
     const todayMeta = META[todayKey] || {};
     const todayStudy = STUDY?.[todayKey] || {};
 
+    // Yesterday and Tomorrow Calculations
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const yesterdayKey = `${yesterday.getFullYear()}-${String(yesterday.getMonth()+1).padStart(2,'0')}-${String(yesterday.getDate()).padStart(2,'0')}`;
+
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    const tomorrowKey = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,'0')}-${String(tomorrow.getDate()).padStart(2,'0')}`;
+
+    const getWorkoutForDay = (dateObj) => {
+      const dk = `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2,'0')}-${String(dateObj.getDate()).padStart(2,'0')}`;
+      const dow = dateObj.getDay();
+      
+      let planId = SCHEDULE?.thisWeek?.[dk];
+      if (planId === undefined) planId = SCHEDULE?.fullTime?.[dow];
+      if (planId === undefined) planId = dow;
+      
+      return DEFAULT_PLAN[planId] || DEFAULT_PLAN[0];
+    };
+
+    const yesterdayPlan = getWorkoutForDay(yesterday);
+    const todayPlan = getWorkoutForDay(now);
+    const tomorrowPlan = getWorkoutForDay(tomorrow);
+
+    const yesterdayLogged = DB[yesterdayKey] || {};
+    const yesterdayDetails = Object.keys(yesterdayLogged).filter(k => k !== 'meta' && k !== 'customName').length > 0 
+      ? Object.entries(yesterdayLogged).filter(([k]) => k !== 'meta' && k !== 'customName').map(([k,v]) => {
+          const name = NAMES[k] || k;
+          return `${name}: ${v.s || 0} sets x ${v.r || 0} reps @ ${v.w || 0}kg (${v.done === true ? 'Completed' : (v.done === false ? 'Skipped' : 'Logged')})`;
+        }).join(', ')
+      : `Rest Day or No workout was logged yet (Scheduled split was: ${yesterdayPlan.label})`;
+
+    const tomorrowDetails = tomorrowPlan.label === 'Rest Day' 
+      ? 'Scheduled Rest Day 😴'
+      : `Scheduled Split: ${tomorrowPlan.label} (${tomorrowPlan.muscles.map(m => m.name).join(', ')}) consisting of: ${tomorrowPlan.muscles.map(m => m.exercises.join(', ')).join(', ')}`;
+
+    const todayDetails = todayPlan.label === 'Rest Day'
+      ? 'Scheduled Rest Day 😴'
+      : `Scheduled Split: ${todayPlan.label} (${todayPlan.muscles.map(m => m.name).join(', ')})`;
+
     return `You are Lucy, a passionate, ultra-friendly, raw, and highly energetic personal coach/assistant acting as: ${persona}.
 Embedded in the user's personal tracking app called LifeTraker.
 
@@ -129,10 +170,14 @@ Here is the user's personal profile and resume information:
 - User's Resume / Professional Background: ${profileInfo?.resume || 'none provided yet'}
 
 Here is the user's compiled historical and current data. Answer any specific questions about this data accurately:
+- Yesterday's Date: ${yesterdayKey}
+- Yesterday's Workout Log Details: ${yesterdayDetails}
 - Today's Date: ${todayKey}
+- Today's Scheduled Split Plan: ${todayDetails}
 - Today's Gym Workout Metadata: start=${todayMeta.start || 'not started'}, end=${todayMeta.end || 'not ended'}, energy=${todayMeta.energy || 'none'}/5, status=${todayMeta.status || 'Not started'}
 - Today's Gym Exercises: ${JSON.stringify(DB[todayKey] || {})}
 - Best Exercise Today (Based on Volume): ${bestExerciseToday ? `${bestExerciseToday.name} (${bestExerciseToday.sets} sets of ${bestExerciseToday.reps} reps at ${bestExerciseToday.weight}kg, Vol: ${bestExerciseToday.volume}kg-reps)` : 'none yet'}
+- Tomorrow's Scheduled Workout Details: ${tomorrowDetails}
 - Last Workouts by Muscle:
   * Legs: Last done on ${lastWorkouts.legs ? `${lastWorkouts.legs.date} (${lastWorkouts.legs.details})` : 'never'}
   * Chest: Last done on ${lastWorkouts.chest ? `${lastWorkouts.chest.date} (${lastWorkouts.chest.details})` : 'never'}
@@ -290,9 +335,46 @@ Guidelines for Lucy:
         </button>
       )}
 
+      {/* Blur Backdrop Glassmorphism Overlay when AI Chat is Open */}
+      {open && (
+        <div 
+          onClick={() => setOpen(false)} 
+          style={{ 
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            background: 'rgba(0, 0, 0, 0.65)', 
+            backdropFilter: 'blur(8px)', 
+            WebkitBackdropFilter: 'blur(8px)', 
+            zIndex: 998,
+            transition: 'all 0.3s ease-in-out'
+          }} 
+        />
+      )}
+
       {/* Chat Panel */}
       {open && (
-        <div style={{ position: 'fixed', bottom: '80px', right: '12px', left: '12px', maxWidth: '500px', margin: '0 auto', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '20px', zIndex: 1000, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', maxHeight: '70vh' }}>
+        <div style={{ 
+          position: 'fixed', 
+          bottom: '90px', 
+          right: '12px', 
+          left: '12px', 
+          maxWidth: '500px', 
+          margin: '0 auto', 
+          background: 'rgba(15, 23, 42, 0.88)', 
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)', 
+          borderRadius: '20px', 
+          zIndex: 999, 
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          maxHeight: '84vh',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        }}>
           {/* Chat Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'linear-gradient(135deg, rgba(200,241,53,0.05), rgba(77,159,255,0.05))', borderRadius: '20px 20px 0 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

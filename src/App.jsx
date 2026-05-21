@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from './firebase';
-import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import BottomNav from './components/BottomNav';
 import Today from './components/Today';
@@ -32,6 +32,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('today');
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [authError, setAuthError] = useState('');
+  const [resetSent, setResetSent] = useState(false);
+  const [resetError, setResetError] = useState('');
   
   const [DB, setDB] = useState({});
   const [NAMES, setNAMES] = useState({});
@@ -252,6 +254,19 @@ export default function App() {
     }
   };
 
+  const handleReset = async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('auth-email-input')?.value;
+    if (!email) { setResetError('Enter your email above first.'); return; }
+    setResetError(''); setResetSent(false);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setResetSent(true);
+    } catch(err) {
+      setResetError(err.message.replace('Firebase: ', ''));
+    }
+  };
+
   const handleAuth = async (e) => {
     e.preventDefault();
     const email = e.target.email.value;
@@ -283,12 +298,24 @@ export default function App() {
           <div className="auth-title">LifeTraker Pro</div>
           <div className="auth-sub">Cloud sync your workouts</div>
           <form onSubmit={handleAuth}>
-            <input type="email" name="email" className="auth-input" placeholder="Email address" required />
+            <input id="auth-email-input" type="email" name="email" className="auth-input" placeholder="Email address" required />
             <input type="password" name="password" className="auth-input" placeholder="Password" required />
             <button type="submit" className="auth-btn">{isLoginMode ? 'Login' : 'Sign Up'}</button>
           </form>
+          {isLoginMode && (
+            <div style={{textAlign:'center', marginTop:'10px'}}>
+              <span
+                onClick={handleReset}
+                style={{fontSize:'12px', color:'var(--accent)', cursor:'pointer', textDecoration:'underline', fontWeight:600}}
+              >
+                Forgot Password?
+              </span>
+              {resetSent && <div style={{fontSize:'11px', color:'#34D399', marginTop:'6px'}}>✅ Reset email sent! Check your inbox.</div>}
+              {resetError && <div style={{fontSize:'11px', color:'var(--red)', marginTop:'6px'}}>{resetError}</div>}
+            </div>
+          )}
           <div className="auth-error">{authError}</div>
-          <div className="auth-toggle" onClick={() => setIsLoginMode(!isLoginMode)}>
+          <div className="auth-toggle" onClick={() => { setIsLoginMode(!isLoginMode); setResetSent(false); setResetError(''); }}>
             {isLoginMode ? 'Need an account? Sign up' : 'Have an account? Login'}
           </div>
         </div>

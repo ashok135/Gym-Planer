@@ -1,6 +1,77 @@
 import React, { useState } from 'react';
 import { DEFAULT_PLAN, dateKey, DAYS_SHORT, DAYS_FULL, MONTHS } from '../data';
 import { CheckCircle2, XCircle } from 'lucide-react';
+import ExerciseCard from './today/ExerciseCard';
+import SessionMeta from './today/SessionMeta';
+
+const FULL_BODY_MUSCLES = [
+  {name:'Chest',exercises:['Barbell Bench Press','Cable Chest Fly']},
+  {name:'Back',exercises:['Lat Pulldown','Bent Over Barbell Row']},
+  {name:'Legs',exercises:['Barbell Squat','Leg Press']},
+  {name:'Shoulders',exercises:['Overhead Press','Dumbbell Lateral Raise']},
+  {name:'Biceps',exercises:['Barbell Curl','Hammer Curl']},
+  {name:'Triceps',exercises:['Tricep Pushdown','Diamond Push-ups']}
+];
+
+const EXERCISE_GIFS = {
+  'barbell bench press': 'https://fitnessprogramer.com/wp-content/uploads/2015/11/Barbell-Bench-Press.gif',
+  'incline dumbbell press': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Incline-Dumbbell-Press.gif',
+  'cable chest fly': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Cable-Crossover.gif',
+  'decline bench press': 'https://fitnessprogramer.com/wp-content/uploads/2021/01/Decline-Barbell-Bench-Press.gif',
+  'dumbbell pullover': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Pullover.gif',
+  
+  'tricep pushdown': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Pushdown.gif',
+  'skull crushers': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Lying-Triceps-Extension.gif',
+  'overhead tricep extension': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Overhead-Triceps-Extension.gif',
+  'close grip bench press': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Close-Grip-Bench-Press.gif',
+  'diamond push-ups': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Diamond-Push-up.gif',
+
+  'deadlift': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Deadlift.gif',
+  'lat pulldown': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Lat-Pulldown.gif',
+  'bent over barbell row': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Bent-Over-Row.gif',
+  'seated cable row': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Seated-Cable-Row.gif',
+  'single arm dumbbell row': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Row.gif',
+
+  'barbell curl': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Curl.gif',
+  'incline dumbbell curl': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Incline-Dumbbell-Curl.gif',
+  'hammer curl': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Hammer-Curl.gif',
+  'concentration curl': 'https://fitnessprogramer.com/wp-content/uploads/2015/11/Concentration-Curl.gif',
+  'cable curl': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Cable-Curl.gif',
+
+  'barbell squat': 'https://fitnessprogramer.com/wp-content/uploads/2021/01/Barbell-Squat.gif',
+  'back squat': 'https://fitnessprogramer.com/wp-content/uploads/2021/01/Barbell-Squat.gif',
+  'romanian deadlift': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Romanian-Deadlift.gif',
+  'leg press': 'https://fitnessprogramer.com/wp-content/uploads/2015/11/Leg-Press.gif',
+  'leg curl': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Seated-Leg-Curl.gif',
+  'calf raises': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Standing-Calf-Raise.gif',
+
+  'overhead press': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Overhead-Press.gif',
+  'dumbbell lateral raise': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif',
+  'front raise': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Front-Raise.gif',
+  'face pulls': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Face-Pull.gif',
+  'arnold press': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Arnold-Press.gif',
+
+  'crunches': 'https://fitnessprogramer.com/wp-content/uploads/2015/11/Crunch.gif',
+  'leg raises': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Lying-Leg-Raise.gif',
+  'plank': 'https://fitnessprogramer.com/wp-content/uploads/2021/01/Plank.gif',
+
+  'weighted pull-ups': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Pull-up.gif',
+  'barbell row': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Bent-Over-Row.gif'
+};
+
+const getExerciseGif = (name) => {
+  const clean = name.toLowerCase()
+    .replace(/\(heavy\)/g, '')
+    .replace(/\(light\)/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim();
+  
+  if (EXERCISE_GIFS[clean]) return EXERCISE_GIFS[clean];
+
+  // Guess dynamic URL
+  const hyphenated = clean.replace(/\s+/g, '-');
+  return `https://fitnessprogramer.com/wp-content/uploads/2021/02/${hyphenated}.gif`;
+};
 
 export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
   const today = new Date();
@@ -25,6 +96,8 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
     name: 'Progressive',
     exercises: ['Back Squat (Heavy)', 'Deadlift (Heavy)', 'Overhead Press (Heavy)', 'Weighted Pull-ups', 'Barbell Row (Heavy)']
   });
+  // Full Body is added as a virtual muscle group marker
+  plan.muscles.push({ name: 'FullBody', exercises: [] });
 
   plan.muscles.forEach(m => {
     m.exercises = m.exercises.map((ex, i) => {
@@ -34,6 +107,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
     });
   });
 
+  const [activeDemo, setActiveDemo] = useState(null);
   const [renameBox, setRenameBox] = useState(null);
   const [renameInput, setRenameInput] = useState('');
   const [saveMsg, setSaveMsg] = useState(false);
@@ -43,12 +117,27 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
   const [showProgressive, setShowProgressive] = useState(() => {
     return meta.progressiveEnabled || Object.keys(saved).some(k => k.startsWith('Progressive_'));
   });
+  const [showFullBody, setShowFullBody] = useState(() => {
+    return meta.fullBodyEnabled || Object.keys(saved).some(k => k.startsWith('FullBodyMuscle_'));
+  });
 
   const activeMuscles = plan.muscles.filter(m => {
     if (m.name === 'Abs') return showAbs;
     if (m.name === 'Progressive') return showProgressive;
+    if (m.name === 'FullBody') return showFullBody;
+    // Hide regular split muscles when Full Body mode is active
+    if (showFullBody) return false;
     return true;
   });
+
+  const activeExerciseCount = activeMuscles.reduce((s, m) => {
+    if (m.name === 'FullBody') return s + FULL_BODY_MUSCLES.reduce((a, fm) => a + fm.exercises.length, 0);
+    return s + m.exercises.length;
+  }, 0);
+  const activeMuscleCount = activeMuscles.reduce((s, m) => {
+    if (m.name === 'FullBody') return s + FULL_BODY_MUSCLES.length;
+    return s + 1;
+  }, 0);
 
   const addAbs = () => {
     setShowAbs(true);
@@ -58,6 +147,11 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
   const addProgressive = () => {
     setShowProgressive(true);
     handleMetaChange('progressiveEnabled', true);
+  };
+
+  const addFullBody = () => {
+    setShowFullBody(true);
+    handleMetaChange('fullBodyEnabled', true);
   };
 
   const removeAbs = () => {
@@ -79,6 +173,18 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
     if (newDB[key]) {
       Object.keys(newDB[key]).forEach(k => {
         if (k.startsWith('Progressive_')) delete newDB[key][k];
+      });
+    }
+    syncData(newDB, NAMES, META, FOOD, SCHEDULE);
+  };
+
+  const removeFullBody = () => {
+    setShowFullBody(false);
+    handleMetaChange('fullBodyEnabled', false);
+    const newDB = { ...DB };
+    if (newDB[key]) {
+      Object.keys(newDB[key]).forEach(k => {
+        if (k.startsWith('FullBodyMuscle_')) delete newDB[key][k];
       });
     }
     syncData(newDB, NAMES, META, FOOD, SCHEDULE);
@@ -155,56 +261,21 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
     <div id="today-content" style={{padding:'20px 0'}}>
       <div className="workout-hero">
         <div className="workout-type">{DAYS_FULL[dow]}</div>
-        <div className="workout-name">{plan.label}{showAbs ? ' & Abs' : ''}{showProgressive ? ' & Progressive' : ''}</div>
+        <div className="workout-name">{showFullBody ? 'Full Body' : (plan.label + (showAbs ? ' & Abs' : '') + (showProgressive ? ' & Progressive' : ''))}</div>
         <div className="workout-meta">
-          <span><strong>{activeMuscles.reduce((s,m)=>s+m.exercises.length,0)}</strong> exercises</span>
-          <span><strong>{activeMuscles.length}</strong> muscle groups</span>
+          <span><strong>{activeExerciseCount}</strong> exercises</span>
+          <span><strong>{activeMuscleCount}</strong> muscle groups</span>
         </div>
       </div>
 
-      <div className="session-meta">
-        <div className="meta-grid">
-          <div className="meta-group"><div className="meta-label">Status</div>
-            <select className="meta-input" value={meta.status || 'Completed'} onChange={e => handleMetaChange('status', e.target.value)}>
-              <option value="Completed">Completed</option>
-              <option value="Partial">Partial</option>
-              <option value="Skipped">Skipped</option>
-            </select>
-          </div>
-          <div className="meta-group"><div className="meta-label">Body Weight (kg)</div>
-            <input type="number" step="0.1" className="meta-input" value={meta.bw || ''} onChange={e => handleMetaChange('bw', e.target.value)} placeholder="e.g. 75.5" disabled={isSkipped} />
-          </div>
-          <div className="meta-group"><div className="meta-label">Start Time</div>
-            <input type="time" className="meta-input" value={meta.start || ''} onChange={e => handleMetaChange('start', e.target.value)} disabled={isSkipped} />
-          </div>
-          <div className="meta-group"><div className="meta-label">End Time</div>
-            <input type="time" className="meta-input" value={meta.end || ''} onChange={e => handleMetaChange('end', e.target.value)} disabled={isSkipped} />
-          </div>
-        </div>
-        
-        <div className="meta-grid" style={{ opacity: isSkipped ? 0.5 : 1 }}>
-          <div className="meta-group"><div className="meta-label" style={{color:'#ddd'}}>Mood</div>
-            <div className="mood-group">
-              {['😴','😐','🙂','🔥','💪'].map(m => (
-                <button key={m} className={`mood-btn ${meta.mood === m ? 'active' : ''}`} onClick={() => !isSkipped && handleMetaChange('mood', m)} style={{ cursor: isSkipped ? 'not-allowed' : 'pointer' }}>{m}</button>
-              ))}
-            </div>
-          </div>
-          <div className="meta-group"><div className="meta-label" style={{color:'#ddd'}}>Energy</div>
-            <div className="energy-group">
-              {[1,2,3,4,5].map(e => (
-                <span key={e} className={`energy-star ${meta.energy >= e ? 'active' : ''}`} onClick={() => !isSkipped && handleMetaChange('energy', e)} style={{ cursor: isSkipped ? 'not-allowed' : 'pointer' }}>★</span>
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        <div className="meta-group" style={{marginTop:'12px'}}><div className="meta-label">Notes</div>
-          <textarea className="notes-input" value={meta.notes || ''} onChange={e => handleMetaChange('notes', e.target.value)} placeholder="How did it feel?"></textarea>
-        </div>
-      </div>
+      <SessionMeta meta={meta} isSkipped={isSkipped} handleMetaChange={handleMetaChange} />
 
       {plan.muscles.map(m => {
+        // When Full Body is active, hide regular split muscles — only show Abs, Progressive, FullBody
+        if (showFullBody && m.name !== 'Abs' && m.name !== 'Progressive' && m.name !== 'FullBody') {
+          return null;
+        }
+
         if(m.name === 'Abs' && !showAbs) {
           return (
             <div className="muscle-block" key={m.name} onClick={() => !isSkipped && addAbs()} style={{cursor: isSkipped ? 'not-allowed' : 'pointer', opacity: isSkipped ? 0.4 : 0.8, textAlign: 'center', padding: '16px', background: 'var(--bg3)', borderRadius: 'var(--radius)', border: '1px dashed var(--border2)'}}>
@@ -221,58 +292,116 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE }) {
           );
         }
 
-        return (
-        <div className="muscle-block" key={m.name} style={{ opacity: isSkipped ? 0.5 : 1 }}>
-          <div className="muscle-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-            <div style={{display:'flex', alignItems:'center'}}><div className="muscle-dot"></div><div className="muscle-name">{m.name}</div></div>
-            {(m.name === 'Abs' || m.name === 'Progressive') && (
-              <button onClick={() => !isSkipped && (m.name === 'Abs' ? removeAbs() : removeProgressive())} disabled={isSkipped} style={{background:'transparent', border:'none', color:'var(--red)', fontSize:'12px', fontWeight:'bold', cursor: isSkipped ? 'not-allowed' : 'pointer', padding:'4px 8px'}}>REMOVE</button>
-            )}
-          </div>
-          {m.exercises.map((ex, i) => {
-            const ek = `${m.name}_${i}`;
-            const sv = saved[ek] || {};
-            const prev = getPrevStats(ek) || {};
-            const vol = (sv.s && sv.r && sv.w) ? Math.round(sv.s * sv.r * sv.w) : '';
-            const isDone = sv.done; // true, false, or undefined
-            return (
-              <div className={`exercise-card ${isDone === true ? 'done' : ''}`} key={ek} style={{opacity: isDone === false ? 0.4 : (isDone === true ? 0.7 : 1), transition:'opacity 0.2s'}}>
-                <div className="exercise-name-row">
-                  <div className="exercise-name-wrap" style={{ display: 'flex', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: '8px', marginRight: '12px' }}>
-                      <div onClick={() => !isSkipped && handleInputChange(ek, 'done', isDone === true ? null : true)} style={{ cursor: isSkipped ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
-                        <CheckCircle2 size={22} color={isDone === true ? "var(--accent)" : "rgba(200, 241, 53, 0.2)"} />
-                      </div>
-                      <div onClick={() => !isSkipped && handleInputChange(ek, 'done', isDone === false ? null : false)} style={{ cursor: isSkipped ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
-                        <XCircle size={22} color={isDone === false ? "var(--red)" : "rgba(255, 77, 77, 0.2)"} />
-                      </div>
-                    </div>
-                    <div className="exercise-name" style={{textDecoration: isDone === false ? 'line-through' : 'none', color: isDone === true ? 'var(--accent)' : 'var(--text)', flex: 1}}>{ex}</div>
-                    <button className="rename-today-btn" onClick={() => !isSkipped && toggleRename(ek, ex)} disabled={isSkipped} style={{ cursor: isSkipped ? 'not-allowed' : 'pointer' }}>✏️</button>
+        if(m.name === 'FullBody' && !showFullBody) {
+          return (
+            <div className="muscle-block" key={m.name} onClick={() => !isSkipped && addFullBody()} style={{cursor: isSkipped ? 'not-allowed' : 'pointer', opacity: isSkipped ? 0.4 : 0.8, textAlign: 'center', padding: '16px', background: 'var(--bg3)', borderRadius: 'var(--radius)', border: '1px dashed var(--accent)', marginTop: '8px'}}>
+              <div style={{fontSize: '12px', fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.1em'}}>💪 ADD FULL BODY WORKOUT</div>
+              <div style={{fontSize: '10px', color: 'var(--text3)', marginTop: '4px'}}>2 exercises · 6 muscle groups · After long break</div>
+            </div>
+          );
+        }
+
+        // Render Full Body expanded muscles inline
+        if(m.name === 'FullBody' && showFullBody) {
+          return (
+            <React.Fragment key="fullbody-wrapper">
+              <div className="muscle-block" key="fullbody-header" style={{ opacity: isSkipped ? 0.5 : 1 }}>
+                <div className="muscle-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                  <div style={{display:'flex', alignItems:'center'}}>
+                    <div className="muscle-dot" style={{background:'var(--accent)'}}></div>
+                    <div className="muscle-name">Full Body</div>
                   </div>
+                  <button onClick={() => !isSkipped && removeFullBody()} disabled={isSkipped} style={{background:'transparent', border:'none', color:'var(--red)', fontSize:'12px', fontWeight:'bold', cursor: isSkipped ? 'not-allowed' : 'pointer', padding:'4px 8px'}}>REMOVE</button>
                 </div>
-                {renameBox === ek && (
-                  <div className="rename-input-box open">
-                    <input type="text" className="rename-input" value={renameInput} onChange={e => setRenameInput(e.target.value)} placeholder="Rename for today only" disabled={isSkipped} />
-                    <button className="rename-save" onClick={() => saveRename(ek)} disabled={isSkipped}>Apply</button>
-                  </div>
-                )}
-                <div className="exercise-inputs">
-                  <div className="input-group"><div className="input-label">SETS</div><input type="number" min="0" placeholder={prev.s || "0"} value={sv.s || ''} onChange={e => handleInputChange(ek, 's', e.target.value)} disabled={isSkipped} style={{ cursor: isSkipped ? 'not-allowed' : 'text' }} /></div>
-                  <div className="input-group"><div className="input-label">{ex.toLowerCase().includes('plank') || ex.toLowerCase().includes('hold') || ex.toLowerCase().includes('cardio') ? 'TIME (s)' : 'REPS'}</div><input type="number" min="0" placeholder={prev.r || "0"} value={sv.r || ''} onChange={e => handleInputChange(ek, 'r', e.target.value)} disabled={isSkipped} style={{ cursor: isSkipped ? 'not-allowed' : 'text' }} /></div>
-                  <div className="input-group"><div className="input-label">{ex.toLowerCase().includes('plank') || ex.toLowerCase().includes('hold') || ex.toLowerCase().includes('cardio') ? 'LEVEL' : 'KG'}</div><input type="number" min="0" step="0.5" placeholder={prev.w || "0"} value={sv.w || ''} onChange={e => handleInputChange(ek, 'w', e.target.value)} disabled={isSkipped} style={{ cursor: isSkipped ? 'not-allowed' : 'text' }} /></div>
-                </div>
-                <div className="vol-row"><span className="vol-label">Volume</span><span className="vol-val">{vol ? vol+' kg' : '—'}</span></div>
               </div>
-            );
-          })}
-        </div>
+              {FULL_BODY_MUSCLES.map(fm => (
+                <div className="muscle-block" key={`fb-${fm.name}`} style={{ opacity: isSkipped ? 0.5 : 1, marginTop: '4px' }}>
+                  <div className="muscle-header" style={{display:'flex', alignItems:'center'}}>
+                    <div className="muscle-dot"></div>
+                    <div className="muscle-name" style={{fontSize:'13px'}}>{fm.name}</div>
+                  </div>
+                  {fm.exercises.map((ex, i) => {
+                    const ek = `FullBodyMuscle_${fm.name}_${i}`;
+                    const sv = saved[ek] || {};
+                    const prev = getPrevStats(ek) || {};
+                    return (
+                      <ExerciseCard
+                        key={ek}
+                        ex={ex}
+                        ek={ek}
+                        sv={sv}
+                        prev={prev}
+                        activeDemo={activeDemo}
+                        setActiveDemo={setActiveDemo}
+                        renameBox={renameBox}
+                        toggleRename={toggleRename}
+                        renameInput={renameInput}
+                        setRenameInput={setRenameInput}
+                        saveRename={saveRename}
+                        handleInputChange={handleInputChange}
+                        isSkipped={isSkipped}
+                        getExerciseGif={getExerciseGif}
+                        showRenameBtn={false}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </React.Fragment>
+          );
+        }
+
+        return (
+          <div className="muscle-block" key={m.name} style={{ opacity: isSkipped ? 0.5 : 1 }}>
+            <div className="muscle-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <div style={{display:'flex', alignItems:'center'}}><div className="muscle-dot"></div><div className="muscle-name">{m.name}</div></div>
+              {(m.name === 'Abs' || m.name === 'Progressive') && (
+                <button onClick={() => !isSkipped && (m.name === 'Abs' ? removeAbs() : removeProgressive())} disabled={isSkipped} style={{background:'transparent', border:'none', color:'var(--red)', fontSize:'12px', fontWeight:'bold', cursor: isSkipped ? 'not-allowed' : 'pointer', padding:'4px 8px'}}>REMOVE</button>
+              )}
+            </div>
+            {m.exercises.map((ex, i) => {
+              const ek = `${m.name}_${i}`;
+              const sv = saved[ek] || {};
+              const prev = getPrevStats(ek) || {};
+              return (
+                <ExerciseCard
+                  key={ek}
+                  ex={ex}
+                  ek={ek}
+                  sv={sv}
+                  prev={prev}
+                  activeDemo={activeDemo}
+                  setActiveDemo={setActiveDemo}
+                  renameBox={renameBox}
+                  toggleRename={toggleRename}
+                  renameInput={renameInput}
+                  setRenameInput={setRenameInput}
+                  saveRename={saveRename}
+                  handleInputChange={handleInputChange}
+                  isSkipped={isSkipped}
+                  getExerciseGif={getExerciseGif}
+                  showRenameBtn={true}
+                />
+              );
+            })}
+          </div>
         );
       })}
 
       <div className="save-area">
-        <button className="save-btn" onClick={saveToday}>Save workout</button>
-        <span className="save-ok" style={{opacity: saveMsg ? 1 : 0}}>Saved ✓</span>
+        <button 
+          className="save-btn" 
+          onClick={saveToday}
+          style={{
+            background: saveMsg ? '#10B981' : 'var(--accent)',
+            color: saveMsg ? '#fff' : '#000',
+            boxShadow: saveMsg ? '0 4px 20px rgba(16, 185, 129, 0.4)' : '0 4px 20px rgba(200, 241, 53, 0.3)',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            fontWeight: 'bold'
+          }}
+        >
+          {saveMsg ? 'Saved ✓' : 'Save workout'}
+        </button>
       </div>
     </div>
   );

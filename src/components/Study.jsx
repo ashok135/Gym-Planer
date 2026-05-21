@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { PlusCircle, Trash2, BookOpen, Clock, CheckCircle, ChevronLeft, ChevronRight, BarChart as BarChartIcon, Calendar, X, Sparkles } from 'lucide-react';
 import { MONTHS, DAYS_SHORT } from '../data';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, Cell, PieChart, Pie, ReferenceLine } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, ReferenceLine } from 'recharts';
+import JobBoard from './study/JobBoard';
 
 const DEFAULT_SUBJECTS = [
   { id: 'dsa',      label: 'DSA',             emoji: '🧠', color: '#A78BFA' },
@@ -13,65 +14,12 @@ const DEFAULT_SUBJECTS = [
 const dateKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 
-const getJobSuggestions = (input) => {
-  const clean = input.trim();
-  if (!clean) {
-    return [
-      'React Developer', 'WordPress Developer', 'Frontend Developer', 
-      'Fullstack Developer', 'Node.js Developer', 'Django Developer', 
-      'UI/UX Designer', 'Mobile App Developer'
-    ];
-  }
-  const lower = clean.toLowerCase();
-  if (lower.startsWith('re') || lower.includes('react')) {
-    return ['React Developer', 'React Engineer', 'React Frontend Developer', 'React Native Developer', 'React.js Specialist', 'Senior React Developer', 'Fullstack React Developer'];
-  }
-  if (lower.startsWith('wo') || lower.includes('word') || lower.includes('wp')) {
-    return ['WordPress Developer', 'WordPress Plugin Developer', 'WordPress Theme Developer', 'WordPress Web Designer', 'WordPress Elementor Specialist', 'WordPress WooCommerce Developer', 'WordPress Theme Architect'];
-  }
-  if (lower.startsWith('fr') || lower.includes('front')) {
-    return ['Frontend Developer', 'Frontend Engineer', 'Frontend React Developer', 'Frontend UI Developer', 'Senior Frontend Engineer'];
-  }
-  if (lower.startsWith('py') || lower.includes('python') || lower.includes('dj')) {
-    return ['Python Developer', 'Django Developer', 'Python Django Engineer', 'Python Backend Developer', 'Python Data Scientist'];
-  }
-  if (lower.startsWith('no') || lower.includes('node')) {
-    return ['Node.js Developer', 'Node.js Backend Developer', 'Fullstack Node.js Developer', 'Node.js Software Engineer'];
-  }
-  if (lower.startsWith('ph') || lower.includes('php') || lower.includes('lar')) {
-    return ['PHP Developer', 'Laravel Developer', 'PHP Laravel Developer', 'Fullstack PHP Developer', 'Laravel Web Developer'];
-  }
-  if (lower.startsWith('ui') || lower.includes('ux') || lower.includes('des')) {
-    return ['UI/UX Designer', 'User Interface Designer', 'User Experience Designer', 'Web Designer', 'Product Designer'];
-  }
-  const capitalized = clean.charAt(0).toUpperCase() + clean.slice(1);
-  return [
-    `${capitalized} Developer`,
-    `${capitalized} Engineer`,
-    `Senior ${capitalized} Developer`,
-    `Junior ${capitalized} Developer`,
-    `${capitalized} Consultant`,
-    `Fullstack ${capitalized} Developer`,
-    `${capitalized} Technical Specialist`
-  ];
-};
-
-const getCitySuggestions = (input) => {
-  const clean = input.trim();
-  if (!clean) {
-    return ['Bangalore', 'Chennai', 'Hyderabad', 'Mumbai', 'Pune', 'Delhi', 'Noida', 'Remote'];
-  }
-  const lower = clean.toLowerCase();
-  const list = ['Bangalore', 'Chennai', 'Hyderabad', 'Mumbai', 'Pune', 'Delhi', 'Noida', 'Gurgaon', 'Kolkata', 'San Francisco', 'New York', 'London', 'Remote'];
-  return list.filter(item => item.toLowerCase().includes(lower));
-};
-
-export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, activeRange: propRange, profileInfo = { name: '', resume: '', targetRoles: ['React Developer', 'WordPress Developer', 'Frontend Developer'], preferredLocations: ['Bangalore', 'Chennai', 'Remote'], workTypes: ['Remote', 'Hybrid'] } }) {
+export default function Study({ STUDY = {}, syncStudy, STUDY_SETTINGS, isReport, activeRange: propRange, profileInfo }) {
   const now = new Date();
   const todayKey = dateKey(now);
 
   const subjects = STUDY_SETTINGS?.subjects?.length ? STUDY_SETTINGS.subjects : DEFAULT_SUBJECTS;
-  const dailyTarget = STUDY_SETTINGS?.dailyTarget || 4;
+  const dailyTarget = Number(STUDY_SETTINGS?.dailyTarget || 4);
 
   const todayData = STUDY[todayKey] || {};
   const [activeRange, setActiveRange] = useState(propRange || 'Weekly');
@@ -83,88 +31,7 @@ export default function Study({ STUDY, syncStudy, STUDY_SETTINGS, isReport, acti
   const [aiLoading, setAiLoading] = useState(false);
   const [aiContent, setAiContent] = useState(null);
 
-  // Live Job Matches States
-  const [jobs, setJobs] = useState([]);
-  const [jobToast, setJobToast] = useState(null);
-
-  const selectedRoles = profileInfo?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'];
   const preferredLocs = profileInfo?.preferredLocations || ['Bangalore', 'Chennai', 'Remote'];
-  const workModes = profileInfo?.workTypes || ['Remote', 'Hybrid'];
-
-  const [activeSearchRole, setActiveSearchRole] = useState(selectedRoles[0] || 'React Developer');
-  const [activeSearchLoc, setActiveSearchLoc] = useState(preferredLocs[0] || 'Remote');
-  const [activeSearchMode, setActiveSearchMode] = useState(workModes[0] || 'Remote');
-  const [activeSearchExp, setActiveSearchExp] = useState(profileInfo?.experienceLevel || 'Fresher');
-  const [customSearchRole, setCustomSearchRole] = useState('');
-  const [customSearchLoc, setCustomSearchLoc] = useState('');
-  const [roleFocused, setRoleFocused] = useState(false);
-  const [locFocused, setLocFocused] = useState(false);
-
-  const generateSimulatedJobs = () => {
-    const companies = ['Google', 'Meta', 'Stripe', 'Netflix', 'Airbnb', 'Automattic', 'WP Engine', 'Supabase', 'Vercel', 'Figma', 'Spotify', 'Uber'];
-    const colors = ['#A78BFA', '#34D399', '#4D9FFF', '#FB923C', '#F472B6'];
-    
-    return selectedRoles.map((role, idx) => {
-      const company = companies[Math.floor((idx * 7 + 3) % companies.length)];
-      const color = colors[idx % colors.length];
-      const location = preferredLocs[Math.floor((idx * 3 + 1) % preferredLocs.length)];
-      const mode = workModes[Math.floor((idx * 2 + 5) % workModes.length)];
-      const cleanRole = role.replace(/Developer/i, '').replace(/Engineer/i, '').trim();
-
-      const searchLoc = location === 'Remote' ? '' : location;
-      const searchMode = mode === 'Remote' ? 'Remote' : mode === 'Hybrid' ? 'Hybrid' : '';
-
-      return {
-        id: idx + 1,
-        company,
-        title: `${role} (${mode})`,
-        type: cleanRole,
-        ago: `${(idx + 1) * 7} mins ago`,
-        color,
-        link: `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(role + ' ' + mode)}&location=${encodeURIComponent(searchLoc || 'Remote')}`
-      };
-    });
-  };
-
-  useEffect(() => {
-    setJobs(generateSimulatedJobs().slice(0, 3));
-    if (selectedRoles.length > 0) setActiveSearchRole(selectedRoles[0]);
-    if (preferredLocs.length > 0) setActiveSearchLoc(preferredLocs[0]);
-    if (workModes.length > 0) setActiveSearchMode(workModes[0]);
-    setActiveSearchExp(profileInfo?.experienceLevel || 'Fresher');
-  }, [profileInfo]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-
-    const interval = setInterval(() => {
-      const pool = generateSimulatedJobs();
-      if (pool.length === 0) return;
-      const randomJob = pool[Math.floor(Math.random() * pool.length)];
-      const newJob = {
-        ...randomJob,
-        id: Date.now(),
-        ago: 'Just now'
-      };
-
-      setJobs(prev => [newJob, ...prev.slice(0, 3)]);
-      setJobToast(newJob);
-      setTimeout(() => setJobToast(null), 5000);
-
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        try {
-          new Notification(`💼 Job Match: ${newJob.title}`, {
-            body: `New opening at ${newJob.company} matches your target roles and modes!`,
-            icon: 'https://cdn-icons-png.flaticon.com/512/3256/3256093.png'
-          });
-        } catch(err) { console.error("Web Push failed", err); }
-      }
-    }, 25000);
-
-    return () => clearInterval(interval);
-  }, [profileInfo]);
 
   const generateQuiz = async () => {
     setAiLoading(true);
@@ -255,7 +122,7 @@ Return the output strictly in the following JSON format:
         if (prof) profileText = `Customize it for a candidate named ${prof.name || 'User'} with resume details: ${prof.resume || ''}`;
       } catch(e) {}
 
-      const prompt = `Give a single highly practical and unique interview preparation tip for JavaScript or React developers. ${profileText} Keep it encouraging and direct. Speak as a premium career mentor. Try to make it feel fresh and highly actionable. Max 4 sentences.`;
+      const prompt = `Give a single highly practical and unique interview preparation tip for JavaScript or React developers. ${profileText} Keep it encouraging and direct. Speak as a career mentor. Try to make it feel fresh and highly actionable. Max 4 sentences.`;
 
       let resultText = '';
       if (provider === 'gemini') {
@@ -302,17 +169,11 @@ Return the output strictly in the following JSON format:
     if (propRange) setActiveRange(propRange);
   }, [propRange]);
 
-  const changeMonth = (offset) => {
-    const [y, m] = selectedMonth.split('-').map(Number);
-    const d = new Date(y, m - 1 + offset, 1);
-    setSelectedMonth(monthKey(d));
-  };
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState({ subjectId: subjects[0]?.id || 'dsa', hours: '1', learned: '' });
   const [historyStart, setHistoryStart] = useState('');
   const [historyEnd, setHistoryEnd] = useState('');
   const [modalDay, setModalDay] = useState(null);
-  const [limit, setLimit] = useState(20);
 
   const formatDuration = (hours) => {
     const h = Math.floor(hours);
@@ -320,7 +181,6 @@ Return the output strictly in the following JSON format:
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
 
-  // Range-based stats for Dashboard
   const getRangeStats = (range) => {
     let hrs = 0, count = 0;
     Object.entries(STUDY).forEach(([dk, dayData]) => {
@@ -347,7 +207,6 @@ Return the output strictly in the following JSON format:
   
   const targetHrs = activeRange === 'Today' ? dailyTarget : (activeRange === 'Weekly' ? dailyTarget * 7 : (activeRange === 'Monthly' ? dailyTarget * 30 : dailyTarget * 365));
   const progressPct = Math.min(100, Math.round((rangeHours / targetHrs) * 100));
-
 
   const subjectHours = {};
   subjects.forEach(s => { subjectHours[s.id] = 0; });
@@ -406,7 +265,7 @@ Return the output strictly in the following JSON format:
     syncStudy(newStudy);
   };
 
-  // Full 12-Month GitHub-style Activity Grid logic
+  // Activity Heatmap
   const monthsData = [];
   for (let m = 0; m < 12; m++) {
     const d = new Date(now.getFullYear(), m, 1);
@@ -420,7 +279,7 @@ Return the output strictly in the following JSON format:
     monthsData.push({ name: MONTHS[m].slice(0, 3), days: monthDays });
   }
 
-  // History Data logic
+  // History Data
   const historyDataMap = {};
   Object.entries(STUDY).forEach(([dk, dayData]) => {
     const sessions = dayData.sessions || [];
@@ -431,7 +290,6 @@ Return the output strictly in the following JSON format:
     const mo = parseInt(mStr) - 1;
     const mk = `${y}-${mStr}`;
 
-    // Filter logic: Respect range and selection
     let include = false;
     if (historyStart || historyEnd) {
       include = (!historyStart || dk >= historyStart) && (!historyEnd || dk <= historyEnd);
@@ -466,18 +324,15 @@ Return the output strictly in the following JSON format:
     month.dayList = Object.values(month.days).sort((a, b) => b.dk.localeCompare(a.dk));
   });
 
-  // Analytics for Report
+  // Analytics
   const chartData = [];
   if (isReport) {
-    const [selY, selM] = selectedMonth.split('-').map(Number);
     const rollingDays = activeRange === 'Today' ? 1 : activeRange === 'Weekly' ? 7 : activeRange === 'Monthly' ? 30 : 365;
-    
     for (let i = rollingDays - 1; i >= 0; i--) {
       const d = new Date(now); d.setDate(now.getDate() - i);
       const dk = dateKey(d);
       const dayStats = STUDY[dk] || { sessions: [] };
       const totalHrs = (dayStats.sessions || []).reduce((s, e) => s + Number(e.hours), 0);
-      
       chartData.push({
         name: activeRange === 'Weekly' ? DAYS_SHORT[d.getDay()] : `${d.getDate()}/${d.getMonth()+1}`,
         hours: totalHrs,
@@ -485,6 +340,28 @@ Return the output strictly in the following JSON format:
       });
     }
   }
+
+  const maxHrs = chartData.length > 0 ? Math.max(...chartData.map(d => d.hours), 0) : 0;
+  const yAxisMax = Math.max(dailyTarget, maxHrs, 1);
+
+  const chartMargin = useMemo(() => ({ top: 5, right: 0, left: -25, bottom: 0 }), []);
+  const axisTick = useMemo(() => ({ fontSize: 10, fill: 'var(--text2)' }), []);
+  const yAxisDomain = useMemo(() => [0, yAxisMax], [yAxisMax]);
+  const tooltipStyle = useMemo(() => ({ background: '#111', border: '1px solid var(--border2)', borderRadius: '8px', fontSize: '12px' }), []);
+  const refLineLabel = useMemo(() => ({ position: 'right', value: 'GOAL', fill: 'var(--accent)', fontSize: 8 }), []);
+
+  const chartContainerRef = useRef(null);
+  const [chartWidth, setChartWidth] = useState(300);
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+    const observer = new ResizeObserver(entries => {
+      const w = entries[0]?.contentRect?.width;
+      if (w && Math.abs(w - chartWidth) > 2) setChartWidth(Math.floor(w));
+    });
+    observer.observe(chartContainerRef.current);
+    setChartWidth(Math.floor(chartContainerRef.current.getBoundingClientRect().width) || 300);
+    return () => observer.disconnect();
+  }, [chartWidth]);
 
   const pieData = subjects.map(s => ({
     name: s.label,
@@ -630,7 +507,7 @@ Return the output strictly in the following JSON format:
         </div>
       </div>
 
-      {/* 🧠 AI STUDY COMPANION & QUIZ */}
+      {/* AI STUDY COMPANION & QUIZ */}
       <div style={{ margin: '0 20px 24px', background: 'var(--bg2)', borderRadius: '24px', padding: '24px', border: '1px solid var(--border2)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <BookOpen size={18} color="var(--accent)" />
@@ -727,224 +604,8 @@ Return the output strictly in the following JSON format:
         )}
       </div>
 
-      {/* 💼 LIVE JOB MATCHES & TRACKER */}
-      <div style={{ margin: '0 20px 24px', background: 'var(--bg2)', borderRadius: '24px', padding: '24px', border: '1px solid var(--border2)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calendar size={18} color="var(--blue)" />
-            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>
-              💼 Live Job Matches ({preferredLocs.join(', ')})
-            </div>
-          </div>
-          <span className="live-badge" style={{ fontSize: '8px', padding: '3px 8px', background: 'rgba(52, 211, 153, 0.1)', color: '#34D399', borderRadius: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', border: '1px solid rgba(52, 211, 153, 0.2)' }}>Live Scanner</span>
-        </div>
-
-        <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '16px' }}>
-          Auto-scanning major job portals for active posts matching your custom target roles, preferred cities, and work modes. Enable browser permissions to get push notifications!
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-          {jobs.map(job => (
-            <a key={job.id} href={job.link} target="_blank" rel="noopener noreferrer" className="job-card"
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '14px', textDecoration: 'none', transition: 'all 0.2s' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '9px', fontWeight: 'bold', padding: '2px 6px', background: `rgba(255,255,255,0.05)`, color: job.color, borderRadius: '6px', border: `1px solid ${job.color}33` }}>
-                    {job.type}
-                  </span>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text2)' }}>{job.company}</span>
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{job.title}</div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                <span style={{ fontSize: '10px', color: 'var(--text3)' }}>{job.ago}</span>
-                <span style={{ fontSize: '10px', color: 'var(--accent)', fontWeight: 'bold' }}>Apply ➔</span>
-              </div>
-            </a>
-          ))}
-        </div>
-
-        {/* 🔍 Dynamic Multi-Platform Search Console */}
-        <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)', marginTop: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <Sparkles size={16} color="var(--accent)" />
-            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>🔎 Dynamic Multi-Platform Search Console</div>
-          </div>
-          
-          {/* Target Role Pills */}
-          <div style={{ marginBottom: '12px' }}>
-            <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '6px' }}>Select Target Role:</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {selectedRoles.map(role => (
-                <div key={role} onClick={() => {
-                  setActiveSearchRole(role);
-                  setCustomSearchRole('');
-                }}
-                  style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '11px', cursor: 'pointer', background: (activeSearchRole === role && !customSearchRole) ? 'var(--accent)' : 'var(--bg3)', color: (activeSearchRole === role && !customSearchRole) ? '#000' : 'var(--text2)', border: `1px solid ${(activeSearchRole === role && !customSearchRole) ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
-                  {role}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Preferred Location Pills */}
-          <div style={{ marginBottom: '12px' }}>
-            <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '6px' }}>Select Preferred City:</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {preferredLocs.map(loc => (
-                <div key={loc} onClick={() => {
-                  setActiveSearchLoc(loc);
-                  setCustomSearchLoc('');
-                }}
-                  style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '11px', cursor: 'pointer', background: (activeSearchLoc === loc && !customSearchLoc) ? '#4D9FFF' : 'var(--bg3)', color: (activeSearchLoc === loc && !customSearchLoc) ? '#000' : 'var(--text2)', border: `1px solid ${(activeSearchLoc === loc && !customSearchLoc) ? '#4D9FFF' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
-                  📍 {loc}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Work Mode Selector */}
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '6px' }}>Select Work Mode:</div>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {workModes.map(mode => (
-                <div key={mode} onClick={() => setActiveSearchMode(mode)}
-                  style={{ flex: 1, padding: '8px', borderRadius: '8px', fontSize: '11px', textAlign: 'center', cursor: 'pointer', background: activeSearchMode === mode ? 'var(--accent)' : 'var(--bg3)', color: activeSearchMode === mode ? '#000' : 'var(--text2)', border: `1px solid ${activeSearchMode === mode ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
-                  {mode === 'Remote' ? '🏠 Remote' : mode === 'Hybrid' ? '🤝 Hybrid' : '🏢 On-site'}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Experience Level Selector */}
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '6px' }}>Select Experience Level:</div>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {[
-                { id: 'Fresher', label: '🎓 Fresher' },
-                { id: '1-2 Years', label: '⚡ 1-2 Years' },
-                { id: '3+ Years', label: '🚀 3+ Years' }
-              ].map(level => (
-                <div key={level.id} onClick={() => setActiveSearchExp(level.id)}
-                  style={{ flex: 1, padding: '8px', borderRadius: '8px', fontSize: '11px', textAlign: 'center', cursor: 'pointer', background: activeSearchExp === level.id ? 'var(--accent)' : 'var(--bg3)', color: activeSearchExp === level.id ? '#000' : 'var(--text2)', border: `1px solid ${activeSearchExp === level.id ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
-                  {level.label}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Custom Search (Ad-hoc override) */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', position: 'relative' }}>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Custom Job Name:</div>
-              <input type="text" placeholder="e.g. Python Dev" value={customSearchRole} 
-                onChange={e => setCustomSearchRole(e.target.value)}
-                onFocus={() => setRoleFocused(true)}
-                onBlur={() => setTimeout(() => setRoleFocused(false), 200)}
-                style={{ width: '100%', padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px', boxSizing: 'border-box' }} />
-              {roleFocused && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '8px', marginTop: '4px', zIndex: 10, maxHeight: '120px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
-                  {getJobSuggestions(customSearchRole).map(item => (
-                    <div key={item} onMouseDown={() => {
-                      setCustomSearchRole(item);
-                      setRoleFocused(false);
-                    }}
-                      style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text2)', cursor: 'pointer', borderBottom: '1px solid var(--border2)', background: 'transparent', transition: 'background 0.2s' }}
-                      onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
-                      onMouseLeave={e => e.target.style.background = 'transparent'}>
-                      🔍 {item}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div style={{ flex: 1, position: 'relative' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Custom City:</div>
-              <input type="text" placeholder="e.g. Delhi, London" value={customSearchLoc} 
-                onChange={e => setCustomSearchLoc(e.target.value)}
-                onFocus={() => setLocFocused(true)}
-                onBlur={() => setTimeout(() => setLocFocused(false), 200)}
-                style={{ width: '100%', padding: '8px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px', boxSizing: 'border-box' }} />
-              {locFocused && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '8px', marginTop: '4px', zIndex: 10, maxHeight: '120px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
-                  {getCitySuggestions(customSearchLoc).map(item => (
-                    <div key={item} onMouseDown={() => {
-                      setCustomSearchLoc(item);
-                      setLocFocused(false);
-                    }}
-                      style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text2)', cursor: 'pointer', borderBottom: '1px solid var(--border2)', background: 'transparent', transition: 'background 0.2s' }}
-                      onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
-                      onMouseLeave={e => e.target.style.background = 'transparent'}>
-                      📍 {item}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Active Job Query Summary */}
-          {(() => {
-            const finalRole = customSearchRole.trim() || activeSearchRole;
-            const finalLoc = customSearchLoc.trim() || activeSearchLoc;
-            
-            // Map experience level to search keywords nicely
-            const expKeyword = activeSearchExp === 'Fresher' 
-              ? 'fresher' 
-              : activeSearchExp === '1-2 Years' 
-                ? 'junior' 
-                : 'senior';
-
-            const queryKeywords = `${finalRole} ${activeSearchMode} ${expKeyword}`;
-            const queryLocation = finalLoc === 'Remote' ? '' : finalLoc;
-
-            return (
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--accent)', marginBottom: '10px', background: 'rgba(200, 241, 53, 0.05)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(200, 241, 53, 0.1)' }}>
-                  🚀 Launching: <span style={{ color: '#fff' }}>"{finalRole}"</span> for <span style={{ color: '#fff' }}>{activeSearchExp}</span> in <span style={{ color: '#fff' }}>"{finalLoc}"</span> ({activeSearchMode})
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <a href={`https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(queryKeywords)}&location=${encodeURIComponent(queryLocation || 'Remote')}`} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', background: 'rgba(10, 102, 194, 0.1)', border: '1px solid rgba(10, 102, 194, 0.3)', borderRadius: '10px', color: '#0A66C2', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold', transition: 'all 0.2s' }}>
-                    🔵 LinkedIn
-                  </a>
-                  <a href={`https://www.indeed.com/jobs?q=${encodeURIComponent(queryKeywords)}&l=${encodeURIComponent(queryLocation || 'Remote')}`} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', background: 'rgba(37, 87, 224, 0.1)', border: '1px solid rgba(37, 87, 224, 0.3)', borderRadius: '10px', color: '#2557E0', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold', transition: 'all 0.2s' }}>
-                    🔵 Indeed
-                  </a>
-                  <a href={`https://www.upwork.com/nx/search/jobs/?q=${encodeURIComponent(finalRole + ' ' + finalLoc + ' ' + activeSearchMode + ' ' + expKeyword)}`} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', background: 'rgba(20, 168, 0, 0.1)', border: '1px solid rgba(20, 168, 0, 0.3)', borderRadius: '10px', color: '#14A800', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold', transition: 'all 0.2s' }}>
-                    🔵 Upwork
-                  </a>
-                  <a href={`https://www.ziprecruiter.com/jobs-search?search=${encodeURIComponent(queryKeywords)}&location=${encodeURIComponent(queryLocation || 'Remote')}`} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', background: 'rgba(0, 178, 169, 0.1)', border: '1px solid rgba(0, 178, 169, 0.3)', borderRadius: '10px', color: '#00B2A9', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold', transition: 'all 0.2s' }}>
-                    🔵 ZipRecruiter
-                  </a>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      </div>
-
-      {/* Slide-in Job Notification Toast Overlay */}
-      {jobToast && (
-        <div style={{ position: 'fixed', bottom: '90px', left: '50%', transform: 'translateX(-50%)', width: 'calc(100% - 40px)', maxWidth: '380px', background: 'rgba(17,17,17,0.95)', border: '1px solid var(--accent)', borderRadius: '16px', padding: '16px', zIndex: 300, display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 8px 32px rgba(200,241,53,0.15)', animation: 'slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
-          <div style={{ width: '40px', height: '40px', background: 'rgba(200,241,53,0.1)', color: 'var(--accent)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>💼</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--accent)', textTransform: 'uppercase' }}>New Job Discovered!</div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{jobToast.title}</div>
-            <div style={{ fontSize: '11px', color: 'var(--text2)' }}>at {jobToast.company} • Matching profile</div>
-          </div>
-          <a href={jobToast.link} target="_blank" rel="noopener noreferrer" onClick={() => setJobToast(null)}
-            style={{ padding: '6px 12px', background: 'var(--accent)', color: '#000', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none' }}>
-            Apply
-          </a>
-        </div>
-      )}
-
+      {/* 💼 LIVE JOB MATCHES */}
+      <JobBoard profileInfo={profileInfo} />
 
       {!isReport && (
         <>
@@ -995,43 +656,49 @@ Return the output strictly in the following JSON format:
               <BarChartIcon size={18} color="var(--blue)" />
               <div style={{ fontSize: '15px', fontWeight: 700 }}>Study Trend</div>
             </div>
-            <div style={{ width: '100%', height: '180px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorHrs" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--blue)" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="var(--blue)" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="name" tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
-                  <YAxis tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: '#111', border: '1px solid var(--border2)', borderRadius: '8px', fontSize: '12px' }} />
-                  <Area type="monotone" dataKey="hours" stroke="var(--blue)" strokeWidth={3} fillOpacity={1} fill="url(#colorHrs)" />
-                  <ReferenceLine y={dailyTarget} label={{ position: 'right', value: 'GOAL', fill: 'var(--accent)', fontSize: 8 }} stroke="var(--accent)" strokeDasharray="3 3" />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div ref={chartContainerRef} style={{ width: '100%', height: '180px' }}>
+              <AreaChart width={chartWidth} height={180} data={chartData} margin={chartMargin}>
+                <defs>
+                  <linearGradient id="colorHrs" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--blue)" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="var(--blue)" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} />
+                <YAxis domain={yAxisDomain} tick={axisTick} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Area type="monotone" dataKey="hours" stroke="var(--blue)" strokeWidth={3} fillOpacity={1} fill="url(#colorHrs)" isAnimationActive={false} />
+                <ReferenceLine y={dailyTarget} label={refLineLabel} stroke="var(--accent)" strokeDasharray="3 3" />
+              </AreaChart>
             </div>
           </div>
           <div className="dash-card full" style={{ background: 'var(--bg3)', padding: '20px', display: 'block' }}>
             <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Subject Mix</div>
-            <div style={{ width: '100%', height: '180px', display: 'flex', alignItems: 'center' }}>
-              <ResponsiveContainer width="50%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={5} dataKey="value">
-                    {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', maxHeight: '160px' }}>
-                {pieData.map(d => (
-                  <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color }}></div>
-                    <span style={{ fontSize: '10px', color: 'var(--text2)', whiteSpace: 'nowrap' }}>{d.name}: {d.value.toFixed(1)}h</span>
+            <div style={{ width: '100%', height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {pieData.length > 0 ? (
+                <>
+                  <div style={{ width: '50%', height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <PieChart width={140} height={180}>
+                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={5} dataKey="value">
+                        {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
                   </div>
-                ))}
-              </div>
+                  <div style={{ width: '50%', display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', maxHeight: '160px' }}>
+                    {pieData.map(d => (
+                      <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color }}></div>
+                        <span style={{ fontSize: '10px', color: 'var(--text2)', whiteSpace: 'nowrap' }}>{d.name}: {d.value.toFixed(1)}h</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontSize: '11px', color: 'var(--text3)', textAlign: 'center', padding: '20px' }}>
+                  📚 No subject mix logs yet.<br />Add a study session to see analytics!
+                </div>
+              )}
             </div>
           </div>
         </div>

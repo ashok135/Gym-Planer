@@ -10,20 +10,39 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
 
   const now = new Date();
   
-  const allKeys = Array.from(new Set([...Object.keys(DB), ...Object.keys(META), ...Object.keys(FOOD)]))
+  // Build key set: all days with data + all past Rest Days (last 90 days)
+  const baseSet = new Set([...Object.keys(DB), ...Object.keys(META), ...Object.keys(FOOD)]);
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    const dk = dateKey(d);
+    const dow = d.getDay();
+    let planId = dow;
+    if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) planId = SCHEDULE.fullTime[dow];
+    if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[dk] !== undefined) planId = SCHEDULE.thisWeek[dk];
+    if (DEFAULT_PLAN[planId]?.muscles?.length === 0) baseSet.add(dk);
+  }
+
+  const allKeys = Array.from(baseSet)
     .filter(k => k <= dateKey(now))
     .filter(k => {
       if (historyStart || historyEnd) {
         if (historyStart && k < historyStart) return false;
         if (historyEnd && k > historyEnd) return false;
       }
+      const d = new Date(k);
+      const dow = d.getDay();
+      let planId = dow;
+      if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) planId = SCHEDULE.fullTime[dow];
+      if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[k] !== undefined) planId = SCHEDULE.thisWeek[k];
+      // Always include Rest Days
+      if (DEFAULT_PLAN[planId]?.muscles?.length === 0) return true;
+      // For workout days, only include if has data
       const vol = getDayVol(DB[k] || {});
       const m = META[k] || {};
       const f = FOOD[k] || {};
       let dayP = 0;
-      if (f.items) {
-        Object.values(f.items).forEach(val => dayP += 1);
-      }
+      if (f.items) Object.values(f.items).forEach(() => dayP += 1);
       return vol > 0 || m.status || f.water || f.sleep || f.junk || dayP > 0;
     })
     .sort().reverse();
@@ -44,10 +63,14 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
     if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[dk] !== undefined) currentPlanId = SCHEDULE.thisWeek[dk];
 
     const plan = DEFAULT_PLAN[currentPlanId] || DEFAULT_PLAN[0];
+    const isRestDay = plan.muscles.length === 0;
     const entry = DB[dk] || {};
     const hasAbs = Object.keys(entry).some(k => k.startsWith('Abs_'));
     const hasProgressive = Object.keys(entry).some(k => k.startsWith('Progressive_'));
-    const planLabel = plan.label + (hasAbs ? ' & Abs' : '') + (hasProgressive ? ' & Progressive' : '');
+    const hasFullBody = Object.keys(entry).some(k => k.startsWith('FullBodyMuscle_'));
+    const planLabel = hasFullBody
+      ? ('Full Body 💪' + (hasAbs ? ' & Abs' : '') + (hasProgressive ? ' & Progressive' : ''))
+      : (plan.label + (hasAbs ? ' & Abs' : '') + (hasProgressive ? ' & Progressive' : ''));
     
     const vol = getDayVol(entry);
     const isToday = dk === dateKey(now);
@@ -65,7 +88,8 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
       historyDataMap[monthKey] = { yr, mo, days: [] };
     }
     historyDataMap[monthKey].days.push({
-      dk, d, dow, planLabel, vol, isToday, meta, dayP, hasData: vol > 0 || meta.status || dayP > 0 || savedF.water || savedF.sleep || savedF.junk
+      dk, d, dow, planLabel, vol, isToday, meta, dayP, isRestDay,
+      hasData: vol > 0 || meta.status || dayP > 0 || savedF.water || savedF.sleep || savedF.junk
     });
   });
 
@@ -86,6 +110,25 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
     const entry = DB[modalDk] || {};
     const meta = META[modalDk] || {};
     const vol = getDayVol(entry);
+
+    const hasFullBody = Object.keys(entry).some(k => k.startsWith('FullBodyMuscle_'));
+
+    // Override plan display for Full Body days
+    if (hasFullBody) {
+      plan.label = 'Full Body 💪';
+      plan.muscles = [
+        {name:'Chest',exercises:['Barbell Bench Press','Cable Chest Fly']},
+        {name:'Back',exercises:['Lat Pulldown','Bent Over Barbell Row']},
+        {name:'Legs',exercises:['Barbell Squat','Leg Press']},
+        {name:'Shoulders',exercises:['Overhead Press','Dumbbell Lateral Raise']},
+        {name:'Biceps',exercises:['Barbell Curl','Hammer Curl']},
+        {name:'Triceps',exercises:['Tricep Pushdown','Diamond Push-ups']}
+      ];
+      // Remap exercise keys to FullBodyMuscle_ prefix for lookup
+      plan.muscles.forEach(m => {
+        m._prefix = 'FullBodyMuscle_';
+      });
+    }
 
     const hasAbs = Object.keys(entry).some(k => k.startsWith('Abs_'));
     if (hasAbs) {
@@ -133,7 +176,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
             <>
               {plan.muscles.map(m => {
                 const rows = m.exercises.map((ex, i) => {
-                  const ek = `${m.name}_${i}`;
+                  const ek = `${m._prefix || ''}${m.name}_${i}`;
                   const sv = entry[ek] || {};
                   const isDone = sv.done;
                   const hasVol = sv.s && sv.r && sv.w;
@@ -212,10 +255,29 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
         <div key={`${month.yr}-${month.mo}`}>
           <div className="month-label" style={{ fontSize: '13px', color: 'var(--accent)', fontWeight: 700, marginBottom: '16px' }}>{MONTHS[month.mo]} {month.yr}</div>
           {month.days.map(day => (
-            <div key={day.dk} className={`history-day ${day.hasData ? 'has-data' : ''}`} onClick={() => setModalDk(day.dk)} style={{ padding: '20px', marginBottom: '16px', borderRadius: '20px' }}>
+            <div key={day.dk}
+              className={`history-day ${day.hasData ? 'has-data' : ''}`}
+              onClick={() => setModalDk(day.dk)}
+              style={{
+                padding: '20px', marginBottom: '16px', borderRadius: '20px',
+                opacity: (day.isRestDay && !day.hasData) ? 0.6 : 1,
+                border: (day.isRestDay && !day.hasData) ? '1px solid rgba(255,255,255,0.06)' : undefined
+              }}
+            >
               <div className="hday-top" style={{ marginBottom: '10px' }}>
                 <div className="hday-date" style={{ fontSize: '16px', fontWeight: 800 }}>
                   {day.isToday ? 'Today — ' : ''}{DAYS_SHORT[day.dow]}, {day.d} {MONTHS[month.mo].slice(0,3)}
+                  {/* Rest Day badge */}
+                  {day.isRestDay && !day.meta.status && (
+                    <span className="hday-status" style={{
+                      fontSize: '11px', marginLeft: '8px',
+                      color: '#A78BFA',
+                      background: 'rgba(167, 139, 250, 0.12)',
+                      border: '1px solid rgba(167, 139, 250, 0.25)'
+                    }}>
+                      😴 Rest Day
+                    </span>
+                  )}
                   {day.meta.status && (
                     <span className="hday-status" style={{ 
                       fontSize: '11px', 
@@ -233,8 +295,12 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                   {day.dayP > 0 && <div className="hday-vol" style={{color:'var(--text)', fontSize:'13px', fontWeight: 700, marginTop:'4px'}}>{day.dayP}g <span style={{fontSize:'10px', fontWeight: 400}}>Protein</span></div>}
                 </div>
               </div>
-              {day.planLabel !== 'Rest Day' && <div className="hday-focus" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text2)' }}>{day.planLabel}</div>}
-              {!day.hasData && <div className="hday-empty" style={{ fontSize: '13px' }}>No data logged</div>}
+              {/* Plan label — show Rest Day text, hide only if it's a non-rest day label */}
+              {day.isRestDay
+                ? <div className="hday-focus" style={{ fontSize: '13px', fontWeight: 600, color: '#A78BFA' }}>🛌 Recovery &amp; Rest</div>
+                : <div className="hday-focus" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text2)' }}>{day.planLabel}</div>
+              }
+              {!day.hasData && !day.isRestDay && <div className="hday-empty" style={{ fontSize: '13px' }}>No data logged</div>}
             </div>
           ))}
         </div>

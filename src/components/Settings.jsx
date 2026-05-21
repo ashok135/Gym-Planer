@@ -1,100 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { DEFAULT_PLAN, DAYS_FULL, DEFAULT_DIET_PLAN, MONTHS, dateKey } from '../data';
-import { ChevronDown, Beaker } from 'lucide-react';
+import { Beaker } from 'lucide-react';
 import { generateSeedData } from '../utils/seeder';
+import Accordion from './shared/Accordion';
+import ProfileSettings from './settings/ProfileSettings';
+import AISettings from './settings/AISettings';
 
-const getJobSuggestions = (input) => {
-  const clean = input.trim();
-  if (!clean) {
-    return [
-      'React Developer', 'WordPress Developer', 'Frontend Developer', 
-      'Fullstack Developer', 'Node.js Developer', 'Django Developer', 
-      'UI/UX Designer', 'Mobile App Developer'
-    ];
-  }
-  const lower = clean.toLowerCase();
-  if (lower.startsWith('re') || lower.includes('react')) {
-    return ['React Developer', 'React Engineer', 'React Frontend Developer', 'React Native Developer', 'React.js Specialist', 'Senior React Developer', 'Fullstack React Developer'];
-  }
-  if (lower.startsWith('wo') || lower.includes('word') || lower.includes('wp')) {
-    return ['WordPress Developer', 'WordPress Plugin Developer', 'WordPress Theme Developer', 'WordPress Web Designer', 'WordPress Elementor Specialist', 'WordPress WooCommerce Developer', 'WordPress Theme Architect'];
-  }
-  if (lower.startsWith('fr') || lower.includes('front')) {
-    return ['Frontend Developer', 'Frontend Engineer', 'Frontend React Developer', 'Frontend UI Developer', 'Senior Frontend Engineer'];
-  }
-  if (lower.startsWith('py') || lower.includes('python') || lower.includes('dj')) {
-    return ['Python Developer', 'Django Developer', 'Python Django Engineer', 'Python Backend Developer', 'Python Data Scientist'];
-  }
-  if (lower.startsWith('no') || lower.includes('node')) {
-    return ['Node.js Developer', 'Node.js Backend Developer', 'Fullstack Node.js Developer', 'Node.js Software Engineer'];
-  }
-  if (lower.startsWith('ph') || lower.includes('php') || lower.includes('lar')) {
-    return ['PHP Developer', 'Laravel Developer', 'PHP Laravel Developer', 'Fullstack PHP Developer', 'Laravel Web Developer'];
-  }
-  if (lower.startsWith('ui') || lower.includes('ux') || lower.includes('des')) {
-    return ['UI/UX Designer', 'User Interface Designer', 'User Experience Designer', 'Web Designer', 'Product Designer'];
-  }
-  const capitalized = clean.charAt(0).toUpperCase() + clean.slice(1);
-  return [
-    `${capitalized} Developer`,
-    `${capitalized} Engineer`,
-    `Senior ${capitalized} Developer`,
-    `Junior ${capitalized} Developer`,
-    `${capitalized} Consultant`,
-    `Fullstack ${capitalized} Developer`,
-    `${capitalized} Technical Specialist`
-  ];
-};
-
-const getCitySuggestions = (input) => {
-  const clean = input.trim();
-  if (!clean) {
-    return ['Bangalore', 'Chennai', 'Hyderabad', 'Mumbai', 'Pune', 'Delhi', 'Noida', 'Remote'];
-  }
-  const lower = clean.toLowerCase();
-  const list = ['Bangalore', 'Chennai', 'Hyderabad', 'Mumbai', 'Pune', 'Delhi', 'Noida', 'Gurgaon', 'Kolkata', 'San Francisco', 'New York', 'London', 'Remote'];
-  return list.filter(item => item.toLowerCase().includes(lower));
-};
-
-function Accordion({ title, subtitle, children, defaultOpen = false }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div style={{ marginBottom: '12px', borderRadius: '14px', border: '1px solid var(--border2)', overflow: 'hidden' }}>
-      <div onClick={() => setOpen(o => !o)}
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', background: 'var(--bg3)', cursor: 'pointer', userSelect: 'none' }}>
-        <div>
-          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text)' }}>{title}</div>
-          {subtitle && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>{subtitle}</div>}
-        </div>
-        <ChevronDown size={18} color="var(--text3)" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }} />
-      </div>
-      {open && <div style={{ padding: '16px 18px', background: 'var(--bg)' }}>{children}</div>}
-    </div>
-  );
-}
-
-export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, BUDGET, STUDY, syncAiSettings, profileInfo = { name: '', resume: '', targetRoles: ['React Developer', 'WordPress Developer', 'Frontend Developer'], preferredLocations: ['Bangalore', 'Chennai', 'Remote'], workTypes: ['Remote', 'Hybrid'], experienceLevel: 'Fresher' }, syncProfileInfo }) {
+export default function Settings({ 
+  NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, 
+  BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, 
+  BUDGET, STUDY, syncAiSettings, profileInfo, syncProfileInfo 
+}) {
   const [localNames, setLocalNames] = useState(NAMES);
-  const [profileName, setProfileName] = useState(profileInfo?.name || '');
-  const [profileResume, setProfileResume] = useState(profileInfo?.resume || '');
-  const [targetRoles, setTargetRoles] = useState(profileInfo?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer']);
-  const [newRoleInput, setNewRoleInput] = useState('');
-  const [preferredLocations, setPreferredLocations] = useState(profileInfo?.preferredLocations || ['Bangalore', 'Chennai', 'Remote']);
-  const [newLocationInput, setNewLocationInput] = useState('');
-  const [workTypes, setWorkTypes] = useState(profileInfo?.workTypes || ['Remote', 'Hybrid']);
-  const [experienceLevel, setExperienceLevel] = useState(profileInfo?.experienceLevel || 'Fresher');
-  const [profileMsg, setProfileMsg] = useState(false);
-  const [roleFocused, setRoleFocused] = useState(false);
-  const [locFocused, setLocFocused] = useState(false);
-
-  useEffect(() => {
-    setProfileName(profileInfo?.name || '');
-    setProfileResume(profileInfo?.resume || '');
-    setTargetRoles(profileInfo?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer']);
-    setPreferredLocations(profileInfo?.preferredLocations || ['Bangalore', 'Chennai', 'Remote']);
-    setWorkTypes(profileInfo?.workTypes || ['Remote', 'Hybrid']);
-    setExperienceLevel(profileInfo?.experienceLevel || 'Fresher');
-  }, [profileInfo]);
   const [saveMsg, setSaveMsg] = useState(false);
   
   const [localSchedule, setLocalSchedule] = useState({ ...SCHEDULE?.fullTime });
@@ -127,29 +44,7 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
   const [newCatEmoji, setNewCatEmoji] = useState('📦');
   const [catMsg, setCatMsg] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-
-  const [localAiEnabled, setLocalAiEnabled] = useState(() => localStorage.getItem('ai_enabled') === 'true');
-  const [localAiKey, setLocalAiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
-  const [localAiModel, setLocalAiModel] = useState(() => localStorage.getItem('ai_model') || 'gemini-1.5-flash');
-  const [localAiPersona, setLocalAiPersona] = useState(() => localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
-  const [localProvider, setLocalProvider] = useState(() => localStorage.getItem('ai_provider') || 'gemini');
-  const [localOpenrouterKey, setLocalOpenrouterKey] = useState(() => localStorage.getItem('openrouter_api_key') || '');
-  const [localOpenrouterModel, setLocalOpenrouterModel] = useState(() => localStorage.getItem('openrouter_model') || 'openrouter/free');
   const [devMode, setDevMode] = useState(() => localStorage.getItem('dev_mode') === 'true');
-
-  React.useEffect(() => {
-    const handleStorage = () => {
-      setLocalAiEnabled(localStorage.getItem('ai_enabled') === 'true');
-      setLocalAiKey(localStorage.getItem('gemini_api_key') || '');
-      setLocalAiModel(localStorage.getItem('ai_model') || 'gemini-1.5-flash');
-      setLocalAiPersona(localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
-      setLocalProvider(localStorage.getItem('ai_provider') || 'gemini');
-      setLocalOpenrouterKey(localStorage.getItem('openrouter_api_key') || '');
-      setLocalOpenrouterModel(localStorage.getItem('openrouter_model') || 'openrouter/free');
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
 
   const addCategory = () => {
     if (!newCatLabel.trim()) return;
@@ -188,6 +83,7 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
     { id: 1, label: 'Chest & Triceps' },
     { id: 2, label: 'Back & Biceps' },
     { id: 3, label: 'Legs & Shoulders' },
+    { id: 7, label: 'Full Body 💪' },
   ];
 
   const saveSchedule = (type) => {
@@ -234,8 +130,6 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
 
   const exportCSV = () => {
     const allKeys = Array.from(new Set([...Object.keys(DB), ...Object.keys(META), ...Object.keys(FOOD)])).sort();
-    
-    // CSV Header
     let csv = 'Date,Day_Name,Day,Month,Year,Category,Item_Name,Sets,Reps,Weight_kg,Protein_g,Notes_or_Status\n';
     
     const escapeCSV = (str) => {
@@ -254,10 +148,8 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
       const dayNum = kd.getDate();
       const monthName = MONTHS[kd.getMonth()];
       const year = kd.getFullYear();
-      
       const dateCols = `${k},${dayName},${dayNum},${monthName},${year}`;
       
-      // 1. Meta
       const m = META[k];
       if(m) {
         if(m.status) csv += `${dateCols},Meta,Daily Status,,,,,"${m.status}"\n`;
@@ -266,23 +158,19 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
         if(m.notes) csv += `${dateCols},Meta,Notes,,,,,${escapeCSV(m.notes)}\n`;
       }
       
-      // 2. Gym
       const entry = DB[k];
       if(entry) {
         Object.keys(entry).filter(ek => !['meta', 'customName'].includes(ek)).forEach(ek => {
           const v = entry[ek];
           if(v.s || v.r || v.w) {
-            // Try to find custom name
             const customKey = Object.keys(localNames).find(nameKey => nameKey.endsWith('_' + ek));
             let exName = customKey ? localNames[customKey] : ek;
             if(entry[ek].customName) exName = entry[ek].customName;
-            
             csv += `${dateCols},Workout,${escapeCSV(exName)},${v.s||0},${v.r||0},${v.w||0},,\n`;
           }
         });
       }
       
-      // 3. Food
       const f = FOOD[k];
       if(f) {
         if(f.water) csv += `${dateCols},Habit,Water 3-4L,,,,,Completed\n`;
@@ -338,7 +226,6 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
     URL.revokeObjectURL(url);
   };
 
-
   return (
     <div id="settings-content" style={{ padding: '20px' }}>
       <div style={{ marginBottom: '20px' }}>
@@ -362,9 +249,17 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
             );
           })}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
-          <button className="settings-save" onClick={() => setShowSchedModal(true)} style={{ flex: 1 }}>Save Schedule</button>
-          <span className="save-ok" style={{ opacity: schedMsg ? 1 : 0 }}>Saved ✓</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px', width: '100%' }}>
+          <button className="settings-save" onClick={() => setShowSchedModal(true)} style={{
+            flex: 1,
+            background: schedMsg ? '#10B981' : 'var(--accent)',
+            color: schedMsg ? '#fff' : '#000',
+            boxShadow: schedMsg ? '0 4px 15px rgba(16, 185, 129, 0.3)' : 'none',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            fontWeight: 'bold'
+          }}>
+            {schedMsg ? 'Saved ✓' : 'Save Schedule'}
+          </button>
         </div>
       </Accordion>
 
@@ -393,9 +288,17 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
             </div>
           );
         })}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
-          <button className="settings-save" onClick={saveNames} style={{ flex: 1 }}>Save Exercise Names</button>
-          <span className="save-ok" style={{ opacity: saveMsg ? 1 : 0 }}>Saved ✓</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px', width: '100%' }}>
+          <button className="settings-save" onClick={saveNames} style={{
+            flex: 1,
+            background: saveMsg ? '#10B981' : 'var(--accent)',
+            color: saveMsg ? '#fff' : '#000',
+            boxShadow: saveMsg ? '0 4px 15px rgba(16, 185, 129, 0.3)' : 'none',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            fontWeight: 'bold'
+          }}>
+            {saveMsg ? 'Saved ✓' : 'Save Exercise Names'}
+          </button>
         </div>
       </Accordion>
 
@@ -423,9 +326,17 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
             style={{ flex: 1, padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px' }} />
           <button onClick={addCategory} style={{ padding: '8px 14px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>+ Add</button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px' }}>
-          <button className="settings-save" onClick={saveBudgetSettings} style={{ flex: 1 }}>Save Budget Settings</button>
-          <span className="save-ok" style={{ opacity: budgetMsg ? 1 : 0 }}>Saved ✓</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px', width: '100%' }}>
+          <button className="settings-save" onClick={saveBudgetSettings} style={{
+            flex: 1,
+            background: budgetMsg ? '#10B981' : 'var(--accent)',
+            color: budgetMsg ? '#fff' : '#000',
+            boxShadow: budgetMsg ? '0 4px 15px rgba(16, 185, 129, 0.3)' : 'none',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            fontWeight: 'bold'
+          }}>
+            {budgetMsg ? 'Saved ✓' : 'Save Budget Settings'}
+          </button>
         </div>
       </Accordion>
 
@@ -455,350 +366,43 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
             style={{ flex: 1, padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px' }} />
           <button onClick={addSubject} style={{ padding: '8px 14px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>+ Add</button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px' }}>
-          <button className="settings-save" onClick={saveStudySettings} style={{ flex: 1 }}>Save Study Settings</button>
-          <span className="save-ok" style={{ opacity: studyMsg ? 1 : 0 }}>Saved ✓</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px', width: '100%' }}>
+          <button className="settings-save" onClick={saveStudySettings} style={{
+            flex: 1,
+            background: studyMsg ? '#10B981' : 'var(--accent)',
+            color: studyMsg ? '#fff' : '#000',
+            boxShadow: studyMsg ? '0 4px 15px rgba(16, 185, 129, 0.3)' : 'none',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            fontWeight: 'bold'
+          }}>
+            {studyMsg ? 'Saved ✓' : 'Save Study Settings'}
+          </button>
         </div>
       </Accordion>
 
       {/* PROFILE & RESUME */}
-      <Accordion title="👤 Profile &amp; Resume Details" subtitle="Set your name and professional background for Lucy">
-        <div style={{ marginBottom: '12px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Your Name / Nickname</div>
-          <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)} placeholder="e.g. Ashok"
-            style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
-        </div>
-
-        <div style={{ marginBottom: '12px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Resume / Profile Summary</div>
-          <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '6px' }}>
-            Paste your skills, experience, education, or achievements. Lucy will read this to customize your interview prep!
-          </div>
-          <textarea value={profileResume} onChange={e => setProfileResume(e.target.value)} placeholder="e.g. JavaScript, React, Node.js developer with 2 years of experience. Education: B.Tech in CSE..."
-            style={{ width: '100%', height: '120px', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical', outline: 'none' }} />
-        </div>
-
-        {/* Preferred Locations Input & Tags */}
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Preferred Job Locations (Cities / Remote)</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-            {preferredLocations.map(loc => (
-              <div key={loc}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', background: 'rgba(77, 159, 255, 0.1)', color: '#4D9FFF', border: '1px solid rgba(77, 159, 255, 0.3)', fontWeight: 700 }}>
-                <span>📍 {loc}</span>
-                <span onClick={() => {
-                  if (preferredLocations.length > 1) {
-                    setPreferredLocations(preferredLocations.filter(l => l !== loc));
-                  }
-                }} style={{ cursor: 'pointer', color: 'var(--red)', fontSize: '14px', marginLeft: '4px', fontWeight: 'bold' }}>×</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <input type="text" placeholder="Add location (e.g. Hyderabad, Chennai)" value={newLocationInput} 
-                onChange={e => setNewLocationInput(e.target.value)}
-                onFocus={() => setLocFocused(true)}
-                onBlur={() => setTimeout(() => setLocFocused(false), 200)}
-                style={{ width: '100%', padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
-              {locFocused && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '8px', marginTop: '4px', zIndex: 10, maxHeight: '120px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
-                  {getCitySuggestions(newLocationInput).map(item => (
-                    <div key={item} onMouseDown={() => {
-                      setNewLocationInput(item);
-                      setLocFocused(false);
-                    }}
-                      style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text2)', cursor: 'pointer', borderBottom: '1px solid var(--border2)', background: 'transparent', transition: 'background 0.2s' }}
-                      onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
-                      onMouseLeave={e => e.target.style.background = 'transparent'}>
-                      📍 {item}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <button onClick={() => {
-              if (newLocationInput.trim() && !preferredLocations.includes(newLocationInput.trim())) {
-                setPreferredLocations([...preferredLocations, newLocationInput.trim()]);
-                setNewLocationInput('');
-              }
-            }}
-              style={{ padding: '8px 14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '13px', height: '37px' }}>
-              + Add
-            </button>
-          </div>
-        </div>
-
-        {/* Work Type Checkbox Selector */}
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Preferred Work Modes</div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {[
-              { id: 'Remote', label: '🏠 Remote' },
-              { id: 'Hybrid', label: '🤝 Hybrid' },
-              { id: 'On-site', label: '🏢 On-site (Office)' }
-            ].map(mode => {
-              const isSelected = workTypes.includes(mode.id);
-              return (
-                <div key={mode.id} onClick={() => {
-                  if (isSelected) {
-                    if (workTypes.length > 1) {
-                      setWorkTypes(workTypes.filter(t => t !== mode.id));
-                    }
-                  } else {
-                    setWorkTypes([...workTypes, mode.id]);
-                  }
-                }}
-                  style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '12px', textAlign: 'center', cursor: 'pointer', background: isSelected ? 'var(--accent)' : 'var(--bg3)', color: isSelected ? '#000' : 'var(--text2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
-                  {mode.label}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Experience Level Selector */}
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Experience Level</div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {[
-              { id: 'Fresher', label: '🎓 Fresher' },
-              { id: '1-2 Years', label: '⚡ 1 to 2 Years' },
-              { id: '3+ Years', label: '🚀 3+ Years' }
-            ].map(level => {
-              const isSelected = experienceLevel === level.id;
-              return (
-                <div key={level.id} onClick={() => setExperienceLevel(level.id)}
-                  style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '12px', textAlign: 'center', cursor: 'pointer', background: isSelected ? 'var(--accent)' : 'var(--bg3)', color: isSelected ? '#000' : 'var(--text2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
-                  {level.label}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Custom Target Roles Tag Box */}
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Target Job Roles</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-            {targetRoles.map(role => (
-              <div key={role}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', background: 'rgba(200, 241, 53, 0.1)', color: 'var(--accent)', border: '1px solid rgba(200, 241, 53, 0.3)', fontWeight: 700 }}>
-                <span>⚛️ {role}</span>
-                <span onClick={() => {
-                  if (targetRoles.length > 1) {
-                    setTargetRoles(targetRoles.filter(r => r !== role));
-                  }
-                }} style={{ cursor: 'pointer', color: 'var(--red)', fontSize: '14px', marginLeft: '4px', fontWeight: 'bold' }}>×</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <input type="text" placeholder="Add custom role (e.g. Node Developer)" value={newRoleInput} 
-                onChange={e => setNewRoleInput(e.target.value)}
-                onFocus={() => setRoleFocused(true)}
-                onBlur={() => setTimeout(() => setRoleFocused(false), 200)}
-                style={{ width: '100%', padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
-              {roleFocused && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '8px', marginTop: '4px', zIndex: 10, maxHeight: '120px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
-                  {getJobSuggestions(newRoleInput).map(item => (
-                    <div key={item} onMouseDown={() => {
-                      setNewRoleInput(item);
-                      setRoleFocused(false);
-                    }}
-                      style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text2)', cursor: 'pointer', borderBottom: '1px solid var(--border2)', background: 'transparent', transition: 'background 0.2s' }}
-                      onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
-                      onMouseLeave={e => e.target.style.background = 'transparent'}>
-                      🔍 {item}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <button onClick={() => {
-              if (newRoleInput.trim() && !targetRoles.includes(newRoleInput.trim())) {
-                setTargetRoles([...targetRoles, newRoleInput.trim()]);
-                setNewRoleInput('');
-              }
-            }}
-              style={{ padding: '8px 14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '13px', height: '37px' }}>
-              + Add
-            </button>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px' }}>
-          <button className="settings-save" onClick={async () => {
-            if (syncProfileInfo) {
-              await syncProfileInfo({ 
-                name: profileName.trim(), 
-                resume: profileResume.trim(),
-                targetRoles,
-                preferredLocations,
-                workTypes,
-                experienceLevel
-              });
-              setProfileMsg(true);
-              setTimeout(() => setProfileMsg(false), 2000);
-            }
-          }} style={{ flex: 1 }}>Save Profile</button>
-          <span className="save-ok" style={{ opacity: profileMsg ? 1 : 0 }}>Saved ✓</span>
-        </div>
-      </Accordion>
+      <ProfileSettings profileInfo={profileInfo} syncProfileInfo={syncProfileInfo} />
 
       {/* AI COACH */}
-      <Accordion title="🤖 AI Coach Settings" subtitle="Configure your personal AI assistant">
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <div style={{ fontSize: '13px', fontWeight: 600 }}>Enable AI Coach</div>
-            <div onClick={() => {
-              const newVal = !localAiEnabled;
-              setLocalAiEnabled(newVal);
-              if (syncAiSettings) {
-                syncAiSettings({ enabled: newVal });
-              } else {
-                localStorage.setItem('ai_enabled', newVal ? 'true' : 'false');
-                window.dispatchEvent(new Event('storage'));
-              }
-            }} style={{ width: '44px', height: '24px', background: localAiEnabled ? 'var(--accent)' : 'var(--bg3)', borderRadius: '12px', position: 'relative', cursor: 'pointer', transition: 'all 0.3s', border: '1px solid var(--border2)' }}>
-              <div style={{ width: '18px', height: '18px', background: localAiEnabled ? '#000' : 'var(--text3)', borderRadius: '50%', position: 'absolute', top: '2px', left: localAiEnabled ? '22px' : '3px', transition: 'all 0.3s' }}></div>
-            </div>
-          </div>
+      <AISettings syncAiSettings={syncAiSettings} />
+
+      {/* DATA & EXPORT */}
+      <Accordion title="📦 Data &amp; Export" subtitle="Backup and export your data">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <button className="settings-save"
+            style={{ background: 'var(--accent)', color: '#000', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+            onClick={() => setShowExportModal(true)}>
+            📊 Export CSV
+          </button>
+          <button className="settings-save"
+            style={{ background: 'var(--bg3)', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+            onClick={exportData}>
+            💾 Full Backup
+          </button>
         </div>
-
-        {/* AI Provider Selector */}
-        <div style={{ marginBottom: '12px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Select AI Provider</div>
-          <select 
-            value={localProvider} 
-            onChange={e => {
-              const val = e.target.value;
-              setLocalProvider(val);
-              if (syncAiSettings) {
-                syncAiSettings({ provider: val });
-              } else {
-                localStorage.setItem('ai_provider', val);
-                window.dispatchEvent(new Event('storage'));
-              }
-            }}
-            style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }}
-          >
-            <option value="gemini">Google Gemini (Direct)</option>
-            <option value="openrouter">OpenRouter (Free Auto-Router)</option>
-          </select>
+        <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '10px', lineHeight: 1.5 }}>
+          CSV exports your gym, diet, budget and study data. Full Backup saves everything as a JSON file.
         </div>
-
-        {/* Gemini Configuration */}
-        {localProvider === 'gemini' && (
-          <>
-            <div style={{ marginBottom: '12px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Gemini API Key</div>
-              <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '6px' }}>
-                Get a free key in 10s at <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 'bold', textDecoration: 'underline' }}>aistudio.google.com</a>
-              </div>
-              <input type="password" value={localAiKey} onChange={e => {
-                const val = e.target.value;
-                setLocalAiKey(val);
-                if (syncAiSettings) {
-                  syncAiSettings({ apiKey: val });
-                } else {
-                  localStorage.setItem('gemini_api_key', val);
-                  window.dispatchEvent(new Event('storage'));
-                }
-              }} placeholder="Paste your Gemini key here"
-                style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
-            </div>
-
-            <div style={{ marginBottom: '12px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Gemini Model</div>
-              <select value={localAiModel} onChange={e => {
-                const val = e.target.value;
-                setLocalAiModel(val);
-                if (syncAiSettings) {
-                  syncAiSettings({ model: val });
-                } else {
-                  localStorage.setItem('ai_model', val);
-                  window.dispatchEvent(new Event('storage'));
-                }
-              }} style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }}>
-                <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fastest/Free)</option>
-                <option value="gemini-2.0-flash">Gemini 2.0 Flash (Advanced/Free)</option>
-                <option value="gemini-pro">Gemini Pro (Legacy/Stable)</option>
-              </select>
-            </div>
-          </>
-        )}
-
-        {/* OpenRouter Configuration */}
-        {localProvider === 'openrouter' && (
-          <>
-            <div style={{ marginBottom: '12px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>OpenRouter API Key</div>
-              <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '6px' }}>
-                Get a free key at <a href="https://openrouter.ai/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 'bold', textDecoration: 'underline' }}>openrouter.ai</a> (Access Llama 3 / Gemma Free!)
-              </div>
-              <input type="password" value={localOpenrouterKey} onChange={e => {
-                const val = e.target.value;
-                setLocalOpenrouterKey(val);
-                if (syncAiSettings) {
-                  syncAiSettings({ openrouterKey: val });
-                } else {
-                  localStorage.setItem('openrouter_api_key', val);
-                  window.dispatchEvent(new Event('storage'));
-                }
-              }} placeholder="Paste your OpenRouter key here"
-                style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
-            </div>
-
-            <div style={{ marginBottom: '12px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>OpenRouter Free Model</div>
-              <select value={localOpenrouterModel} onChange={e => {
-                const val = e.target.value;
-                setLocalOpenrouterModel(val);
-                if (syncAiSettings) {
-                  syncAiSettings({ openrouterModel: val });
-                } else {
-                  localStorage.setItem('openrouter_model', val);
-                  window.dispatchEvent(new Event('storage'));
-                }
-              }} style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }}>
-                <option value="openrouter/free">Auto-Select Active Free Model (Highly Recommended!)</option>
-                <option value="meta-llama/llama-3-8b-instruct:free">Llama 3 8B Instruct (Free/Fast)</option>
-              </select>
-              <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '4px', fontStyle: 'italic' }}>
-                💡 "Auto-Select" always routes to an active free model even if others are down.
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Common Coach Persona/Personality Instructions */}
-        <div style={{ marginBottom: '12px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Coach Personality / Instructions</div>
-          <input type="text" value={localAiPersona} onChange={e => {
-            const val = e.target.value;
-            setLocalAiPersona(val);
-            if (syncAiSettings) {
-              syncAiSettings({ persona: val });
-            } else {
-              localStorage.setItem('ai_persona', val);
-              window.dispatchEvent(new Event('storage'));
-            }
-          }} placeholder="e.g. Aggressive Drill Sergeant, Helpful Friend"
-            style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box' }} />
-        </div>
-
-        <div style={{ fontSize: '10px', color: 'var(--accent)', marginTop: '8px', opacity: 0.8 }}>
-          Settings are synchronized with your account securely in the cloud.
-        </div>
-      </Accordion>
-
-      {/* DATA */}
-      <Accordion title="📦 Data &amp; Export" subtitle="Choose what to export">
-        <button className="settings-save" style={{ background: 'var(--accent)', color: '#000', marginBottom: '10px', width: '100%' }} onClick={() => setShowExportModal(true)}>Export Data</button>
-        <button className="settings-save" style={{ background: 'var(--bg3)', color: 'var(--text)', marginBottom: '10px', width: '100%' }} onClick={exportData}>Full Backup (JSON)</button>
-        <button className="logout-btn" onClick={handleLogout} style={{ width: '100%' }}>Log Out</button>
       </Accordion>
 
       {/* DEVELOPER OPTIONS */}
@@ -812,8 +416,7 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
               localStorage.setItem('dev_mode', newVal);
               
               if (!newVal) {
-                // Clear Jan-Apr data
-                const monthsToClear = [0, 1, 2, 3]; // Jan, Feb, Mar, Apr
+                const monthsToClear = [0, 1, 2, 3];
                 const clearData = (obj) => {
                   const newObj = { ...obj };
                   Object.keys(newObj).forEach(k => {
@@ -862,32 +465,69 @@ export default function Settings({ NAMES, syncData, DB, META, FOOD, handleLogout
         )}
       </Accordion>
 
+      {/* LOGOUT */}
+      <div style={{ marginTop: '8px', marginBottom: '8px', padding: '16px', borderRadius: '14px', border: '1px solid rgba(255,77,77,0.2)', background: 'rgba(255,77,77,0.04)' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '10px' }}>Signed in to your LifeTraker account</div>
+        <button
+          onClick={handleLogout}
+          style={{
+            width: '100%', padding: '13px', borderRadius: '10px',
+            background: 'rgba(255,77,77,0.12)', color: 'var(--red)',
+            border: '1px solid rgba(255,77,77,0.3)', fontSize: '14px',
+            fontWeight: 700, cursor: 'pointer', letterSpacing: '0.03em',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={e => e.target.style.background = 'rgba(255,77,77,0.22)'}
+          onMouseLeave={e => e.target.style.background = 'rgba(255,77,77,0.12)'}
+        >
+          🚪 Log Out
+        </button>
+      </div>
+
       <div style={{ height: '20px' }} />
 
       {showSchedModal && (
         <div className="modal-overlay" onClick={() => setShowSchedModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3>Save Schedule</h3>
-            <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '20px', lineHeight: 1.5 }}>Do you want to save this permanently or just for this week?</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button className="settings-save" onClick={() => saveSchedule('fullTime')} style={{ background: 'var(--accent)', color: '#000' }}>Full Time (Permanent)</button>
-              <button className="settings-save" onClick={() => saveSchedule('thisWeek')} style={{ background: 'var(--bg3)', color: 'var(--text)' }}>This Week Only</button>
-              <button className="settings-save" onClick={() => setShowSchedModal(false)} style={{ background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border)' }}>Cancel</button>
+            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }}>Apply Schedule Options</div>
+            <p style={{ fontSize: '12px', color: 'var(--text3)', lineHeight: 1.5, marginBottom: '18px' }}>
+              Apply to <strong>"Permanent Split"</strong> (saves default split for weekdays) or <strong>"This Week Only"</strong> (overrides splits starting from today).
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button onClick={() => saveSchedule('fullTime')} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--accent)', color: '#000', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}>
+                📅 Permanent Split (All Weeks)
+              </button>
+              <button onClick={() => saveSchedule('thisWeek')} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                📆 This Week Only (Temporary)
+              </button>
+              <button onClick={() => setShowSchedModal(false)} style={{ width: '100%', padding: '10px', background: 'transparent', color: 'var(--text3)', border: 'none', cursor: 'pointer', fontSize: '12px', marginTop: '6px' }}>
+                Cancel
+              </button>
             </div>
           </div>
         </div>
       )}
+
       {showExportModal && (
         <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3>Export Data</h3>
-            <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '20px', lineHeight: 1.5 }}>What would you like to export?</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button className="settings-save" onClick={() => { exportCSV('gym'); setShowExportModal(false); }} style={{ background: 'var(--bg3)', color: 'var(--text)' }}>🏋️ Gym &amp; Diet Only</button>
-              <button className="settings-save" onClick={() => { exportBudgetCSV(); setShowExportModal(false); }} style={{ background: 'var(--bg3)', color: 'var(--text)' }}>💰 Budget Only</button>
-              <button className="settings-save" onClick={() => { exportStudyCSV(); setShowExportModal(false); }} style={{ background: 'var(--bg3)', color: 'var(--text)' }}>📚 Study Only</button>
-              <button className="settings-save" onClick={() => { exportCSV('all'); setShowExportModal(false); }} style={{ background: 'var(--accent)', color: '#000' }}>📦 All Data</button>
-              <button className="settings-save" onClick={() => setShowExportModal(false)} style={{ background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border)' }}>Cancel</button>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '360px' }}>
+            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '12px' }}>📊 Export Data to CSV</div>
+            <p style={{ fontSize: '12px', color: 'var(--text3)', lineHeight: 1.5, marginBottom: '20px' }}>
+              Choose a specific dataset or download the combined workspace report.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button onClick={() => { exportCSV(); setShowExportModal(false); }} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--accent)', color: '#000', fontWeight: 'bold', border: 'none', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🏋️ Gym, Habits &amp; Diet CSV
+              </button>
+              <button onClick={() => { exportBudgetCSV(); setShowExportModal(false); }} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                💰 Budget Ledger CSV
+              </button>
+              <button onClick={() => { exportStudyCSV(); setShowExportModal(false); }} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                📚 Study Sessions CSV
+              </button>
+              <button onClick={() => setShowExportModal(false)} style={{ width: '100%', padding: '10px', background: 'transparent', color: 'var(--text3)', border: 'none', cursor: 'pointer', fontSize: '12px', marginTop: '6px' }}>
+                Cancel
+              </button>
             </div>
           </div>
         </div>

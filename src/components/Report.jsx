@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol, DAYS_SHORT, MONTHS } from '../data';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import History from './History';
 import Budget from './Budget';
@@ -26,7 +26,21 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
   const [timeRange, setTimeRange] = useState('Today');
   const [budgetRange, setBudgetRange] = useState('Monthly');
   const [studyRange, setStudyRange] = useState('Weekly');
-  
+
+  // ResizeObserver-based chart width — avoids ResponsiveContainer infinite loop
+  const chartAreaRef = useRef(null);
+  const [chartWidth, setChartWidth] = useState(300);
+  useEffect(() => {
+    if (!chartAreaRef.current) return;
+    const observer = new ResizeObserver(entries => {
+      const w = entries[0]?.contentRect?.width;
+      if (w && Math.abs(w - chartWidth) > 2) setChartWidth(Math.floor(w));
+    });
+    observer.observe(chartAreaRef.current);
+    setChartWidth(Math.floor(chartAreaRef.current.getBoundingClientRect().width) || 300);
+    return () => observer.disconnect();
+  }, []);
+
   const now = new Date();
   let daysToLookBack = 1;
   if(timeRange === 'Weekly') daysToLookBack = 7;
@@ -365,7 +379,11 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
                   </div>
                   {timeRange !== 'Today' && (
                     <div style={{width: '90px', height: '90px'}}>
-                      <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={30} outerRadius={45} stroke="none" cornerRadius={10} paddingAngle={5}>{pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}</Pie></PieChart></ResponsiveContainer>
+                      <PieChart width={90} height={90}>
+                        <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={30} outerRadius={45} stroke="none" cornerRadius={10} paddingAngle={5}>
+                          {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                        </Pie>
+                      </PieChart>
                     </div>
                   )}
                 </div>
@@ -377,30 +395,57 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
                   <div style={{textAlign:'right'}}><div className="dash-val" style={{fontSize:'18px', color: 'var(--orange)'}}>{formatTime(totalDaysAttended > 0 ? Math.round(totalMinutesSpent / totalDaysAttended) : 0)}</div><div className="dash-label">Avg Session</div></div>
                 </div>
                 {timeRange !== 'Today' ? (
-                  <div style={{width: '100%', height: '100px', marginTop: '16px'}}>
-                    <ResponsiveContainer width="100%" height="100%"><AreaChart data={finalChartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}><defs><linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--orange)" stopOpacity={0.4}/><stop offset="95%" stopColor="var(--orange)" stopOpacity={0}/></linearGradient></defs><XAxis dataKey="name" tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} /><YAxis tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} /><Tooltip content={<CustomTooltip />} /><Area type="monotone" dataKey="Time" stroke="var(--orange)" strokeWidth={3} fillOpacity={1} fill="url(#colorTime)" activeDot={{r: 6, fill: 'var(--orange)', stroke: '#000', strokeWidth: 2}} /></AreaChart></ResponsiveContainer>
+                  <div ref={chartAreaRef} style={{width: '100%', height: '100px', marginTop: '16px'}}>
+                    <AreaChart width={chartWidth} height={100} data={finalChartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--orange)" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="var(--orange)" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="name" tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                      <YAxis tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Area type="monotone" dataKey="Time" stroke="var(--orange)" strokeWidth={3} fillOpacity={1} fill="url(#colorTime)" activeDot={{r: 6, fill: 'var(--orange)', stroke: '#000', strokeWidth: 2}} />
+                    </AreaChart>
                   </div>
                 ) : (
                   <div style={{fontSize:'32px', fontWeight:'bold', color:'var(--orange)', marginTop:'24px', textAlign:'center'}}>{formatTime(totalMinutesSpent)}</div>
                 )}
               </div>
             </div>
-
+ 
             {timeRange !== 'Today' && (
               <>
                 <div className="dash-card full" style={{background: 'var(--bg3)', padding: '10px', display: 'block'}}>
                   <div className="dash-val" style={{fontSize: '18px'}}>Progressive Overload</div>
                   <div className="dash-label">{timeRange} Volume Trend</div>
                   <div style={{width: '100%', height: '220px', marginTop:'20px'}}>
-                    <ResponsiveContainer width="100%" height="100%"><BarChart data={finalChartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}><XAxis dataKey="name" tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} /><YAxis tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} /><Tooltip content={<CustomTooltip />} cursor={{fill: 'var(--border2)', opacity: 0.4}} /><Bar dataKey="Volume" fill="var(--accent)" radius={[8, 8, 8, 8]} maxBarSize={timeRange === 'Monthly' ? 8 : 30} /></BarChart></ResponsiveContainer>
+                    <BarChart width={chartWidth} height={220} data={finalChartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                      <XAxis dataKey="name" tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                      <YAxis tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                      <Tooltip content={<CustomTooltip />} cursor={{fill: 'var(--border2)', opacity: 0.4}} />
+                      <Bar dataKey="Volume" fill="var(--accent)" radius={[8, 8, 8, 8]} maxBarSize={timeRange === 'Monthly' ? 8 : 30} />
+                    </BarChart>
                   </div>
                 </div>
-
+ 
                 <div className="dash-card full" style={{background: 'var(--bg3)', padding: '10px', display: 'block'}}>
                   <div className="dash-val" style={{fontSize: '18px', color: 'var(--blue)'}}>Nutrition Tracking</div>
                   <div className="dash-label">{timeRange} Protein Intake (g)</div>
                   <div style={{width: '100%', height: '180px', marginTop: '20px'}}>
-                    <ResponsiveContainer width="100%" height="100%"><AreaChart data={finalChartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}><defs><linearGradient id="colorProtein" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--blue)" stopOpacity={0.4}/><stop offset="95%" stopColor="var(--blue)" stopOpacity={0}/></linearGradient></defs><XAxis dataKey="name" tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} /><YAxis tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} /><Tooltip content={<CustomTooltip />} /><Area type="monotone" dataKey="Protein" stroke="var(--blue)" strokeWidth={3} fillOpacity={1} fill="url(#colorProtein)" /></AreaChart></ResponsiveContainer>
+                    <AreaChart width={chartWidth} height={180} data={finalChartData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorProtein" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--blue)" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="var(--blue)" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="name" tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                      <YAxis tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Area type="monotone" dataKey="Protein" stroke="var(--blue)" strokeWidth={3} fillOpacity={1} fill="url(#colorProtein)" />
+                    </AreaChart>
                   </div>
                 </div>
 

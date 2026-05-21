@@ -27,7 +27,15 @@ export const DEFAULT_PLAN = {
     {name:'Legs',exercises:['Barbell Squat','Romanian Deadlift','Leg Press','Leg Curl','Calf Raises']},
     {name:'Shoulders',exercises:['Overhead Press','Dumbbell Lateral Raise','Front Raise','Face Pulls','Arnold Press']}
   ]},
-  0:{label:'Rest Day',muscles:[]}
+  0:{label:'Rest Day',muscles:[]},
+  7:{label:'Full Body',muscles:[
+    {name:'Chest',exercises:['Barbell Bench Press','Cable Chest Fly']},
+    {name:'Back',exercises:['Lat Pulldown','Bent Over Barbell Row']},
+    {name:'Legs',exercises:['Barbell Squat','Leg Press']},
+    {name:'Shoulders',exercises:['Overhead Press','Dumbbell Lateral Raise']},
+    {name:'Biceps',exercises:['Barbell Curl','Hammer Curl']},
+    {name:'Triceps',exercises:['Tricep Pushdown','Diamond Push-ups']}
+  ]}
 };
 
 // DAY-WISE FOOD PLANNER
