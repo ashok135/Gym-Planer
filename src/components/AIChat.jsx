@@ -228,20 +228,45 @@ Guidelines for Lucy:
 
     const userMsg = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    
+    // Optimistically update the UI with the user's message
+    const updatedMessages = [...messages, { role: 'user', text: userMsg }];
+    setMessages(updatedMessages);
+    setLoading(false); // Reset in case it got stuck
     setLoading(true);
 
     try {
       const context = buildContext();
       let reply = '';
+      
       if (provider === 'gemini') {
+        // Construct standard Gemini chat history (alternating user/model role parts)
+        const chatContents = [];
+        
+        // Skip the initial bot greeting at index 0 to ensure alternating pattern starts with user
+        const historySlice = updatedMessages.slice(1);
+        
+        historySlice.forEach(m => {
+          chatContents.push({
+            role: m.role === 'user' ? 'user' : 'model',
+            parts: [{ text: m.text }]
+          });
+        });
+
+        // Use systemInstruction for perfect adherence on Gemini 1.5+ models
+        const requestBody = {
+          contents: chatContents,
+          systemInstruction: {
+            parts: [{ text: context }]
+          }
+        };
+
         const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: context + '\n\nUser: ' + userMsg }] }]
-          })
+          body: JSON.stringify(requestBody)
         });
+        
         const data = await res.json();
         if (data.error) {
           reply = `⚠️ Gemini API Error: ${data.error.message} (Code: ${data.error.code})`;
@@ -249,6 +274,19 @@ Guidelines for Lucy:
           reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, couldn't get a response. Please verify your API Key and try again!";
         }
       } else {
+        // Construct OpenRouter chat messages array with system context
+        const chatMessages = [
+          { role: 'system', content: context }
+        ];
+
+        // Include all messages except initial bot greeting (handled by standard system system)
+        updatedMessages.slice(1).forEach(m => {
+          chatMessages.push({
+            role: m.role === 'user' ? 'user' : 'assistant',
+            content: m.text
+          });
+        });
+
         const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -259,12 +297,10 @@ Guidelines for Lucy:
           },
           body: JSON.stringify({
             model: openrouterModel,
-            messages: [
-              { role: 'system', content: context },
-              { role: 'user', content: userMsg }
-            ]
+            messages: chatMessages
           })
         });
+
         const data = await res.json();
         if (data.error) {
           reply = `⚠️ OpenRouter API Error: ${data.error.message || JSON.stringify(data.error)}`;
@@ -272,6 +308,7 @@ Guidelines for Lucy:
           reply = data?.choices?.[0]?.message?.content || "Sorry, couldn't get a response. Please verify your API Key and try again!";
         }
       }
+      
       setMessages(prev => [...prev, { role: 'bot', text: reply }]);
     } catch (e) {
       setMessages(prev => [...prev, { role: 'bot', text: `⚠️ Connection Error: Failed to connect to ${provider === 'gemini' ? 'Gemini' : 'OpenRouter'}. Please check your internet connection.` }]);
