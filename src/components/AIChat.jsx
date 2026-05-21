@@ -487,7 +487,7 @@ Guidelines for Lucy:
         <button onClick={() => setOpen(true)}
           style={{ 
             position: 'fixed', 
-            bottom: '95px', 
+            bottom: 'calc(95px + env(safe-area-inset-bottom))', 
             right: '24px', 
             height: '46px', 
             borderRadius: '23px', 
@@ -534,7 +534,7 @@ Guidelines for Lucy:
       {open && (
         <div style={{ 
           position: 'fixed', 
-          bottom: '90px', 
+          bottom: 'calc(90px + env(safe-area-inset-bottom))', 
           right: '12px', 
           left: '12px', 
           maxWidth: '500px', 
