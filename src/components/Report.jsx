@@ -112,16 +112,23 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
     const m = META[k] || {};
     
     if(timeRange === 'Today') {
-      const plan = workoutPlans[d.getDay()] || workoutPlans[0];
-      plan.muscles.forEach(mu => {
-        mu.exercises.forEach((ex, idx) => {
-          todayTotalExercises++;
-          const ek = `${mu.name}_${idx}`;
-          if(entry[ek] && (entry[ek].done || (entry[ek].s && entry[ek].r && entry[ek].w))) {
-            todayDoneExercises++;
-          }
+      let currentPlanId = d.getDay();
+      if (SCHEDULE?.fullTime && SCHEDULE.fullTime[currentPlanId] !== undefined) currentPlanId = SCHEDULE.fullTime[currentPlanId];
+      if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[k] !== undefined) currentPlanId = SCHEDULE.thisWeek[k];
+
+      const plan = (Array.isArray(workoutPlans) ? workoutPlans.find(p => p.id === currentPlanId) : workoutPlans[currentPlanId]) || (Array.isArray(workoutPlans) ? workoutPlans[0] : Object.values(workoutPlans)[0]) || { muscles: [] };
+      
+      if (plan && plan.muscles) {
+        plan.muscles.forEach(mu => {
+          mu.exercises.forEach((ex, idx) => {
+            todayTotalExercises++;
+            const ek = `${mu.name}_${idx}`;
+            if(entry[ek] && (entry[ek].done || (entry[ek].s && entry[ek].r && entry[ek].w))) {
+              todayDoneExercises++;
+            }
+          });
         });
-      });
+      }
       if (m.absEnabled || Object.keys(entry).some(key => key.startsWith('Abs_'))) {
         ['Crunches', 'Leg Raises', 'Plank'].forEach((ex, idx) => {
           todayTotalExercises++;
