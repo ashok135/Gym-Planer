@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Loader2, Briefcase, ExternalLink, MapPin } from 'lucide-react';
+import { Calendar, Loader2, Briefcase, ExternalLink, MapPin, Check } from 'lucide-react';
 import { fetchRealJobs } from '../../services/jobAPI';
 
 export default function JobBoard({ profileInfo }) {
@@ -8,29 +8,33 @@ export default function JobBoard({ profileInfo }) {
   const workModes = profileInfo?.workTypes || ['Remote', 'Hybrid'];
   const expLevel = profileInfo?.experienceLevel || 'Fresher';
 
+  // Active filter states
+  const [activeRole, setActiveRole] = useState(selectedRoles[0] || 'React Developer');
+  const [activeLoc, setActiveLoc] = useState(preferredLocs[0] || 'Remote');
+  
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [jobToast, setJobToast] = useState(null);
 
-  const profileInfoKey = JSON.stringify({
-    roles: selectedRoles,
-    locs: preferredLocs,
-    types: workModes,
-    exp: expLevel
-  });
+  // Sync active states if profileInfo changes
+  useEffect(() => {
+    if (selectedRoles.length > 0 && !selectedRoles.includes(activeRole)) {
+      setActiveRole(selectedRoles[0]);
+    }
+    if (preferredLocs.length > 0 && !preferredLocs.includes(activeLoc)) {
+      setActiveLoc(preferredLocs[0]);
+    }
+  }, [profileInfo]);
 
   useEffect(() => {
     let active = true;
     const scanJobs = async () => {
       setLoading(true);
       try {
-        // Fetch jobs for the primary target role
-        const primaryRole = selectedRoles[0] || 'React Developer';
-        const primaryLoc = preferredLocs[0] || 'Remote';
-        const primaryMode = workModes[0] || 'Remote';
+        const activeMode = workModes[0] || 'Remote';
         
-        console.log(`Live Job Board scanning for: ${primaryRole} in ${primaryLoc}`);
-        const realJobs = await fetchRealJobs(primaryRole, primaryLoc, primaryMode, expLevel);
+        console.log(`Live Job Board scanning for: ${activeRole} in ${activeLoc} (${activeMode})`);
+        const realJobs = await fetchRealJobs(activeRole, activeLoc, activeMode, expLevel);
         
         if (active) {
           // Normalize structure for presentation
@@ -38,11 +42,11 @@ export default function JobBoard({ profileInfo }) {
             id: job.id,
             company: job.company,
             title: job.title,
-            type: job.type || primaryRole.replace(/Developer|Engineer/i, '').trim(),
+            type: job.type || activeRole.replace(/Developer|Engineer/i, '').trim(),
             ago: job.postedDate || 'Recently',
             color: job.color || '#4D9FFF',
             link: job.url,
-            location: job.location || primaryLoc,
+            location: job.location || activeLoc,
             source: job.source || 'Jobs Portal',
             isFallback: job.isFallback || false
           }));
@@ -71,10 +75,11 @@ export default function JobBoard({ profileInfo }) {
       active = false;
       clearInterval(interval);
     };
-  }, [profileInfoKey]);
+  }, [activeRole, activeLoc, profileInfo]);
 
   return (
     <div style={{ margin: '0 20px 24px', background: 'var(--bg2)', borderRadius: '24px', padding: '24px', border: '1px solid var(--border2)' }}>
+      {/* Title block */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Briefcase size={18} color="var(--blue)" />
@@ -102,50 +107,111 @@ export default function JobBoard({ profileInfo }) {
       </div>
 
       <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '16px' }}>
-        Scanning real-time API integrations (RemoteOK, Remotive, Adzuna) for open positions matching: <strong style={{ color: 'var(--text2)' }}>{selectedRoles[0] || 'developer'}</strong> in <strong style={{ color: 'var(--text2)' }}>{preferredLocs.join('/')}</strong>.
+        Configure your job parameters below to scan major platforms (Adzuna, RemoteOK, Remotive) instantly!
       </div>
 
-      {loading && jobs.length === 0 ? (
+      {/* Target Roles Filter Tabs */}
+      <div style={{ marginBottom: '12px' }}>
+        <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px', marginBottom: '6px' }}>Target Role:</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {selectedRoles.map(role => (
+            <button key={role} onClick={() => setActiveRole(role)}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontSize: '11px',
+                fontWeight: 700,
+                border: activeRole === role ? '1px solid var(--accent)' : '1px solid var(--border2)',
+                background: activeRole === role ? 'rgba(200, 241, 53, 0.1)' : 'var(--bg3)',
+                color: activeRole === role ? 'var(--accent)' : 'var(--text2)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+              {activeRole === role && <Check size={10} />}
+              {role}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Target Locations Filter Tabs */}
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px', marginBottom: '6px' }}>Preferred Location:</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {preferredLocs.map(loc => (
+            <button key={loc} onClick={() => setActiveLoc(loc)}
+              style={{
+                padding: '5px 10px',
+                borderRadius: '8px',
+                fontSize: '11px',
+                fontWeight: 700,
+                border: activeLoc === loc ? '1px solid var(--blue)' : '1px solid var(--border2)',
+                background: activeLoc === loc ? 'rgba(77, 159, 255, 0.1)' : 'var(--bg3)',
+                color: activeLoc === loc ? '#4D9FFF' : 'var(--text2)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+              {activeLoc === loc && <Check size={10} />}
+              {loc}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Live list view */}
+      {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px' }}>
           <Loader2 size={32} color="var(--accent)" style={{ animation: 'spin 1.2s linear infinite' }} />
-          <span style={{ fontSize: '12px', color: 'var(--text3)' }}>Scanning portals for live positions...</span>
+          <span style={{ fontSize: '12px', color: 'var(--text3)' }}>Scanning active positions for {activeRole} in {activeLoc}...</span>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-          {jobs.map(job => (
-            <a key={job.id} href={job.link} target="_blank" rel="noopener noreferrer" className="job-card"
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '14px', textDecoration: 'none', transition: 'all 0.2s', outline: 'none' }}>
-              <div style={{ flex: 1, marginRight: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '9px', fontWeight: 'bold', padding: '2px 6px', background: `rgba(255,255,255,0.05)`, color: job.color, borderRadius: '6px', border: `1px solid ${job.color}33` }}>
-                    {job.type}
-                  </span>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text2)' }}>{job.company}</span>
-                  <span style={{ fontSize: '9px', color: 'var(--text3)', background: 'rgba(255,255,255,0.02)', padding: '1px 5px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                    <MapPin size={8} /> {job.location}
+          {jobs.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text3)', fontSize: '12px', background: 'var(--bg3)', borderRadius: '14px', border: '1px solid var(--border2)' }}>
+              No active listings found for this configuration. Try selecting another tab or check your internet connection!
+            </div>
+          ) : (
+            jobs.map(job => (
+              <a key={job.id} href={job.link} target="_blank" rel="noopener noreferrer" className="job-card"
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '14px', textDecoration: 'none', transition: 'all 0.2s', outline: 'none' }}>
+                <div style={{ flex: 1, marginRight: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '9px', fontWeight: 'bold', padding: '2px 6px', background: `rgba(255,255,255,0.05)`, color: job.color, borderRadius: '6px', border: `1px solid ${job.color}33` }}>
+                      {job.type}
+                    </span>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text2)' }}>{job.company}</span>
+                    <span style={{ fontSize: '9px', color: 'var(--text3)', background: 'rgba(255,255,255,0.02)', padding: '1px 5px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                      <MapPin size={8} /> {job.location}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {job.title}
+                    {job.isFallback && <ExternalLink size={11} color="var(--text3)" />}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
+                  <span style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 600 }}>{job.ago}</span>
+                  <span style={{ 
+                    fontSize: '9px', 
+                    color: job.isFallback ? 'var(--orange)' : 'var(--accent)', 
+                    fontWeight: 'bold', 
+                    background: job.isFallback ? 'rgba(251, 146, 60, 0.1)' : 'rgba(200, 241, 53, 0.1)', 
+                    padding: '2px 8px', 
+                    borderRadius: '6px',
+                    border: job.isFallback ? '1px solid rgba(251, 146, 60, 0.2)' : '1px solid rgba(200, 241, 53, 0.2)'
+                  }}>
+                    {job.isFallback ? 'Search' : 'Apply ➔'}
                   </span>
                 </div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {job.title}
-                  {job.isFallback && <ExternalLink size={11} color="var(--text3)" />}
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
-                <span style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 600 }}>{job.ago}</span>
-                <span style={{ 
-                  fontSize: '9px', 
-                  color: job.isFallback ? 'var(--orange)' : 'var(--accent)', 
-                  fontWeight: 'bold', 
-                  background: job.isFallback ? 'rgba(251, 146, 60, 0.1)' : 'rgba(200, 241, 53, 0.1)', 
-                  padding: '2px 8px', 
-                  borderRadius: '6px',
-                  border: job.isFallback ? '1px solid rgba(251, 146, 60, 0.2)' : '1px solid rgba(200, 241, 53, 0.2)'
-                }}>
-                  {job.isFallback ? 'Search' : 'Apply ➔'}
-                </span>
-              </div>
-            </a>
-          ))}
+              </a>
+            ))
+          )}
         </div>
       )}
 
