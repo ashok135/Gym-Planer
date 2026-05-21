@@ -10,6 +10,7 @@ const DEFAULT_CATEGORIES = [
   { id: 'entertain', label: 'Entertainment', emoji: '🎮', color: '#A78BFA' },
   { id: 'outside',   label: 'Eating Out',    emoji: '🍽️', color: '#FB923C' },
   { id: 'gym',       label: 'Gym',           emoji: '🏋️', color: '#34D399' },
+  { id: 'repayment', label: 'Repayments',    emoji: '💸', color: '#F43F5E' },
   { id: 'others',    label: 'Others',        emoji: '📦', color: '#94A3B8' },
 ];
 
@@ -49,6 +50,9 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
   const [modalDay, setModalDay] = useState(null);
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [showDateFilter, setShowDateFilter] = useState(false);
+  const [showAddDebt, setShowAddDebt] = useState(false);
+  const [debtForm, setDebtForm] = useState({ type: 'loan', provider: '', amount: '', dueDate: '' });
+  const [repayForm, setRepayForm] = useState({ debtId: null, amount: '' });
 
   // Unified filter logic for stats and categories
   const getFilteredData = (range, isPrevious = false) => {
@@ -174,6 +178,107 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
     syncBudget({ ...BUDGET, [mk]: { ...targetMonth, extraIncome: (targetMonth.extraIncome || []).filter(e => e.id !== id) } });
   };
 
+  const addDebt = () => {
+    if (!debtForm.amount || isNaN(debtForm.amount) || Number(debtForm.amount) <= 0 || !debtForm.provider.trim()) return;
+    const d = new Date(); const mk = monthKey(d); const dk = dayKey(d); const tm = formatTime(d); const ts = d.getTime();
+    const newDebt = {
+      id: ts.toString(),
+      type: debtForm.type, // 'loan' or 'credit'
+      provider: debtForm.provider.trim(),
+      amount: Number(debtForm.amount),
+      paid: 0,
+      status: 'pending',
+      date: dk,
+      time: tm,
+      timestamp: ts
+    };
+    
+    const targetMonthData = BUDGET[mk] || { entries: [], extraIncome: [], debts: [] };
+    const updatedMonthData = { ...targetMonthData };
+    
+    updatedMonthData.debts = [...(targetMonthData.debts || []), newDebt];
+    
+    if (debtForm.type === 'loan') {
+      // Dynamic cash injection! Auto-log extra income
+      const loanIncome = {
+        id: (ts + 1).toString(),
+        label: `Loan from ${debtForm.provider.trim()}`,
+        amount: Number(debtForm.amount),
+        date: dk,
+        time: tm,
+        timestamp: ts + 1
+      };
+      updatedMonthData.extraIncome = [...(targetMonthData.extraIncome || []), loanIncome];
+    } else {
+      // Credit card spend! Auto-log expense entry
+      const cardExpense = {
+        id: (ts + 1).toString(),
+        category: 'others', // SBI/Credit Card purchase
+        amount: Number(debtForm.amount),
+        note: `Credit Spend: ${debtForm.provider.trim()}`,
+        date: dk,
+        time: tm,
+        timestamp: ts + 1
+      };
+      updatedMonthData.entries = [...(targetMonthData.entries || []), cardExpense];
+    }
+    
+    syncBudget({ ...BUDGET, [mk]: updatedMonthData });
+    setDebtForm({ type: 'loan', provider: '', amount: '', dueDate: '' });
+    setShowAddDebt(false); setSelectedMonth(mk);
+  };
+
+  const repayDebt = (debtId, repayAmount, mk) => {
+    if (!repayAmount || isNaN(repayAmount) || Number(repayAmount) <= 0) return;
+    const targetMonth = BUDGET[mk]; if (!targetMonth) return;
+    const ts = Date.now(); const dk = dayKey(new Date()); const tm = formatTime(new Date());
+    
+    let repaidDebtObj = null;
+    const updatedDebts = (targetMonth.debts || []).map(d => {
+      if (d.id === debtId) {
+        const totalPaid = Number(d.paid || 0) + Number(repayAmount);
+        const isFullyPaid = totalPaid >= d.amount;
+        repaidDebtObj = { ...d, paid: totalPaid, status: isFullyPaid ? 'paid' : 'pending' };
+        return repaidDebtObj;
+      }
+      return d;
+    });
+
+    if (!repaidDebtObj) return;
+
+    // Create corresponding repayment expense transaction
+    const repaymentExpense = {
+      id: ts.toString(),
+      category: 'repayment',
+      amount: Number(repayAmount),
+      note: `Repayment: ${repaidDebtObj.type === 'loan' ? 'Loan from' : 'Credit Card due for'} ${repaidDebtObj.provider}`,
+      date: dk,
+      time: tm,
+      timestamp: ts
+    };
+
+    syncBudget({
+      ...BUDGET,
+      [mk]: {
+        ...targetMonth,
+        debts: updatedDebts,
+        entries: [...(targetMonth.entries || []), repaymentExpense]
+      }
+    });
+    setRepayForm({ debtId: null, amount: '' });
+  };
+
+  const deleteDebt = (debtId, mk) => {
+    const targetMonth = BUDGET[mk]; if (!targetMonth) return;
+    syncBudget({
+      ...BUDGET,
+      [mk]: {
+        ...targetMonth,
+        debts: (targetMonth.debts || []).filter(d => d.id !== debtId)
+      }
+    });
+  };
+
   const historyDataMap = {};
   Object.entries(BUDGET).forEach(([mk, md]) => {
     const [y, m] = mk.split('-').map(Number);
@@ -292,9 +397,10 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
 
       {!isReport && (
         <>
-          <div style={{ display: 'flex', gap: '12px', padding: '0 20px', marginBottom: '24px' }}>
-            <button onClick={() => { setShowAdd(true); setShowAddIncome(false); }} style={{ flex: 1, padding: '16px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '16px', fontWeight: 800, fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 15px rgba(200,241,53,0.3)' }}><TrendingDown size={20} /> Add Expense</button>
-            <button onClick={() => { setShowAddIncome(true); setShowAdd(false); }} style={{ flex: 1, padding: '16px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', borderRadius: '16px', fontWeight: 700, fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}><TrendingUp size={20} /> Add Income</button>
+          <div style={{ display: 'flex', gap: '8px', padding: '0 20px', marginBottom: '24px', flexWrap: 'wrap' }}>
+            <button onClick={() => { setShowAdd(true); setShowAddIncome(false); setShowAddDebt(false); }} style={{ flex: '1 1 100px', padding: '14px 10px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '14px', fontWeight: 800, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 4px 15px rgba(200,241,53,0.2)' }}><TrendingDown size={16} /> Expense</button>
+            <button onClick={() => { setShowAddIncome(true); setShowAdd(false); setShowAddDebt(false); }} style={{ flex: '1 1 100px', padding: '14px 10px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', borderRadius: '14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><TrendingUp size={16} /> Income</button>
+            <button onClick={() => { setShowAddDebt(true); setShowAdd(false); setShowAddIncome(false); }} style={{ flex: '1 1 100px', padding: '14px 10px', background: 'rgba(77,159,255,0.1)', color: 'var(--blue)', border: '1px solid rgba(77,159,255,0.3)', borderRadius: '14px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><PlusCircle size={16} /> Credit & Loans</button>
           </div>
           {showAdd && (
             <div style={{ margin: '0 20px 24px', background: 'var(--bg3)', borderRadius: '20px', padding: '20px', border: '1px solid var(--border2)' }}>
@@ -319,8 +425,122 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
               </div>
             </div>
           )}
+          {showAddDebt && (
+            <div style={{ margin: '0 20px 24px', background: 'var(--bg3)', borderRadius: '20px', padding: '20px', border: '1px solid rgba(77,159,255,0.3)' }}>
+              <div style={{ fontWeight: 700, marginBottom: '16px', fontSize: '15px', color: 'var(--blue)', display: 'flex', alignItems: 'center', gap: '6px' }}><PlusCircle size={18}/> Log Loan / Credit Card spend</div>
+              
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ fontSize: '11px', color: 'var(--text3)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Type of Liability</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button 
+                    onClick={() => setDebtForm(f => ({ ...f, type: 'loan' }))}
+                    style={{ flex: 1, padding: '10px', borderRadius: '10px', background: debtForm.type === 'loan' ? 'var(--blue)' : 'var(--bg)', color: debtForm.type === 'loan' ? '#000' : 'var(--text2)', border: '1px solid var(--border2)', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}
+                  >
+                    🤝 Friend Loan
+                  </button>
+                  <button 
+                    onClick={() => setDebtForm(f => ({ ...f, type: 'credit' }))}
+                    style={{ flex: 1, padding: '10px', borderRadius: '10px', background: debtForm.type === 'credit' ? 'var(--blue)' : 'var(--bg)', color: debtForm.type === 'credit' ? '#000' : 'var(--text2)', border: '1px solid var(--border2)', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}
+                  >
+                    💳 Credit Card
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ fontSize: '11px', color: 'var(--text3)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+                  {debtForm.type === 'loan' ? 'Who did you borrow from?' : 'Card / Platform Name'}
+                </label>
+                <input 
+                  type="text" 
+                  placeholder={debtForm.type === 'loan' ? "e.g. Rahul (Friend)" : "e.g. SBI SimplyClick, Amazon PayLater"} 
+                  value={debtForm.provider} 
+                  onChange={e => setDebtForm(f => ({ ...f, provider: e.target.value }))} 
+                  style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' }} 
+                />
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ fontSize: '11px', color: 'var(--text3)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Amount (₹)</label>
+                <input 
+                  type="number" 
+                  placeholder="Amount" 
+                  value={debtForm.amount} 
+                  onChange={e => setDebtForm(f => ({ ...f, amount: e.target.value }))} 
+                  style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' }} 
+                />
+                <span style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '4px', display: 'block', fontStyle: 'italic' }}>
+                  💡 {debtForm.type === 'loan' ? 'Adds to cash balance (Income).' : 'Logs purchase transaction in expense history.'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                <button onClick={addDebt} style={{ flex: 1, padding: '12px', background: 'var(--blue)', color: '#000', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>Save Entry</button>
+                <button onClick={() => setShowAddDebt(false)} style={{ flex: 1, padding: '12px', background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border2)', borderRadius: '12px', cursor: 'pointer', fontSize: '13px' }}>Cancel</button>
+              </div>
+            </div>
+          )}
         </>
       )}
+
+      {/* 📊 BANKING & CREDIT INSIGHTS CARD */}
+      <div style={{ margin: '0 20px 24px', background: 'linear-gradient(135deg, rgba(77,159,255,0.05), rgba(200,241,53,0.03))', borderRadius: '24px', padding: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+          <TrendingUp size={18} color="var(--accent)" />
+          <div style={{ fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Banking & Credit Position</div>
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ background: 'var(--bg3)', padding: '12px', borderRadius: '14px', border: '1px solid var(--border2)' }}>
+            <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Cash Assets</div>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--accent)' }}>₹{totalIncome.toLocaleString()}</div>
+          </div>
+          <div style={{ background: 'var(--bg3)', padding: '12px', borderRadius: '14px', border: '1px solid var(--border2)' }}>
+            <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Active Liabilities</div>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--red)' }}>₹{totalOutstandingDebt.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', marginBottom: '12px' }}>
+          <span style={{ fontSize: '11px', color: 'var(--text2)' }}>Net Liquid Balance:</span>
+          <span style={{ fontSize: '14px', fontWeight: 800, color: netLiquidity >= 0 ? 'var(--accent)' : 'var(--red)' }}>
+            ₹{netLiquidity.toLocaleString()}
+          </span>
+        </div>
+
+        {/* Banking Health Banner */}
+        <div style={{ 
+          padding: '12px', 
+          borderRadius: '12px', 
+          fontSize: '11px', 
+          lineHeight: 1.4, 
+          background: totalOutstandingDebt === 0 
+            ? 'rgba(52,211,153,0.06)' 
+            : netLiquidity >= 0 
+              ? 'rgba(77,159,255,0.06)' 
+              : 'rgba(244,63,94,0.06)',
+          border: `1px solid ${
+            totalOutstandingDebt === 0 
+              ? 'rgba(52,211,153,0.15)' 
+              : netLiquidity >= 0 
+                ? 'rgba(77,159,255,0.15)' 
+                : 'rgba(244,63,94,0.15)'
+          }`,
+          color: totalOutstandingDebt === 0 
+            ? '#34D399' 
+            : netLiquidity >= 0 
+              ? 'var(--blue)' 
+              : 'var(--red)'
+        }}>
+          {totalOutstandingDebt === 0 ? (
+            <span>🟢 **Financial Health: Excellent.** You have zero outstanding liabilities! All your cash is fully liquid and debt-free.</span>
+          ) : netLiquidity >= 0 ? (
+            <span>🔵 **Financial Health: Healthy Coverage.** Your remaining cash (₹{remaining.toLocaleString()}) covers your outstanding dues (₹{totalOutstandingDebt.toLocaleString()}). Settle them whenever you wish.</span>
+          ) : (
+            <span>⚠️ **Financial Health: High Debt Risk.** You owe ₹{Math.abs(netLiquidity).toLocaleString()} more than you have remaining. Avoid new expenses and prioritize repayments.</span>
+          )}
+        </div>
+      </div>
 
       <div style={{ padding: '0 20px', marginBottom: '24px' }}>
         <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px' }}>Spending by Category</div>
@@ -338,6 +558,112 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
             );
           })}
         </div>
+      </div>
+
+      {/* 💳 LIABILITIES & REPAYMENTS TRACKER */}
+      <div style={{ padding: '0 20px', marginBottom: '24px' }}>
+        <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span>💳 Liabilities & Outstanding Dues</span>
+          <span style={{ fontSize: '11px', color: 'var(--red)', fontWeight: 'normal', marginLeft: 'auto' }}>
+            Unpaid: ₹{totalOutstandingDebt.toLocaleString()}
+          </span>
+        </div>
+        
+        {allDebts.length === 0 ? (
+          <div style={{ background: 'var(--bg3)', borderRadius: '16px', padding: '20px', textAlign: 'center', color: 'var(--text3)', fontSize: '12px', border: '1px dashed var(--border2)' }}>
+            🎉 No borrowed loans or credit card spend logged yet.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {allDebts.map(d => {
+              const remainingAmount = d.amount - (d.paid || 0);
+              const progress = Math.min(100, Math.round(((d.paid || 0) / d.amount) * 100));
+              const isPaid = d.status === 'paid';
+              
+              return (
+                <div key={d.id} style={{ background: isPaid ? 'rgba(52,211,153,0.02)' : 'var(--bg2)', borderRadius: '16px', padding: '16px', border: `1px solid ${isPaid ? 'rgba(52,211,153,0.15)' : 'var(--border2)'}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '10px', background: d.type === 'loan' ? 'rgba(77,159,255,0.15)' : 'rgba(244,63,94,0.15)', color: d.type === 'loan' ? 'var(--blue)' : 'var(--red)', fontWeight: 700 }}>
+                          {d.type === 'loan' ? '🤝 Friend Loan' : '💳 Credit Due'}
+                        </span>
+                        {isPaid && (
+                          <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', background: 'rgba(52,211,153,0.15)', color: '#34D399', fontWeight: 600 }}>
+                            Paid ✓
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginTop: '6px' }}>{d.provider}</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '2px' }}>Logged on {d.date}</div>
+                    </div>
+                    
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '15px', fontWeight: 900, color: 'var(--text)' }}>₹{d.amount.toLocaleString()}</div>
+                      {!isPaid && <div style={{ fontSize: '11px', color: 'var(--red)', fontWeight: 600 }}>Owe: ₹{remainingAmount.toLocaleString()}</div>}
+                      {isPaid && <div style={{ fontSize: '11px', color: '#34D399', fontWeight: 600 }}>Fully Repaid</div>}
+                    </div>
+                  </div>
+
+                  {/* Repayment Progress Bar */}
+                  <div style={{ margin: '12px 0 8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>
+                      <span>Paid: ₹{(d.paid || 0).toLocaleString()} ({progress}%)</span>
+                      <span>Target: ₹{d.amount.toLocaleString()}</span>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.06)', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: `${progress}%`, height: '100%', background: isPaid ? '#34D399' : 'var(--blue)', borderRadius: '3px', transition: 'width 0.5s ease' }} />
+                    </div>
+                  </div>
+
+                  {/* Inline Repayment Form / Buttons */}
+                  {!isPaid && (
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '14px', alignItems: 'center' }}>
+                      {repayForm.debtId === d.id ? (
+                        <>
+                          <input 
+                            type="number" 
+                            placeholder="Repay Amt (₹)" 
+                            value={repayForm.amount}
+                            onChange={e => setRepayForm(f => ({ ...f, amount: e.target.value }))}
+                            style={{ flex: 1, padding: '6px 10px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px' }}
+                          />
+                          <button 
+                            onClick={() => repayDebt(d.id, repayForm.amount, d.mk)}
+                            style={{ padding: '6px 14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}
+                          >
+                            Pay
+                          </button>
+                          <button 
+                            onClick={() => setRepayForm({ debtId: null, amount: '' })}
+                            style={{ padding: '6px 10px', background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border2)', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}
+                          >
+                            ×
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => setRepayForm({ debtId: d.id, amount: '' })}
+                            style={{ padding: '6px 12px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', borderRadius: '8px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            💸 Repay / Payback
+                          </button>
+                          <button 
+                            onClick={() => { if(window.confirm('Delete this debt entry?')) deleteDebt(d.id, d.mk); }}
+                            style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--red)', opacity: 0.5, cursor: 'pointer', padding: '4px' }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div style={{ padding: '0 20px' }}>

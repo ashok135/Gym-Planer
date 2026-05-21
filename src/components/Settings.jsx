@@ -53,6 +53,7 @@ export default function Settings({
     { id: 'entertain', label: 'Entertainment', emoji: '🎮', color: '#A78BFA' },
     { id: 'outside',   label: 'Eating Out',    emoji: '🍽️', color: '#FB923C' },
     { id: 'gym',       label: 'Gym',           emoji: '🏋️', color: '#34D399' },
+    { id: 'repayment', label: 'Repayments',    emoji: '💸', color: '#F43F5E' },
     { id: 'others',    label: 'Others',        emoji: '📦', color: '#94A3B8' },
   ];
   const CAT_COLORS = ['#FF6B6B','#C8F135','#4D9FFF','#A78BFA','#FB923C','#34D399','#94A3B8','#F472B6','#FBBF24'];
