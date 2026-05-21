@@ -284,8 +284,23 @@ export default function App() {
 
   if(loading) {
     return (
-      <div className="screen active" style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',animation:'pulse 1s infinite alternate'}}>
-        <div style={{color:'var(--accent)',fontWeight:600,fontSize:'24px',letterSpacing:'1px'}}>💪 LIFETRAKER</div>
+      <div className="splash-bg">
+        <div className="splash-ring">
+          <div className="splash-core">
+            {/* Beautiful Custom SVG Animated Barbell Logo */}
+            <svg className="splash-icon" viewBox="0 0 24 24">
+              <path d="M5 9a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm19-6a2 2 0 1 0-4 0 2 2 0 0 0 4 0zm0 6a2 2 0 1 0-4 0 2 2 0 0 0 4 0zm-18-5h1c.6 0 1-.4 1-1V8c0-.6-.4-1-1-1H6c-.6 0-1 .4-1 1v1c0 .6.4 1 1 1zm11 0h1c.6 0 1-.4 1-1V8c0-.6-.4-1-1-1h-1c-.6 0-1 .4-1 1v1c0 .6.4 1 1 1zM7 11h10v2H7zM5 14h2v-4H5zm12 0h2v-4h-2z" />
+            </svg>
+          </div>
+        </div>
+        <div className="splash-title">
+          {"LIFETRAKER".split("").map((letter, index) => (
+            <span key={index} style={{ animationDelay: `${index * 0.1}s` }}>
+              {letter}
+            </span>
+          ))}
+        </div>
+        <div className="splash-tagline">Track • Adapt • Succeed</div>
       </div>
     );
   }
