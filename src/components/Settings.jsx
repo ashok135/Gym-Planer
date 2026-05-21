@@ -473,44 +473,6 @@ export default function Settings({
         </div>
       </Accordion>
 
-      {/* CUSTOM EXERCISES */}
-      <Accordion title="🏋️ Custom Exercises" subtitle="Rename default exercises">
-        {plansArray.filter(p => p.id !== 0).map(p => {
-          return (
-            <div className="settings-section" key={p.id} style={{ marginBottom: '16px' }}>
-              <div className="settings-label">{p.label} (Split ID: {p.id})</div>
-              {p.muscles.map(m => (
-                <div key={m.name}>
-                  <div style={{ fontSize: '11px', color: 'var(--text3)', margin: '8px 0 6px', letterSpacing: '.05em' }}>{m.name}</div>
-                  {m.exercises.map((ex, i) => {
-                    const k = `${p.id}_${m.name}_${i}`;
-                    const val = localNames[k] !== undefined ? localNames[k] : ex;
-                    return (
-                      <div className="exercise-edit-row" key={k}>
-                        <div className="exercise-idx">{i+1}</div>
-                        <input type="text" value={val} onChange={e => handleNameChange(k, e.target.value)} placeholder={ex} />
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          );
-        })}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px', width: '100%' }}>
-          <button className="settings-save" onClick={saveNames} style={{
-            flex: 1,
-            background: saveMsg ? '#10B981' : 'var(--accent)',
-            color: saveMsg ? '#fff' : '#000',
-            boxShadow: saveMsg ? '0 4px 15px rgba(16, 185, 129, 0.3)' : 'none',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            fontWeight: 'bold'
-          }}>
-            {saveMsg ? 'Saved ✓' : 'Save Exercise Names'}
-          </button>
-        </div>
-      </Accordion>
-
       {/* BUDGET */}
       <Accordion title="💰 Budget Defaults" subtitle="Set monthly income and expense categories">
         <div style={{ marginBottom: '12px' }}>
