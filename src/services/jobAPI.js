@@ -8,8 +8,8 @@ const API_SOURCES = {
   // Adzuna - Free API with 1000 calls/month
   ADZUNA: {
     baseUrl: 'https://api.adzuna.com/v1/api/jobs',
-    appId: 'YOUR_ADZUNA_APP_ID', // Get from https://developer.adzuna.com/
-    appKey: 'YOUR_ADZUNA_APP_KEY',
+    appId: 'YOUR_ADZUNA_APP_ID', // Please provide your 8-digit App ID (e.g., 'd4a8e32c')
+    appKey: '18b4fdf776f113705de906d23ad8b5ba',
     countries: {
       India: 'in',
       US: 'us',
