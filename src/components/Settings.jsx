@@ -736,8 +736,8 @@ export default function Settings({
       <div style={{ height: '20px' }} />
 
       {showSchedModal && (
-        <div className="modal-overlay" onClick={() => setShowSchedModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay open" onClick={() => setShowSchedModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
             <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }}>Apply Schedule Options</div>
             <p style={{ fontSize: '12px', color: 'var(--text3)', lineHeight: 1.5, marginBottom: '18px' }}>
               Apply to <strong>"Permanent Split"</strong> (saves default split for weekdays) or <strong>"This Week Only"</strong> (overrides splits starting from today).
@@ -758,8 +758,8 @@ export default function Settings({
       )}
 
       {showExportModal && (
-        <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '360px' }}>
+        <div className="modal-overlay open" onClick={() => setShowExportModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '360px' }}>
             <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '12px' }}>📊 Export Data to CSV</div>
             <p style={{ fontSize: '12px', color: 'var(--text3)', lineHeight: 1.5, marginBottom: '20px' }}>
               Choose a specific dataset or download the combined workspace report.
