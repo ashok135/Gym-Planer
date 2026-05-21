@@ -57,6 +57,7 @@ const getCitySuggestions = (input) => {
 export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
   const [profileName, setProfileName] = useState(profileInfo?.name || '');
   const [profileResume, setProfileResume] = useState(profileInfo?.resume || '');
+  const [customLifeNotes, setCustomLifeNotes] = useState(profileInfo?.customLifeNotes || '');
   const [targetRoles, setTargetRoles] = useState(profileInfo?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer']);
   const [newRoleInput, setNewRoleInput] = useState('');
   const [preferredLocations, setPreferredLocations] = useState(profileInfo?.preferredLocations || ['Bangalore', 'Chennai', 'Remote']);
@@ -73,6 +74,7 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
   useEffect(() => {
     setProfileName(profileInfo?.name || '');
     setProfileResume(profileInfo?.resume || '');
+    setCustomLifeNotes(profileInfo?.customLifeNotes || '');
     setTargetRoles(profileInfo?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer']);
     setPreferredLocations(profileInfo?.preferredLocations || ['Bangalore', 'Chennai', 'Remote']);
     setWorkTypes(profileInfo?.workTypes || ['Remote', 'Hybrid']);
@@ -97,6 +99,15 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
         </div>
         <textarea value={profileResume} onChange={e => setProfileResume(e.target.value)} placeholder="e.g. JavaScript, React, Node.js developer with 2 years of experience. Education: B.Tech in CSE..."
           style={{ width: '100%', height: '120px', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical', outline: 'none' }} />
+      </div>
+
+      <div style={{ marginBottom: '12px' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>🏋️ Fitness Goals, Diet, & Custom Life Notes</div>
+        <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '6px' }}>
+          Add your weight goals, dietary preferences (vegetarian, protein intake, etc.), daily schedule, injuries, or personal context. Lucy will read this to give extremely personalized fitness and habit advice!
+        </div>
+        <textarea value={customLifeNotes} onChange={e => setCustomLifeNotes(e.target.value)} placeholder="e.g. Vegetarian diet, aiming for 140g protein daily. Stiff lower back, avoiding heavy squats. Goal: Fat loss & muscle gain..."
+          style={{ width: '100%', height: '100px', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical', outline: 'none' }} />
       </div>
 
       {/* Preferred Locations Input & Tags */}
@@ -287,6 +298,7 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
             await syncProfileInfo({ 
               name: profileName.trim(), 
               resume: profileResume.trim(),
+              customLifeNotes: customLifeNotes.trim(),
               targetRoles,
               preferredLocations,
               workTypes,

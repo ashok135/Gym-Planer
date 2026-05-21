@@ -14,7 +14,7 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(GEMINI_KEY_STORAGE) || '');
   const [openrouterKey, setOpenrouterKey] = useState(() => localStorage.getItem('openrouter_api_key') || '');
   const [provider, setProvider] = useState(() => localStorage.getItem('ai_provider') || 'gemini');
-  const [model, setModel] = useState(() => localStorage.getItem('ai_model') || 'gemini-1.5-flash');
+  const [model, setModel] = useState(() => localStorage.getItem('ai_model') || 'gemini-2.5-flash');
   const [openrouterModel, setOpenrouterModel] = useState(() => localStorage.getItem('openrouter_model') || 'openrouter/free');
   const [persona, setPersona] = useState(() => localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
   const [showKeyInput, setShowKeyInput] = useState(false);
@@ -24,7 +24,7 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
       setApiKey(localStorage.getItem(GEMINI_KEY_STORAGE) || '');
       setOpenrouterKey(localStorage.getItem('openrouter_api_key') || '');
       setProvider(localStorage.getItem('ai_provider') || 'gemini');
-      setModel(localStorage.getItem('ai_model') || 'gemini-1.5-flash');
+      setModel(localStorage.getItem('ai_model') || 'gemini-2.5-flash');
       setOpenrouterModel(localStorage.getItem('openrouter_model') || 'openrouter/free');
       setPersona(localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
     };
@@ -228,9 +228,10 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
     return `You are Lucy, a passionate, ultra-friendly, raw, and highly energetic personal coach/assistant acting as: ${persona}.
 Embedded in the user's personal tracking app called LifeTraker.
 
-Here is the user's personal profile and resume information:
+Here is the user's personal profile, career background, and fitness preferences:
 - User's Name: ${profileInfo?.name || 'User'}
-- User's Resume / Professional Background: ${profileInfo?.resume || 'none provided yet'}
+- User's Career Resume / Professional Background: ${profileInfo?.resume || 'none provided yet'}
+- User's Fitness Goals, Diet, & Custom Life Notes: ${profileInfo?.customLifeNotes || 'none provided yet'}
 
 Here is the user's compiled historical and current data. Answer any specific questions about this data accurately:
 - Yesterday's Date: ${yesterdayKey}

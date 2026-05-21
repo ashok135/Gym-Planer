@@ -62,6 +62,7 @@ export default function App() {
       return {
         name: saved?.name || '',
         resume: saved?.resume || '',
+        customLifeNotes: saved?.customLifeNotes || '',
         targetRoles: saved?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'],
         preferredLocations: saved?.preferredLocations || ['Bangalore', 'Chennai', 'Remote'],
         workTypes: saved?.workTypes || ['Remote', 'Hybrid'],
@@ -74,6 +75,7 @@ export default function App() {
       return { 
         name: '', 
         resume: '', 
+        customLifeNotes: '',
         targetRoles: ['React Developer', 'WordPress Developer', 'Frontend Developer'], 
         preferredLocations: ['Bangalore', 'Chennai', 'Remote'], 
         workTypes: ['Remote', 'Hybrid'],
@@ -122,7 +124,7 @@ export default function App() {
               localStorage.setItem('gemini_api_key', data.aiSettings.apiKey || '');
               localStorage.setItem('openrouter_api_key', data.aiSettings.openrouterKey || '');
               localStorage.setItem('ai_provider', data.aiSettings.provider || 'gemini');
-              localStorage.setItem('ai_model', data.aiSettings.model || 'gemini-1.5-flash');
+              localStorage.setItem('ai_model', data.aiSettings.model || 'gemini-2.5-flash');
               localStorage.setItem('openrouter_model', data.aiSettings.openrouterModel || 'openrouter/free');
               localStorage.setItem('ai_persona', data.aiSettings.persona || 'Motivational Fitness Coach');
               setAiEnabled(data.aiSettings.enabled);
@@ -134,6 +136,7 @@ export default function App() {
               const info = {
                 name: data.profileInfo.name || '',
                 resume: data.profileInfo.resume || '',
+                customLifeNotes: data.profileInfo.customLifeNotes || '',
                 targetRoles: data.profileInfo.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'],
                 preferredLocations: data.profileInfo.preferredLocations || ['Bangalore', 'Chennai', 'Remote'],
                 workTypes: data.profileInfo.workTypes || ['Remote', 'Hybrid'],
@@ -166,6 +169,7 @@ export default function App() {
             setProfileInfo({
               name: saved?.name || '',
               resume: saved?.resume || '',
+              customLifeNotes: saved?.customLifeNotes || '',
               targetRoles: saved?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'],
               preferredLocations: saved?.preferredLocations || ['Bangalore', 'Chennai', 'Remote'],
               workTypes: saved?.workTypes || ['Remote', 'Hybrid'],
@@ -188,7 +192,7 @@ export default function App() {
       apiKey: localStorage.getItem('gemini_api_key') || '',
       openrouterKey: localStorage.getItem('openrouter_api_key') || '',
       provider: localStorage.getItem('ai_provider') || 'gemini',
-      model: localStorage.getItem('ai_model') || 'gemini-1.5-flash',
+      model: localStorage.getItem('ai_model') || 'gemini-2.5-flash',
       openrouterModel: localStorage.getItem('openrouter_model') || 'openrouter/free',
       persona: localStorage.getItem('ai_persona') || 'Motivational Fitness Coach'
     };

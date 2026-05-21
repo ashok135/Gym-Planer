@@ -4,7 +4,7 @@ import Accordion from '../shared/Accordion';
 export default function AISettings({ syncAiSettings }) {
   const [localAiEnabled, setLocalAiEnabled] = useState(() => localStorage.getItem('ai_enabled') === 'true');
   const [localAiKey, setLocalAiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
-  const [localAiModel, setLocalAiModel] = useState(() => localStorage.getItem('ai_model') || 'gemini-1.5-flash');
+  const [localAiModel, setLocalAiModel] = useState(() => localStorage.getItem('ai_model') || 'gemini-2.5-flash');
   const [localAiPersona, setLocalAiPersona] = useState(() => localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
   const [localProvider, setLocalProvider] = useState(() => localStorage.getItem('ai_provider') || 'gemini');
   const [localOpenrouterKey, setLocalOpenrouterKey] = useState(() => localStorage.getItem('openrouter_api_key') || '');
@@ -14,7 +14,7 @@ export default function AISettings({ syncAiSettings }) {
     const handleStorage = () => {
       setLocalAiEnabled(localStorage.getItem('ai_enabled') === 'true');
       setLocalAiKey(localStorage.getItem('gemini_api_key') || '');
-      setLocalAiModel(localStorage.getItem('ai_model') || 'gemini-1.5-flash');
+      setLocalAiModel(localStorage.getItem('ai_model') || 'gemini-2.5-flash');
       setLocalAiPersona(localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
       setLocalProvider(localStorage.getItem('ai_provider') || 'gemini');
       setLocalOpenrouterKey(localStorage.getItem('openrouter_api_key') || '');
@@ -100,8 +100,9 @@ export default function AISettings({ syncAiSettings }) {
                 updateSetting('ai_model', val);
               }
             }} style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }}>
-              <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fastest/Free)</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash (🚀 Lightning Fast/Free)</option>
               <option value="gemini-2.0-flash">Gemini 2.0 Flash (Advanced/Free)</option>
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash (Legacy/Free)</option>
               <option value="gemini-pro">Gemini Pro (Legacy/Stable)</option>
             </select>
           </div>
