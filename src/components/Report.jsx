@@ -260,7 +260,7 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
                 background: activeSection === id ? 'var(--accent)' : 'var(--bg3)',
                 color: activeSection === id ? '#000' : 'var(--text2)',
                 border: '1px solid var(--border2)', transition:'all 0.2s' }}>
-              {id === 'gym' ? '🏋️ Gym & Diet' : id === 'budget' ? '💰 Budget' : '📚 Study'}
+              {id === 'gym' ? '🏋️ Gym & Diet' : id === 'budget' ? '💰 Budget' : '🎓 PrepHub'}
             </div>
           ))}
         </div>

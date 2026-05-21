@@ -6,7 +6,7 @@ export default function BottomNav({ activeTab, setActiveTab, showNav }) {
     { id: 'today',   label: 'Today',   icon: Dumbbell },
     { id: 'diet',    label: 'Diet',    icon: Utensils },
     { id: 'budget',  label: 'Budget',  icon: Wallet },
-    { id: 'study',   label: 'Study',   icon: BookOpen },
+    { id: 'study',   label: 'PrepHub', icon: BookOpen },
     { id: 'report',  label: 'Report',  icon: LineChart },
     { id: 'settings',label: 'More',    icon: SettingsIcon },
   ];
