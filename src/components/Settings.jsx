@@ -66,6 +66,7 @@ export default function Settings({
 
   const [selectedSplitToEdit, setSelectedSplitToEdit] = useState(1);
   const [newMuscleGroupName, setNewMuscleGroupName] = useState('');
+  const [newSplitName, setNewSplitName] = useState('');
 
   useEffect(() => {
     if (NAMES) setLocalNames(NAMES);
@@ -217,6 +218,42 @@ export default function Settings({
       syncWorkoutPlans(updated);
     }
     setNewMuscleGroupName('');
+  };
+
+  const renameWorkoutSplit = (splitId, newLabel) => {
+    if (!newLabel.trim()) return;
+    const updated = plansArray.map(p => {
+      if (p.id === splitId) {
+        return { ...p, label: newLabel.trim() };
+      }
+      return p;
+    });
+    if (!Array.isArray(workoutPlans)) {
+      const obj = {};
+      updated.forEach(x => { obj[x.id] = x; });
+      syncWorkoutPlans(obj);
+    } else {
+      syncWorkoutPlans(updated);
+    }
+  };
+
+  const createNewSplit = () => {
+    if (!newSplitName.trim()) return;
+    const newId = Date.now();
+    const newSplit = {
+      id: newId,
+      label: newSplitName.trim(),
+      muscles: []
+    };
+    if (!Array.isArray(workoutPlans)) {
+      const obj = { ...workoutPlans };
+      obj[newId] = newSplit;
+      syncWorkoutPlans(obj);
+    } else {
+      syncWorkoutPlans([...plansArray, newSplit]);
+    }
+    setSelectedSplitToEdit(newId);
+    setNewSplitName('');
   };
 
   const addCategory = () => {
@@ -479,6 +516,24 @@ export default function Settings({
       {/* 💪 CUSTOM WORKOUT SPLITS BUILDER */}
       <Accordion title="💪 Workout Split Builder" subtitle="Add muscle groups, custom exercises, or delete routines">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* CREATE NEW CUSTOM SPLIT FORM */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px dashed var(--border2)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.05em' }}>➕ CREATE A NEW CUSTOM WORKOUT SPLIT</div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input type="text" placeholder="e.g. Chest Back & Legs, Push Day" value={newSplitName} onChange={e => setNewSplitName(e.target.value)}
+                style={{ flex: 1, padding: '8px 12px', background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '12px' }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    createNewSplit();
+                  }
+                }} />
+              <button onClick={createNewSplit}
+                style={{ padding: '8px 14px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '12px' }}>
+                Create Split
+              </button>
+            </div>
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{ fontSize: '12px', color: 'var(--text2)' }}>Select Workout Split to Customize</div>
             <select value={selectedSplitToEdit} onChange={e => setSelectedSplitToEdit(Number(e.target.value))}
@@ -500,8 +555,20 @@ export default function Settings({
               <div style={{ background: 'var(--bg3)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                   <div>
-                    <div style={{ fontWeight: 'bold', color: 'var(--accent)', fontSize: '14px' }}>{currentPlan.label}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 'bold', color: 'var(--accent)', fontSize: '14px' }}>{currentPlan.label}</span>
+                      <input type="text" key={currentPlan.id} defaultValue={currentPlan.label}
+                        onBlur={e => renameWorkoutSplit(currentPlan.id, e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            renameWorkoutSplit(currentPlan.id, e.target.value);
+                            e.target.blur();
+                          }
+                        }}
+                        placeholder="Rename split..."
+                        style={{ padding: '3px 8px', background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '6px', color: 'var(--text)', fontSize: '11px', width: '130px' }} />
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>
                       {scheduledDays.length > 0 ? `📅 Scheduled: ${scheduledDays.join(', ')}` : '⚠️ Not scheduled on any day'}
                     </div>
                   </div>
