@@ -129,7 +129,17 @@ export default function App() {
             setNAMES(data.names || {});
             setMETA(data.meta || {});
             setFOOD(data.food || {});
-            setSCHEDULE(data.schedule && data.schedule.fullTime ? data.schedule : { fullTime: {}, thisWeek: {} });
+            let loadedSched = data.schedule && data.schedule.fullTime ? data.schedule : { fullTime: {}, thisWeek: {} };
+            if (loadedSched.fullTime && (loadedSched.fullTime[4] === 1 || loadedSched.fullTime[5] === 2 || loadedSched.fullTime[6] === 3)) {
+              const updatedFullTime = { ...loadedSched.fullTime };
+              if (updatedFullTime[4] === 1) updatedFullTime[4] = 4;
+              if (updatedFullTime[5] === 2) updatedFullTime[5] = 5;
+              if (updatedFullTime[6] === 3) updatedFullTime[6] = 6;
+              loadedSched = { ...loadedSched, fullTime: updatedFullTime };
+              localStorage.setItem('gschedule', JSON.stringify(loadedSched));
+              setDoc(doc(db, "users", u.uid), { schedule: loadedSched }, { merge: true }).catch(() => {});
+            }
+            setSCHEDULE(loadedSched);
             setBUDGET(data.budget || {});
             setBUDGET_SETTINGS(data.budgetSettings || DEFAULT_BUDGET_SETTINGS);
             setSTUDY(data.study || {});
@@ -180,7 +190,16 @@ export default function App() {
           setNAMES(JSON.parse(localStorage.getItem('gnames')||'{}'));
           setMETA(JSON.parse(localStorage.getItem('gmeta')||'{}'));
           setFOOD(JSON.parse(localStorage.getItem('gfood')||'{}'));
-          setSCHEDULE(JSON.parse(localStorage.getItem('gschedule')||'{"fullTime":{},"thisWeek":{}}'));
+          let loadedOfflineSched = JSON.parse(localStorage.getItem('gschedule')||'{"fullTime":{},"thisWeek":{}}');
+          if (loadedOfflineSched.fullTime && (loadedOfflineSched.fullTime[4] === 1 || loadedOfflineSched.fullTime[5] === 2 || loadedOfflineSched.fullTime[6] === 3)) {
+            const updatedFullTime = { ...loadedOfflineSched.fullTime };
+            if (updatedFullTime[4] === 1) updatedFullTime[4] = 4;
+            if (updatedFullTime[5] === 2) updatedFullTime[5] = 5;
+            if (updatedFullTime[6] === 3) updatedFullTime[6] = 6;
+            loadedOfflineSched = { ...loadedOfflineSched, fullTime: updatedFullTime };
+            localStorage.setItem('gschedule', JSON.stringify(loadedOfflineSched));
+          }
+          setSCHEDULE(loadedOfflineSched);
           setBUDGET(JSON.parse(localStorage.getItem('gbudget')||'{}'));
           setBUDGET_SETTINGS(JSON.parse(localStorage.getItem('gbudgetSettings')||JSON.stringify(DEFAULT_BUDGET_SETTINGS)));
           setSTUDY(JSON.parse(localStorage.getItem('gstudy')||'{}'));

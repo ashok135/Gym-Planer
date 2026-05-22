@@ -491,7 +491,7 @@ export default function Settings({
             const currentPlan = plansArray.find(p => p.id === selectedSplitToEdit) || plansArray[0];
             const scheduledDays = [];
             for (let d = 0; d < 7; d++) {
-              const currentSplit = localSchedule[d] !== undefined ? localSchedule[d] : (d === 4 ? 1 : d === 5 ? 2 : d);
+              const currentSplit = localSchedule[d] !== undefined ? localSchedule[d] : d;
               if (currentSplit === currentPlan.id) {
                 scheduledDays.push(DAYS_FULL[d]);
               }
