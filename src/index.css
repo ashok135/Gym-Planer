@@ -60,11 +60,11 @@ input, textarea, select { user-select: auto; -webkit-user-select: auto; }
 #screen-auth { display: none; align-items: center; justify-content: center; min-height: 100vh; min-height: 100dvh; padding: 20px; flex-direction: column; }
 #screen-auth.active { display: flex; }
 .auth-box { background: var(--bg2); padding: 30px 20px; border-radius: var(--radius); border: 1px solid var(--border); width: 100%; text-align: center; }
-.auth-title { font-size: 24px; font-weight: 600; margin-bottom: 8px; color: var(--accent); }
+.auth-title { font-size: 24px; font-weight: 400; margin-bottom: 8px; color: var(--accent); }
 .auth-sub { font-size: 13px; color: var(--text2); margin-bottom: 24px; }
 .auth-input { width: 100%; background: var(--bg3); border: 1px solid var(--border2); padding: 14px; border-radius: var(--radius-sm); color: var(--text); margin-bottom: 12px; font-family: inherit; font-size: 15px; outline: none; }
 .auth-input:focus { border-color: var(--accent); }
-.auth-btn { width: 100%; background: var(--accent); color: #000; font-weight: 600; padding: 14px; border-radius: var(--radius-sm); border: none; font-size: 15px; cursor: pointer; margin-top: 8px; }
+.auth-btn { width: 100%; background: var(--accent); color: #000; font-weight: 400; padding: 14px; border-radius: var(--radius-sm); border: none; font-size: 15px; cursor: pointer; margin-top: 8px; }
 .auth-error { color: var(--red); font-size: 12px; margin-top: 12px; min-height: 15px; }
 .auth-toggle { font-size: 13px; color: var(--text2); margin-top: 16px; cursor: pointer; }
 
@@ -124,7 +124,7 @@ select.meta-input { appearance: none; }
 .workout-hero{margin:0 20px 20px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
 .workout-hero::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;opacity:.06;background:var(--accent)}
 .workout-type{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;font-weight:500}
-.workout-name{font-size:20px;font-weight:600;margin-bottom:12px}
+.workout-name{font-size:20px;font-weight:400;margin-bottom:12px}
 .workout-meta{display:flex;gap:16px}
 .workout-meta span{font-size:12px;color:var(--text2)}
 .workout-meta strong{color:var(--text);font-weight:500}
@@ -133,7 +133,7 @@ select.meta-input { appearance: none; }
 .muscle-block{margin:0 20px 20px}
 .muscle-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .muscle-dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
-.muscle-name{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text2)}
+.muscle-name{font-size:12px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;color:var(--text2)}
 .exercise-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:8px}
 .exercise-name-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px}
 .exercise-name-wrap { display: flex; align-items: center; gap: 8px; flex: 1; }
@@ -142,7 +142,7 @@ select.meta-input { appearance: none; }
 .rename-input-box { display: none; margin: 0 14px 10px; }
 .rename-input-box.open { display: flex; gap: 8px; }
 .rename-input { flex: 1; background: var(--bg3); border: 1px solid var(--accent); color: var(--text); padding: 6px 10px; border-radius: 4px; font-size: 13px; outline: none; }
-.rename-save { background: var(--accent); color: #000; border: none; border-radius: 4px; padding: 0 10px; font-size: 12px; font-weight: 600; }
+.rename-save { background: var(--accent); color: #000; border: none; border-radius: 4px; padding: 0 10px; font-size: 12px; font-weight: 400; }
 
 .exercise-inputs{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid var(--border)}
 .input-group{display:flex;flex-direction:column;align-items:center;padding:8px;border-right:1px solid var(--border)}
@@ -161,7 +161,7 @@ select.meta-input { appearance: none; }
 .save-ok{font-size:12px;color:#000;opacity:0;transition:opacity .3s;position:absolute;right:40px;pointer-events:none}
 
 /* History */
-.month-label{padding:8px 20px;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2)}
+.month-label{padding:8px 20px;font-size:11px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--text2)}
 .history-day{margin:0 20px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;cursor:pointer;transition:border-color .2s}
 .history-day:hover{border-color:var(--border2)}
 .history-day.has-data{border-color:var(--border2)}
@@ -177,23 +177,23 @@ select.meta-input { appearance: none; }
 .modal-overlay.open{display:flex}
 .modal{background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border2);width:92%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;padding:20px;position:relative;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
 .modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 20px}
-.modal-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.modal-title{font-size:16px;font-weight:400;margin-bottom:4px}
 .modal-sub{font-size:12px;color:var(--text2);margin-bottom:20px}
 .modal-close{position:absolute;top:20px;right:20px;background:var(--bg3);border:none;color:var(--text2);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px}
 .mini-table{width:100%;font-size:12px;border-collapse:collapse;margin-bottom:16px}
 .mini-table th{color:var(--text3);font-weight:500;padding:4px 8px;text-align:left;border-bottom:1px solid var(--border)}
 .mini-table td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text)}
 .mini-table td:first-child{color:var(--text2)}
-.mini-section{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin:12px 0 6px}
+.mini-section{font-size:11px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin:12px 0 6px}
 
 /* Dashboard AI Styles */
 .ai-dash-header { margin: 0 20px 16px; display: flex; justify-content: space-between; align-items: flex-end; }
-.ai-title { font-size: 28px; font-weight: 600; background: linear-gradient(90deg, #c8f135, #4d9fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.ai-title { font-size: 28px; font-weight: 400; background: linear-gradient(90deg, #c8f135, #4d9fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 20px 20px; }
 .dash-card { background: rgba(26,26,26,0.6); backdrop-filter: blur(10px); border: 1px solid var(--border2); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
 .dash-card.full { grid-column: 1 / -1; }
 .dash-icon { font-size: 20px; margin-bottom: 8px; opacity: 0.8; }
-.dash-val { font-size: 24px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--text); z-index: 2; }
+.dash-val { font-size: 24px; font-weight: 400; font-family: 'DM Mono', monospace; color: var(--text); z-index: 2; }
 .dash-val.accent { color: var(--accent); }
 .dash-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; z-index: 2; margin-top: 4px; }
 .dash-glow { position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; border-radius: 50%; background: var(--accent); opacity: 0.05; filter: blur(20px); z-index: 1; }
@@ -212,7 +212,7 @@ select.meta-input { appearance: none; }
 .food-ring-label { font-size: 11px; color: var(--text2); letter-spacing: 0.05em; text-transform: uppercase; }
 
 .meal-block { margin: 0 20px 16px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-.meal-header { background: var(--bg3); padding: 10px 14px; font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+.meal-header { background: var(--bg3); padding: 10px 14px; font-size: 12px; font-weight: 400; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
 .food-item { display: flex; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border); gap: 12px; }
 .food-item:last-child { border-bottom: none; }
 .food-check { width: 20px; height: 20px; border-radius: 4px; border: 2px solid var(--border2); appearance: none; outline: none; cursor: pointer; position: relative; flex-shrink: 0; }
@@ -225,35 +225,35 @@ select.meta-input { appearance: none; }
 .habit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 20px 20px; }
 .habit-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
 .habit-icon { font-size: 24px; }
-.habit-label { font-size: 11px; color: var(--text2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.habit-label { font-size: 11px; color: var(--text2); font-weight: 400; text-transform: uppercase; letter-spacing: 0.05em; }
 
 .budget-guide { margin: 0 20px 20px; padding: 16px; background: rgba(77, 159, 255, 0.1); border: 1px solid var(--blue); border-radius: var(--radius); }
-.bg-title { font-size: 12px; font-weight: 600; color: var(--blue); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+.bg-title { font-size: 12px; font-weight: 400; color: var(--blue); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
 .bg-list { font-size: 12px; color: var(--text2); line-height: 1.6; }
 .bg-list strong { color: var(--text); }
 
 .pr-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; z-index: 2; }
 .pr-item { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px; }
 .pr-ex { font-size: 12px; color: var(--text); }
-.pr-w { font-size: 14px; font-weight: 600; color: var(--accent); font-family: 'DM Mono', monospace; }
+.pr-w { font-size: 14px; font-weight: 400; color: var(--accent); font-family: 'DM Mono', monospace; }
 
 /* Settings */
 .settings-section{margin:0 20px 24px}
-.settings-label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:12px}
+.settings-label{font-size:11px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:12px}
 .exercise-edit-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .exercise-edit-row input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--text);font-family:'Poppins',sans-serif;outline:none}
 .exercise-edit-row input:focus{border-color:var(--border2)}
 .exercise-idx{font-size:11px;color:var(--text3);width:16px;text-align:center;flex-shrink:0}
-.settings-save{margin:0 20px;background:var(--accent);color:#000;border:none;border-radius:var(--radius-sm);padding:12px;width:calc(100% - 40px);font-size:13px;font-weight:600;cursor:pointer;font-family:'Poppins',sans-serif}
-.logout-btn { background: transparent; border: 1px solid var(--red); color: var(--red); margin: 20px; padding: 12px; width: calc(100% - 40px); border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; }
+.settings-save{margin:0 20px;background:var(--accent);color:#000;border:none;border-radius:var(--radius-sm);padding:12px;width:calc(100% - 40px);font-size:13px;font-weight:400;cursor:pointer;font-family:'Poppins',sans-serif}
+.logout-btn { background: transparent; border: 1px solid var(--red); color: var(--red); margin: 20px; padding: 12px; width: calc(100% - 40px); border-radius: var(--radius-sm); font-weight: 400; cursor: pointer; }
 
 /* Section title */
-.section-title{padding:0 20px;font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px}
+.section-title{padding:0 20px;font-size:13px;font-weight:400;color:var(--text);margin-bottom:12px}
 
 /* Rest day */
 .rest-card{margin:0 20px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:40px 20px;text-align:center}
 .rest-icon{font-size:48px;margin-bottom:12px}
-.rest-title{font-size:18px;font-weight:600;margin-bottom:6px}
+.rest-title{font-size:18px;font-weight:400;margin-bottom:6px}
 .rest-sub{font-size:13px;color:var(--text2)}
 
 /* Sync indicator */
