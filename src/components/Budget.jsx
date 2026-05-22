@@ -51,7 +51,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [showAddDebt, setShowAddDebt] = useState(false);
-  const [debtForm, setDebtForm] = useState({ type: 'loan', provider: '', amount: '', dueDate: '' });
+  const [debtForm, setDebtForm] = useState({ type: 'loan', provider: '', amount: '', dueDate: '', note: '' });
   const [repayForm, setRepayForm] = useState({ debtId: null, amount: '' });
 
   // Unified filter logic for stats and categories
@@ -96,7 +96,11 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
       });
       (md.extraIncome || []).forEach(i => {
         const d = new Date(i.date);
-        if (d >= startRange && d <= endRange) income += Number(i.amount);
+        if (d >= startRange && d <= endRange) {
+          if (!i.isLoan && !i.label?.toLowerCase().includes('loan')) {
+            income += Number(i.amount);
+          }
+        }
       });
       
       const [ry, rm] = mk.split('-').map(Number);
@@ -156,8 +160,45 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
   });
 
   const unpaidDebts = allDebts.filter(d => d.status !== 'paid');
-  const totalOutstandingDebt = unpaidDebts.reduce((sum, d) => sum + (Number(d.amount) - Number(d.paid || 0)), 0);
-  const netLiquidity = remaining - totalOutstandingDebt;
+  const totalBorrowed = unpaidDebts.filter(d => d.type === 'loan').reduce((sum, d) => sum + (Number(d.amount) - Number(d.paid || 0)), 0);
+  const totalCreditDebt = unpaidDebts.filter(d => d.type === 'credit').reduce((sum, d) => sum + (Number(d.amount) - Number(d.paid || 0)), 0);
+  const totalOutstandingDebt = totalBorrowed + totalCreditDebt;
+
+  const earnedIncome = Object.entries(BUDGET).reduce((sum, [mk, md]) => {
+    let monthlyEarned = 0;
+    const [ry, rm] = mk.split('-').map(Number);
+    const salaryDate = new Date(ry, rm - 1, 1);
+    
+    let startR, endR;
+    const [selY, selM] = selectedMonth.split('-').map(Number);
+    if (activeRange === 'Monthly') {
+      startR = new Date(selY, selM - 1, 1);
+      endR = new Date(selY, selM, 0, 23, 59, 59);
+    } else if (activeRange === 'Yearly') {
+      startR = new Date(selY, 0, 1);
+      endR = new Date(selY, 11, 31, 23, 59, 59);
+    } else {
+      const days = activeRange === 'Today' ? 1 : activeRange === 'Weekly' ? 7 : 30;
+      startR = new Date(now); startR.setDate(now.getDate() - days);
+      endR = now;
+    }
+    
+    if (salaryDate >= startR && salaryDate <= endR) monthlyEarned += (BUDGET_SETTINGS?.income || 22400);
+
+    (md.extraIncome || []).forEach(i => {
+      const d = new Date(i.date);
+      if (d >= startR && d <= endR) {
+        if (!i.isLoan && !i.label?.toLowerCase().includes('loan')) {
+          monthlyEarned += Number(i.amount);
+        }
+      }
+    });
+
+    return sum + monthlyEarned;
+  }, 0);
+
+  const cashAssets = Math.max(0, earnedIncome + totalBorrowed - (totalSpent - totalCreditDebt));
+  const netLiquidity = cashAssets - totalOutstandingDebt;
 
   const addEntry = () => {
     if (!form.amount || isNaN(form.amount) || Number(form.amount) <= 0) return;
@@ -171,7 +212,15 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
 
   const deleteEntry = (id, mk) => {
     const targetMonth = BUDGET[mk]; if (!targetMonth) return;
-    syncBudget({ ...BUDGET, [mk]: { ...targetMonth, entries: (targetMonth.entries || []).filter(e => e.id !== id) } });
+    const updatedDebts = (targetMonth.debts || []).filter(d => d.transactionId !== id);
+    syncBudget({
+      ...BUDGET,
+      [mk]: {
+        ...targetMonth,
+        entries: (targetMonth.entries || []).filter(e => e.id !== id),
+        debts: updatedDebts
+      }
+    });
   };
 
   const addIncome = () => {
@@ -186,22 +235,33 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
 
   const deleteIncome = (id, mk) => {
     const targetMonth = BUDGET[mk]; if (!targetMonth) return;
-    syncBudget({ ...BUDGET, [mk]: { ...targetMonth, extraIncome: (targetMonth.extraIncome || []).filter(e => e.id !== id) } });
+    const updatedDebts = (targetMonth.debts || []).filter(d => d.transactionId !== id);
+    syncBudget({
+      ...BUDGET,
+      [mk]: {
+        ...targetMonth,
+        extraIncome: (targetMonth.extraIncome || []).filter(e => e.id !== id),
+        debts: updatedDebts
+      }
+    });
   };
 
   const addDebt = () => {
     if (!debtForm.amount || isNaN(debtForm.amount) || Number(debtForm.amount) <= 0 || !debtForm.provider.trim()) return;
     const d = new Date(); const mk = monthKey(d); const dk = dayKey(d); const tm = formatTime(d); const ts = d.getTime();
+    const transactionId = (ts + 1).toString();
     const newDebt = {
       id: ts.toString(),
-      type: debtForm.type, // 'loan' or 'credit'
+      type: debtForm.type,
       provider: debtForm.provider.trim(),
       amount: Number(debtForm.amount),
       paid: 0,
       status: 'pending',
       date: dk,
       time: tm,
-      timestamp: ts
+      timestamp: ts,
+      transactionId: transactionId,
+      note: debtForm.note ? debtForm.note.trim() : ''
     };
     
     const targetMonthData = BUDGET[mk] || { entries: [], extraIncome: [], debts: [] };
@@ -210,32 +270,33 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
     updatedMonthData.debts = [...(targetMonthData.debts || []), newDebt];
     
     if (debtForm.type === 'loan') {
-      // Dynamic cash injection! Auto-log extra income
       const loanIncome = {
-        id: (ts + 1).toString(),
+        id: transactionId,
         label: `Loan from ${debtForm.provider.trim()}`,
         amount: Number(debtForm.amount),
         date: dk,
         time: tm,
-        timestamp: ts + 1
+        timestamp: ts + 1,
+        isLoan: true,
+        note: debtForm.note ? debtForm.note.trim() : ''
       };
       updatedMonthData.extraIncome = [...(targetMonthData.extraIncome || []), loanIncome];
     } else {
-      // Credit card spend! Auto-log expense entry
       const cardExpense = {
-        id: (ts + 1).toString(),
-        category: 'others', // SBI/Credit Card purchase
+        id: transactionId,
+        category: 'others',
         amount: Number(debtForm.amount),
-        note: `Credit Spend: ${debtForm.provider.trim()}`,
+        note: debtForm.note ? `Credit Spend (${debtForm.provider.trim()}): ${debtForm.note.trim()}` : `Credit Spend: ${debtForm.provider.trim()}`,
         date: dk,
         time: tm,
-        timestamp: ts + 1
+        timestamp: ts + 1,
+        isCredit: true
       };
       updatedMonthData.entries = [...(targetMonthData.entries || []), cardExpense];
     }
     
     syncBudget({ ...BUDGET, [mk]: updatedMonthData });
-    setDebtForm({ type: 'loan', provider: '', amount: '', dueDate: '' });
+    setDebtForm({ type: 'loan', provider: '', amount: '', dueDate: '', note: '' });
     setShowAddDebt(false); setSelectedMonth(mk);
   };
 
@@ -257,7 +318,6 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
 
     if (!repaidDebtObj) return;
 
-    // Create corresponding repayment expense transaction
     const repaymentExpense = {
       id: ts.toString(),
       category: 'repayment',
@@ -281,11 +341,20 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
 
   const deleteDebt = (debtId, mk) => {
     const targetMonth = BUDGET[mk]; if (!targetMonth) return;
+    const debt = (targetMonth.debts || []).find(d => d.id === debtId);
+    if (!debt) return;
+    
+    const updatedDebts = (targetMonth.debts || []).filter(d => d.id !== debtId);
+    const updatedEntries = (targetMonth.entries || []).filter(e => e.id !== debt.transactionId);
+    const updatedExtraIncome = (targetMonth.extraIncome || []).filter(i => i.id !== debt.transactionId);
+    
     syncBudget({
       ...BUDGET,
       [mk]: {
         ...targetMonth,
-        debts: (targetMonth.debts || []).filter(d => d.id !== debtId)
+        debts: updatedDebts,
+        entries: updatedEntries,
+        extraIncome: updatedExtraIncome
       }
     });
   };
@@ -296,15 +365,21 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
     if (!historyStart && !historyEnd && !showAllHistory && mk !== selectedMonth) return;
     if (!historyDataMap[mk]) historyDataMap[mk] = { yr: y, mo: m - 1, days: {} };
     const allItems = [
-      ...(md.entries || []).map(e => ({ ...e, type: 'expense' })),
-      ...(md.extraIncome || []).map(i => ({ ...i, type: 'income', category: 'income', amount: i.amount, note: i.label }))
+      ...(md.entries || []).map(e => {
+        if (e.isCredit) return { ...e, type: 'credit' };
+        return { ...e, type: 'expense' };
+      }),
+      ...(md.extraIncome || []).map(i => {
+        if (i.isLoan || i.label?.toLowerCase().includes('loan')) return { ...i, type: 'loan', category: 'loan', amount: i.amount, note: i.label };
+        return { ...i, type: 'income', category: 'income', amount: i.amount, note: i.label };
+      })
     ];
     allItems.forEach(e => {
       if (historyStart && e.date < historyStart) return;
       if (historyEnd && e.date > historyEnd) return;
       if (!historyDataMap[mk].days[e.date]) historyDataMap[mk].days[e.date] = { dk: e.date, totalSpent: 0, totalIncome: 0, items: [] };
-      if (e.type === 'expense') historyDataMap[mk].days[e.date].totalSpent += Number(e.amount);
-      else historyDataMap[mk].days[e.date].totalIncome += Number(e.amount);
+      if (e.type === 'expense' || e.type === 'credit') historyDataMap[mk].days[e.date].totalSpent += Number(e.amount);
+      else if (e.type === 'income') historyDataMap[mk].days[e.date].totalIncome += Number(e.amount);
       historyDataMap[mk].days[e.date].items.push({ ...e, mk });
     });
     if (Object.keys(historyDataMap[mk].days).length === 0) delete historyDataMap[mk];
@@ -331,19 +406,39 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
           <div style={{ marginTop: '20px' }}>
             {modalDay.items.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0)).map(e => {
               const isIncome = e.type === 'income';
-              const cat = isIncome ? { emoji: '💰', label: 'Income', color: 'var(--accent)' } : (CATEGORIES.find(c => c.id === e.category) || CATEGORIES[CATEGORIES.length - 1]);
+              const isLoan = e.type === 'loan';
+              const isCredit = e.type === 'credit';
+              
+              const cat = isIncome 
+                ? { emoji: '💰', label: 'Income', color: 'var(--accent)' } 
+                : isLoan 
+                  ? { emoji: '🤝', label: 'Borrowed Loan', color: 'var(--blue)' } 
+                  : isCredit 
+                    ? { emoji: '💳', label: 'Credit Spend', color: 'var(--red)' }
+                    : (CATEGORIES.find(c => c.id === e.category) || CATEGORIES[CATEGORIES.length - 1]);
+              
               return (
-                <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg3)', borderRadius: '12px', marginBottom: '10px', border: `1px solid ${isIncome ? 'rgba(200,241,53,0.1)' : 'var(--border2)'}` }}>
+                <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg3)', borderRadius: '12px', marginBottom: '10px', border: `1px solid ${isIncome ? 'rgba(200,241,53,0.1)' : isLoan ? 'rgba(77,159,255,0.1)' : 'var(--border2)'}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ fontSize: '20px' }}>{cat.emoji}</div>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600 }}>{isIncome ? e.label : cat.label}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{e.time || 'Logged'} {e.note && !isIncome && `• ${e.note}`}</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600 }}>{isIncome ? e.label : isLoan ? e.label : cat.label}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)' }}>
+                        {e.time || 'Logged'} 
+                        {e.note && ` • ${e.note}`}
+                      </div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ fontWeight: 700, color: isIncome ? 'var(--accent)' : 'var(--text)' }}>{isIncome ? '+' : ''}₹{e.amount.toLocaleString()}</div>
-                    <Trash2 size={14} onClick={() => { isIncome ? deleteIncome(e.id, e.mk) : deleteEntry(e.id, e.mk); setModalDay(null); }} style={{ color: 'var(--red)', cursor: 'pointer', opacity: 0.6 }} />
+                    <div style={{ fontWeight: 700, color: isIncome ? 'var(--accent)' : isLoan ? 'var(--blue)' : 'var(--text)' }}>
+                      {isIncome ? '+' : isLoan ? '🤝 ' : ''}₹{e.amount.toLocaleString()}
+                    </div>
+                    <Trash2 size={14} onClick={() => { 
+                      if (isIncome) deleteIncome(e.id, e.mk);
+                      else if (isLoan) deleteIncome(e.id, e.mk); // this will also auto-delete linked debt!
+                      else deleteEntry(e.id, e.mk); 
+                      setModalDay(null); 
+                    }} style={{ color: 'var(--red)', cursor: 'pointer', opacity: 0.6 }} />
                   </div>
                 </div>
               );
@@ -485,6 +580,17 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
                 </span>
               </div>
 
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ fontSize: '11px', color: 'var(--text3)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Note / Purpose</label>
+                <input 
+                  type="text" 
+                  placeholder={debtForm.type === 'loan' ? "Why did you borrow? (e.g. for gym fees, emergency)" : "What did you buy? (e.g. shoes, dinner)"} 
+                  value={debtForm.note || ''} 
+                  onChange={e => setDebtForm(f => ({ ...f, note: e.target.value }))} 
+                  style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' }} 
+                />
+              </div>
+
               <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
                 <button onClick={addDebt} style={{ flex: 1, padding: '12px', background: 'var(--blue)', color: '#000', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>Save Entry</button>
                 <button onClick={() => setShowAddDebt(false)} style={{ flex: 1, padding: '12px', background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border2)', borderRadius: '12px', cursor: 'pointer', fontSize: '13px' }}>Cancel</button>
@@ -504,7 +610,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
           <div style={{ background: 'var(--bg3)', padding: '12px', borderRadius: '14px', border: '1px solid var(--border2)' }}>
             <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Cash Assets</div>
-            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--accent)' }}>₹{totalIncome.toLocaleString()}</div>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--accent)' }}>₹{cashAssets.toLocaleString()}</div>
           </div>
           <div style={{ background: 'var(--bg3)', padding: '12px', borderRadius: '14px', border: '1px solid var(--border2)' }}>
             <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Active Liabilities</div>
@@ -525,30 +631,30 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
           borderRadius: '12px', 
           fontSize: '11px', 
           lineHeight: 1.4, 
-          background: totalOutstandingDebt === 0 
-            ? 'rgba(52,211,153,0.06)' 
-            : netLiquidity >= 0 
-              ? 'rgba(77,159,255,0.06)' 
-              : 'rgba(244,63,94,0.06)',
+          background: netLiquidity < 0
+            ? 'rgba(244,63,94,0.06)'
+            : totalOutstandingDebt === 0 
+              ? 'rgba(52,211,153,0.06)' 
+              : 'rgba(77,159,255,0.06)',
           border: `1px solid ${
-            totalOutstandingDebt === 0 
-              ? 'rgba(52,211,153,0.15)' 
-              : netLiquidity >= 0 
-                ? 'rgba(77,159,255,0.15)' 
-                : 'rgba(244,63,94,0.15)'
+            netLiquidity < 0
+              ? 'rgba(244,63,94,0.15)'
+              : totalOutstandingDebt === 0 
+                ? 'rgba(52,211,153,0.15)' 
+                : 'rgba(77,159,255,0.15)'
           }`,
-          color: totalOutstandingDebt === 0 
-            ? '#34D399' 
-            : netLiquidity >= 0 
-              ? 'var(--blue)' 
-              : 'var(--red)'
+          color: netLiquidity < 0
+            ? 'var(--red)'
+            : totalOutstandingDebt === 0 
+              ? '#34D399' 
+              : 'var(--blue)'
         }}>
-          {totalOutstandingDebt === 0 ? (
+          {netLiquidity < 0 ? (
+            <span>⚠️ **Financial Health: Budget Deficit.** You have overspent your available cash by ₹{Math.abs(netLiquidity).toLocaleString()}! Avoid new expenses and balance your budget.</span>
+          ) : totalOutstandingDebt === 0 ? (
             <span>🟢 **Financial Health: Excellent.** You have zero outstanding liabilities! All your cash is fully liquid and debt-free.</span>
-          ) : netLiquidity >= 0 ? (
-            <span>🔵 **Financial Health: Healthy Coverage.** Your remaining cash (₹{remaining.toLocaleString()}) covers your outstanding dues (₹{totalOutstandingDebt.toLocaleString()}). Settle them whenever you wish.</span>
           ) : (
-            <span>⚠️ **Financial Health: High Debt Risk.** You owe ₹{Math.abs(netLiquidity).toLocaleString()} more than you have remaining. Avoid new expenses and prioritize repayments.</span>
+            <span>🔵 **Financial Health: Healthy Coverage.** Your remaining cash covers your outstanding dues (₹{totalOutstandingDebt.toLocaleString()}). Settle them whenever you wish.</span>
           )}
         </div>
       </div>
@@ -607,6 +713,11 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
                       </div>
                       <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginTop: '6px' }}>{d.provider}</div>
                       <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '2px' }}>Logged on {d.date}</div>
+                      {d.note && (
+                        <div style={{ fontSize: '11px', color: 'var(--text2)', background: 'rgba(255,255,255,0.03)', padding: '4px 8px', borderRadius: '6px', marginTop: '6px', borderLeft: '3px solid var(--border)' }}>
+                          📝 <strong>Note:</strong> {d.note}
+                        </div>
+                      )}
                     </div>
                     
                     <div style={{ textAlign: 'right' }}>
