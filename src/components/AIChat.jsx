@@ -890,15 +890,17 @@ Guidelines for Lucy:
             {messages.map((msg, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 <div style={{
-                  maxWidth: '85%', 
-                  padding: '10px 32px 10px 14px',
+                  width: msg.role === 'user' ? 'auto' : '100%',
+                  maxWidth: msg.role === 'user' ? '85%' : '100%', 
+                  padding: '12px 32px 12px 14px',
                   borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                   background: msg.role === 'user' ? 'var(--accent)' : 'var(--bg3)',
                   color: msg.role === 'user' ? '#000' : 'var(--text)',
                   fontSize: '13px', 
                   lineHeight: 1.5, 
                   whiteSpace: 'pre-wrap',
-                  position: 'relative'
+                  position: 'relative',
+                  border: msg.role === 'user' ? 'none' : '1px solid var(--border)'
                 }}>
                   {msg.role === 'user' ? msg.text : renderMessageContent(msg.text)}
                   {!msg.streaming && (
