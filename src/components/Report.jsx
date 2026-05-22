@@ -21,7 +21,7 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
-export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET_SETTINGS, syncBudget, STUDY, STUDY_SETTINGS, syncStudy, workoutPlans }) {
+export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET_SETTINGS, syncBudget, STUDY, STUDY_SETTINGS, syncStudy, workoutPlans, DIET_PLAN }) {
   const [activeSection, setActiveSection] = useState('gym');
   const [timeRange, setTimeRange] = useState('Today');
   const [budgetRange, setBudgetRange] = useState('Monthly');
@@ -168,9 +168,17 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
     const f = FOOD[k] || {};
     let p = 0;
     if(f.items) {
-      const dietPlan = DEFAULT_DIET_PLAN[d.getDay()] || DEFAULT_DIET_PLAN[1];
+      const dietPlan = DIET_PLAN?.[d.getDay()] || DEFAULT_DIET_PLAN[d.getDay()] || DEFAULT_DIET_PLAN[1];
       dietPlan.forEach(meal => meal.items.forEach(item => {
-        if(f.items[item.id]) p += item.p;
+        const valRaw = f.items[item.id];
+        let val = 0;
+        if (valRaw === true) val = 3;
+        else if (valRaw === false || valRaw === undefined) val = 0;
+        else val = Number(valRaw);
+        
+        if (val > 0) {
+          p += (item.p * (val / 3));
+        }
       }));
     }
     totalProtein += p;
@@ -270,258 +278,6 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
       {activeSection === 'budget' && (
         <div style={{ padding: '0 10px' }}>
           <Budget BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} isReport={true} activeRange={budgetRange} />
-          
-          {/* CUSTOM BANKING CREDIT REPORT */}
-          {(() => {
-            const allDebts = [];
-            Object.entries(BUDGET).forEach(([mk, md]) => {
-              (md.debts || []).forEach(d => {
-                allDebts.push({ ...d, mk });
-              });
-            });
-            const unpaidDebts = allDebts.filter(d => d.status !== 'paid');
-            const totalOutstandingDebt = unpaidDebts.reduce((sum, d) => sum + (Number(d.amount) - Number(d.paid || 0)), 0);
-            const totalRepaid = allDebts.reduce((sum, d) => sum + Number(d.paid || 0), 0);
-            const totalBorrowed = allDebts.reduce((sum, d) => sum + Number(d.amount), 0);
-            
-            const friendLoans = unpaidDebts.filter(d => d.type === 'loan').reduce((sum, d) => sum + (d.amount - d.paid), 0);
-            const creditDues = unpaidDebts.filter(d => d.type === 'credit').reduce((sum, d) => sum + (d.amount - d.paid), 0);
-            
-            // Calculate a synthetic credit score / financial health rating
-            let creditHealthScore = 800; // start with excellent
-            if (totalBorrowed > 0) {
-              const leverageRatio = totalOutstandingDebt / (totalBorrowed || 1);
-              creditHealthScore = Math.max(300, Math.round(850 - (leverageRatio * 350) - (totalOutstandingDebt > 10000 ? 100 : 0)));
-            }
-            
-            let healthColor = '#34D399'; // green
-            let healthText = 'EXCELLENT';
-            if (creditHealthScore < 550) {
-              healthColor = 'var(--red)';
-              healthText = 'CRITICAL';
-            } else if (creditHealthScore < 700) {
-              healthColor = 'var(--orange)';
-              healthText = 'FAIR';
-            }
-
-            const now = new Date();
-            const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            const monthlySalary = BUDGET_SETTINGS?.income || 22400;
-            const currentMonthExtra = (BUDGET[currentMonthKey]?.extraIncome || []).reduce((sum, i) => sum + Number(i.amount), 0);
-            const totalMonthlyResources = monthlySalary + currentMonthExtra;
-            
-            const currentMonthExpenses = (BUDGET[currentMonthKey]?.entries || [])
-              .filter(e => e.category !== 'repayment')
-              .reduce((sum, e) => sum + Number(e.amount), 0);
-
-            // Inflow vs Outflow data for Round Diagram 1
-            const cashFlowData = [
-              { name: 'Assets Inflow', value: totalMonthlyResources, color: '#34D399' },
-              { name: 'Liabilities Outflow', value: currentMonthExpenses + totalOutstandingDebt, color: 'var(--red)' }
-            ];
-
-            // Next month pre-committed burden ratio (Debt-to-Income Ratio)
-            const nextMonthBurdenPct = Math.round((totalOutstandingDebt / (monthlySalary || 1)) * 100);
-
-            // Category Spending data for Round Diagram 2
-            const categoryTotals = {};
-            (BUDGET[currentMonthKey]?.entries || []).forEach(e => {
-              categoryTotals[e.category] = (categoryTotals[e.category] || 0) + Number(e.amount);
-            });
-            
-            const CATEGORIES = BUDGET_SETTINGS?.categories?.length ? BUDGET_SETTINGS.categories : [
-              { id: 'food',      label: 'Food',          emoji: '🍕', color: '#FF6B6B' },
-              { id: 'supps',     label: 'Supplements',   emoji: '💊', color: '#C8F135' },
-              { id: 'transport', label: 'Transport',     emoji: '🚗', color: '#4D9FFF' },
-              { id: 'entertain', label: 'Entertainment', emoji: '🎮', color: '#A78BFA' },
-              { id: 'outside',   label: 'Eating Out',    emoji: '🍽️', color: '#FB923C' },
-              { id: 'gym',       label: 'Gym',           emoji: '🏋️', color: '#34D399' },
-              { id: 'repayment', label: 'Repayments',    emoji: '💸', color: '#F43F5E' },
-              { id: 'others',    label: 'Others',        emoji: '📦', color: '#94A3B8' },
-            ];
-
-            const categoryChartData = Object.entries(categoryTotals).map(([cat, val]) => {
-              const matchedCat = CATEGORIES.find(c => c.id === cat);
-              return {
-                name: matchedCat ? `${matchedCat.emoji} ${matchedCat.label}` : `📦 ${cat}`,
-                value: val,
-                color: matchedCat?.color || `hsl(${(Object.keys(categoryTotals).indexOf(cat) * 60) % 360}, 70%, 60%)`
-              };
-            }).filter(d => d.value > 0);
-
-            return (
-              <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                
-                {/* 1. CREDIT SCORE & DTI STATEMENT REPORT */}
-                <div style={{ padding: '24px', background: 'var(--bg2)', borderRadius: '24px', border: '1px solid var(--border2)' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px', color: 'var(--accent)' }}>📊 Credit & Liabilities Summary</div>
-                  
-                  {/* Credit Score & Health Indicator */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', background: 'var(--bg3)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)', marginBottom: '20px' }}>
-                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', border: `4px solid ${healthColor}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text)' }}>{creditHealthScore}</span>
-                      <span style={{ fontSize: '8px', color: 'var(--text3)', fontWeight: 'bold', marginTop: '2px' }}>FICO</span>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 800, color: healthColor }}>HEALTH RATING: {healthText}</div>
-                      <p style={{ fontSize: '11px', color: 'var(--text3)', margin: '4px 0 0', lineHeight: 1.4 }}>
-                        Based on your leverage ratio and repayment speed. Settle outstanding dues on time to boost your score.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-                    <div style={{ background: 'var(--bg3)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border2)' }}>
-                      <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Friend Borrowed Dues</div>
-                      <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--blue)' }}>₹{friendLoans.toLocaleString()}</div>
-                    </div>
-                    <div style={{ background: 'var(--bg3)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border2)' }}>
-                      <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '4px' }}>Credit Card Balance</div>
-                      <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--red)' }}>₹{creditDues.toLocaleString()}</div>
-                    </div>
-                  </div>
-
-                  {/* Stacked Repayment Progress */}
-                  {totalBorrowed > 0 && (
-                    <div style={{ marginBottom: '20px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text2)', marginBottom: '6px' }}>
-                        <span>Repayment Clearance:</span>
-                        <span style={{ fontWeight: 'bold' }}>{Math.round((totalRepaid / totalBorrowed) * 100)}%</span>
-                      </div>
-                      <div style={{ height: '10px', background: 'rgba(255,255,255,0.06)', borderRadius: '5px', overflow: 'hidden', display: 'flex' }}>
-                        <div style={{ width: `${(totalRepaid / totalBorrowed) * 100}%`, background: '#34D399' }} />
-                        <div style={{ width: `${(totalOutstandingDebt / totalBorrowed) * 100}%`, background: 'var(--red)' }} />
-                      </div>
-                      <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '10px', color: 'var(--text3)' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34D399' }}></div> Repaid (₹{totalRepaid.toLocaleString()})</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--red)' }}></div> Active Debt (₹{totalOutstandingDebt.toLocaleString()})</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Personal Finance Coach Lucy Advice */}
-                  <div style={{ padding: '16px', background: 'rgba(200,241,53,0.03)', borderRadius: '16px', border: '1px dashed var(--accent)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '16px' }}>🤖</span>
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase' }}>Lucy's Credit Advice</span>
-                    </div>
-                    <p style={{ fontSize: '11px', color: 'var(--text2)', margin: 0, lineHeight: 1.5 }}>
-                      {totalOutstandingDebt === 0 ? (
-                        "Spotless balance sheet! You have zero active liabilities. Since you are fully liquid, this is the perfect time to build your emergency fund or invest in growth assets."
-                      ) : friendLoans > creditDues ? (
-                        "Your primary liability consists of interest-free loans borrowed from friends. Although friend loans don't affect your formal credit score, honor your word and settle Rahul's dues soon to secure trust!"
-                      ) : (
-                        "Caution! You have outstanding bank credit card dues. Standard credit cards carry high interest rates if unpaid. Prioritize clearing credit platform balances to avoid debt traps."
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 2. ROUND DIAGRAM: ASSETS VS LIABILITIES FLOWS */}
-                <div style={{ padding: '24px', background: 'var(--bg2)', borderRadius: '24px', border: '1px solid var(--border2)' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px', color: 'var(--accent)' }}>🔄 Inflow Assets vs Outflow Liabilities</div>
-                  
-                  <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ width: '130px', height: '130px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                      <PieChart width={130} height={130}>
-                        <Pie data={cashFlowData} dataKey="value" cx="50%" cy="50%" innerRadius={42} outerRadius={58} stroke="none" cornerRadius={6} paddingAngle={3}>
-                          {cashFlowData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                        </Pie>
-                      </PieChart>
-                      <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--text3)' }}>Balance</span>
-                        <span style={{ fontSize: '14px', fontWeight: 900, color: totalMonthlyResources >= (currentMonthExpenses + totalOutstandingDebt) ? '#34D399' : 'var(--red)' }}>
-                          ₹{(totalMonthlyResources - (currentMonthExpenses + totalOutstandingDebt)).toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div style={{ flex: 1, minWidth: '180px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg3)', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border2)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34D399' }} />
-                          <span style={{ fontSize: '11px', color: 'var(--text2)' }}>Inflow Assets</span>
-                        </div>
-                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#34D399' }}>₹{totalMonthlyResources.toLocaleString()}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg3)', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border2)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--red)' }} />
-                          <span style={{ fontSize: '11px', color: 'var(--text2)' }}>Outflow Liabilities</span>
-                        </div>
-                        <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--red)' }}>₹{(currentMonthExpenses + totalOutstandingDebt).toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 3. NEXT MONTH COMMITMENT FORECAST & DEBT BURDEN INDEX */}
-                  <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border2)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 800 }}>Next Month Repayment Commit</div>
-                        <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '2px' }}>Pre-committed to settle all borrowed loans & credit cards</div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '18px', fontWeight: 900, color: 'var(--red)' }}>₹{totalOutstandingDebt.toLocaleString()}</div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ position: 'relative', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="60" height="60" viewBox="0 0 36 36">
-                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
-                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={nextMonthBurdenPct > 40 ? 'var(--red)' : nextMonthBurdenPct > 20 ? 'var(--orange)' : 'var(--blue)'} strokeWidth="3" strokeDasharray={`${Math.min(100, nextMonthBurdenPct)}, 100`} />
-                        </svg>
-                        <span style={{ position: 'absolute', fontSize: '11px', fontWeight: 800, color: 'var(--text)' }}>{nextMonthBurdenPct}%</span>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '11px', fontWeight: 700, color: nextMonthBurdenPct > 40 ? 'var(--red)' : nextMonthBurdenPct > 20 ? 'var(--orange)' : 'var(--blue)' }}>
-                          {nextMonthBurdenPct > 40 ? '⚠️ High Debt Burden Ratio' : nextMonthBurdenPct > 20 ? '⚡ Moderate Debt Burden Ratio' : '🟢 Healthy Liquidity Coverage'}
-                        </div>
-                        <p style={{ fontSize: '10px', color: 'var(--text3)', margin: '2px 0 0', lineHeight: 1.3 }}>
-                          Outstanding commitments claim **{nextMonthBurdenPct}%** of your standard ₹{monthlySalary.toLocaleString()} salary resources.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 4. ROUND DIAGRAM: CATEGORY EXPENSE BREAKDOWN */}
-                <div style={{ padding: '24px', background: 'var(--bg2)', borderRadius: '24px', border: '1px solid var(--border2)' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px', color: 'var(--accent)' }}>🏷️ Category Spending Breakdown Chart</div>
-                  
-                  {categoryChartData.length === 0 ? (
-                    <div style={{ background: 'var(--bg3)', borderRadius: '16px', padding: '24px', textAlign: 'center', color: 'var(--text3)', fontSize: '12px', border: '1px dashed var(--border2)' }}>
-                      📝 Log expense transactions under standard categories to build your donut breakdown chart!
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-                      <div style={{ width: '130px', height: '130px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <PieChart width={130} height={130}>
-                          <Pie data={categoryChartData} dataKey="value" cx="50%" cy="50%" innerRadius={42} outerRadius={58} stroke="none" cornerRadius={6} paddingAngle={3}>
-                            {categoryChartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                          </Pie>
-                        </PieChart>
-                      </div>
-                      
-                      <div style={{ flex: 1, minWidth: '180px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto', paddingRight: '8px' }}>
-                        {categoryChartData.sort((a,b) => b.value - a.value).map(d => (
-                          <div key={d.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', gap: '12px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color, flexShrink: 0 }} />
-                              <span style={{ color: 'var(--text2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={d.name}>{d.name}</span>
-                            </div>
-                            <span style={{ fontWeight: 700, color: 'var(--text)', flexShrink: 0 }}>₹{d.value.toLocaleString()}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-              </div>
-            );
-          })()}
         </div>
       )}
 

@@ -150,8 +150,6 @@ export default function App() {
               localStorage.setItem('ai_model', data.aiSettings.model || 'gemini-2.5-flash');
               localStorage.setItem('openrouter_model', data.aiSettings.openrouterModel || 'openrouter/free');
               localStorage.setItem('ai_persona', data.aiSettings.persona || 'Motivational Fitness Coach');
-              localStorage.setItem('ai_response_style', data.aiSettings.responseStyle || 'short');
-              localStorage.setItem('ai_custom_instructions', data.aiSettings.customInstructions || '');
               setAiEnabled(data.aiSettings.enabled);
               window.dispatchEvent(new Event('storage'));
             }
@@ -228,9 +226,7 @@ export default function App() {
       provider: localStorage.getItem('ai_provider') || 'gemini',
       model: localStorage.getItem('ai_model') || 'gemini-2.5-flash',
       openrouterModel: localStorage.getItem('openrouter_model') || 'openrouter/free',
-      persona: localStorage.getItem('ai_persona') || 'Motivational Fitness Coach',
-      responseStyle: localStorage.getItem('ai_response_style') || 'short',
-      customInstructions: localStorage.getItem('ai_custom_instructions') || ''
+      persona: localStorage.getItem('ai_persona') || 'Motivational Fitness Coach'
     };
   };
 
@@ -304,8 +300,6 @@ export default function App() {
     if (newSettings.model !== undefined) localStorage.setItem('ai_model', newSettings.model);
     if (newSettings.openrouterModel !== undefined) localStorage.setItem('openrouter_model', newSettings.openrouterModel);
     if (newSettings.persona !== undefined) localStorage.setItem('ai_persona', newSettings.persona);
-    if (newSettings.responseStyle !== undefined) localStorage.setItem('ai_response_style', newSettings.responseStyle);
-    if (newSettings.customInstructions !== undefined) localStorage.setItem('ai_custom_instructions', newSettings.customInstructions);
 
     setAiEnabled(localStorage.getItem('ai_enabled') === 'true');
     window.dispatchEvent(new Event('storage'));
@@ -425,7 +419,7 @@ export default function App() {
         {activeTab === 'diet'     && <Diet     FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} profileInfo={profileInfo} DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} />}
         {activeTab === 'budget'   && <Budget   BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} />}
         {activeTab === 'study'    && <Study    STUDY={STUDY} syncStudy={syncStudy} STUDY_SETTINGS={STUDY_SETTINGS} profileInfo={profileInfo} />}
-        {activeTab === 'report'   && <Report   DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} BUDGET={BUDGET} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY={STUDY} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} workoutPlans={workoutPlans} />}
+        {activeTab === 'report'   && <Report   DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} BUDGET={BUDGET} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY={STUDY} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} workoutPlans={workoutPlans} DIET_PLAN={DIET_PLAN} />}
         {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} syncAiSettings={syncAiSettings} profileInfo={profileInfo} syncProfileInfo={syncProfileInfo} workoutPlans={workoutPlans} syncWorkoutPlans={syncWorkoutPlans} DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} user={user} />}
       </div>
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} showNav={showNav} />

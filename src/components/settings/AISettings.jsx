@@ -16,8 +16,6 @@ export default function AISettings({ syncAiSettings }) {
   const [localProvider, setLocalProvider] = useState(() => localStorage.getItem('ai_provider') || 'gemini');
   const [localOpenrouterKey, setLocalOpenrouterKey] = useState(() => localStorage.getItem('openrouter_api_key') || '');
   const [localOpenrouterModel, setLocalOpenrouterModel] = useState(() => localStorage.getItem('openrouter_model') || 'openrouter/free');
-  const [localAiLength, setLocalAiLength] = useState(() => localStorage.getItem('ai_response_style') || 'short');
-  const [localAiCustom, setLocalAiCustom] = useState(() => localStorage.getItem('ai_custom_instructions') || '');
 
   useEffect(() => {
     const handleStorage = () => {
@@ -34,8 +32,6 @@ export default function AISettings({ syncAiSettings }) {
       setLocalProvider(localStorage.getItem('ai_provider') || 'gemini');
       setLocalOpenrouterKey(localStorage.getItem('openrouter_api_key') || '');
       setLocalOpenrouterModel(localStorage.getItem('openrouter_model') || 'openrouter/free');
-      setLocalAiLength(localStorage.getItem('ai_response_style') || 'short');
-      setLocalAiCustom(localStorage.getItem('ai_custom_instructions') || '');
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
@@ -181,44 +177,6 @@ export default function AISettings({ syncAiSettings }) {
           <option value="Calm Zen Gym Master">Calm Zen Gym Master (Mindful, philosophical)</option>
           <option value="Sarcastic Fitness Critic">Sarcastic Fitness Critic (Humorous, dry wit)</option>
         </select>
-      </div>
-
-      {/* Response Style Selector */}
-      <div style={{ marginBottom: '12px' }}>
-        <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Response Length & Detail Level</div>
-        <select value={localAiLength} onChange={e => {
-          const val = e.target.value;
-          setLocalAiLength(val);
-          if (syncAiSettings) {
-            syncAiSettings({ responseStyle: val });
-          } else {
-            updateSetting('ai_response_style', val);
-          }
-        }} style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }}>
-          <option value="short">Short & Sweet (Concise responses, under 2-3 sentences)</option>
-          <option value="balanced">Balanced (Focused, moderate length/depth)</option>
-          <option value="detailed">Detailed & In-Depth (Comprehensive explanations & guides)</option>
-        </select>
-      </div>
-
-      {/* Personal Instructions & Notes */}
-      <div style={{ marginBottom: '12px' }}>
-        <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Personal Notes & Instructions</div>
-        <textarea 
-          value={localAiCustom} 
-          onChange={e => {
-            const val = e.target.value;
-            setLocalAiCustom(val);
-            if (syncAiSettings) {
-              syncAiSettings({ customInstructions: val });
-            } else {
-              updateSetting('ai_custom_instructions', val);
-            }
-          }} 
-          placeholder="e.g. Always refer to me as Ashok. Keep my diet strict on proteins. Limit carbs recommendations..."
-          rows={3}
-          style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
-        />
       </div>
     </Accordion>
   );

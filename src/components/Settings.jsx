@@ -53,7 +53,6 @@ export default function Settings({
     { id: 'entertain', label: 'Entertainment', emoji: '🎮', color: '#A78BFA' },
     { id: 'outside',   label: 'Eating Out',    emoji: '🍽️', color: '#FB923C' },
     { id: 'gym',       label: 'Gym',           emoji: '🏋️', color: '#34D399' },
-    { id: 'repayment', label: 'Repayments',    emoji: '💸', color: '#F43F5E' },
     { id: 'others',    label: 'Others',        emoji: '📦', color: '#94A3B8' },
   ];
   const CAT_COLORS = ['#FF6B6B','#C8F135','#4D9FFF','#A78BFA','#FB923C','#34D399','#94A3B8','#F472B6','#FBBF24'];
@@ -165,6 +164,7 @@ export default function Settings({
           ...p,
           muscles: p.muscles.map(m => {
             if (m.name === muscleName) {
+              if (m.exercises.some(ex => ex.toLowerCase() === exerciseName.trim().toLowerCase())) return m;
               return {
                 ...m,
                 exercises: [...m.exercises, exerciseName.trim()]
@@ -477,11 +477,23 @@ export default function Settings({
 
           {(() => {
             const currentPlan = plansArray.find(p => p.id === selectedSplitToEdit) || plansArray[0];
+            const scheduledDays = [];
+            for (let d = 0; d < 7; d++) {
+              const currentSplit = localSchedule[d] !== undefined ? localSchedule[d] : (d === 4 ? 1 : d === 5 ? 2 : d);
+              if (currentSplit === currentPlan.id) {
+                scheduledDays.push(DAYS_FULL[d]);
+              }
+            }
             return (
               <div style={{ background: 'var(--bg3)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <div style={{ fontWeight: 'bold', color: 'var(--accent)', fontSize: '14px' }}>{currentPlan.label}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--text3)' }}>{currentPlan.muscles.length} Muscle Groups</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <div style={{ fontWeight: 'bold', color: 'var(--accent)', fontSize: '14px' }}>{currentPlan.label}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>
+                      {scheduledDays.length > 0 ? `📅 Scheduled: ${scheduledDays.join(', ')}` : '⚠️ Not scheduled on any day'}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', background: 'rgba(255,255,255,0.04)', padding: '4px 8px', borderRadius: '6px' }}>{currentPlan.muscles.length} Muscle Groups</div>
                 </div>
 
                 {currentPlan.muscles.length === 0 ? (
