@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { PlusCircle, Trash2, BookOpen, Clock, CheckCircle, ChevronLeft, ChevronRight, BarChart as BarChartIcon, Calendar, X, Sparkles } from 'lucide-react';
+import { PlusCircle, Trash2, BookOpen, Clock, CheckCircle, ChevronLeft, ChevronRight, BarChart as BarChartIcon, Calendar, X, Sparkles, Brain, Code, Cpu, Award } from 'lucide-react';
 import { MONTHS, DAYS_SHORT } from '../data';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, ReferenceLine } from 'recharts';
 import JobBoard from './study/JobBoard';
@@ -13,6 +13,14 @@ const DEFAULT_SUBJECTS = [
 
 const dateKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+
+const renderSubjectIcon = (id, fallback, size = 16, style = {}) => {
+  if (id === 'dsa') return <Brain size={size} style={{ verticalAlign: 'middle', ...style }} />;
+  if (id === 'js') return <Code size={size} style={{ verticalAlign: 'middle', ...style }} />;
+  if (id === 'react') return <Cpu size={size} style={{ verticalAlign: 'middle', ...style }} />;
+  if (id === 'interview') return <Award size={size} style={{ verticalAlign: 'middle', ...style }} />;
+  return <span style={{ fontSize: `${size}px`, verticalAlign: 'middle', ...style }}>{fallback}</span>;
+};
 
 export default function Study({ STUDY = {}, syncStudy, STUDY_SETTINGS, isReport, activeRange: propRange, profileInfo }) {
   const now = new Date();
@@ -520,7 +528,7 @@ Return the output strictly in the following JSON format:
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                        <span>{sub.emoji}</span>
+                        <span>{renderSubjectIcon(sub.id, sub.emoji, 14)}</span>
                         <span style={{ fontWeight: 600, fontSize: '13px', color: sub.color }}>{sub.label}</span>
                         <span style={{ fontSize: '11px', color: 'var(--text3)', marginLeft: 'auto' }}>{s.time}</span>
                       </div>
@@ -670,7 +678,7 @@ Return the output strictly in the following JSON format:
                 return (
                   <div key={sub.id}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
-                      <span>{sub.emoji} {sub.label}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>{renderSubjectIcon(sub.id, sub.emoji, 14)} {sub.label}</span>
                       <span style={{ color: sub.color, fontWeight: 700 }}>{formatDuration(hrs)}</span>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '4px', height: '4px', overflow: 'hidden' }}>
@@ -721,8 +729,8 @@ Return the output strictly in the following JSON format:
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
                     {subjects.map(s => (
                       <div key={s.id} onClick={() => setAddForm(f => ({ ...f, subjectId: s.id }))}
-                        style={{ padding: '8px 16px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer', background: addForm.subjectId === s.id ? s.color : 'var(--bg)', color: addForm.subjectId === s.id ? '#000' : 'var(--text2)', fontWeight: 700, border: `1px solid ${addForm.subjectId === s.id ? s.color : 'var(--border2)'}`, transition: 'all 0.2s' }}>
-                        {s.emoji} {s.label}
+                        style={{ padding: '8px 16px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer', background: addForm.subjectId === s.id ? s.color : 'var(--bg)', color: addForm.subjectId === s.id ? '#000' : 'var(--text2)', fontWeight: 700, border: `1px solid ${addForm.subjectId === s.id ? s.color : 'var(--border2)'}`, transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {renderSubjectIcon(s.id, s.emoji, 13)} {s.label}
                       </div>
                     ))}
                   </div>
@@ -863,8 +871,18 @@ Return the output strictly in the following JSON format:
                           </div>
                         </div>
                       </div>
-                      <div className="hday-focus" style={{ marginTop: '8px' }}>
-                        {day.sessions.length} Sessions • {day.sessions.map(s => subjects.find(x => x.id === s.subjectId)?.emoji).slice(0, 5).join(' ')}
+                      <div className="hday-focus" style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>{day.sessions.length} Sessions •</span>
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          {day.sessions.slice(0, 5).map((s, idx) => {
+                            const sub = subjects.find(x => x.id === s.subjectId) || subjects[0];
+                            return (
+                              <span key={idx} style={{ color: sub.color, display: 'inline-flex', alignItems: 'center' }}>
+                                {renderSubjectIcon(sub.id, sub.emoji, 12)}
+                              </span>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   );

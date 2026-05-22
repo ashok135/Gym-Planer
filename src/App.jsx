@@ -425,6 +425,19 @@ export default function App() {
 
   return (
     <div className="app">
+      {/* Premium Ambient Background Video & Glassmorphism Overlay */}
+      <div className="ambient-bg-container">
+        <video 
+          className="ambient-video" 
+          src="https://cdn.pixabay.com/video/2021/04/12/70860-536965158_large.mp4" 
+          loop 
+          muted 
+          playsInline 
+          autoPlay 
+        />
+        <div className="ambient-overlay"></div>
+      </div>
+
       <div className="header">
         <div className="header-left">
           <div className="greeting">Welcome back</div>

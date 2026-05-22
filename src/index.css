@@ -23,9 +23,9 @@
 
 
 :root{
-  --bg:#0a0a0a;--bg2:#111;--bg3:#1a1a1a;--bg4:#222;
-  --border:#2a2a2a;--border2:#333;
-  --text:#f0f0f0;--text2:#999;--text3:#555;
+  --bg:#070708;--bg2:#121214;--bg3:#1a1a1e;--bg4:#242429;
+  --border:#26262b;--border2:#32323a;
+  --text:#ffffff;--text2:#c8c8cc;--text3:#8e8e93;
   --accent:#c8f135;--accent2:#a8d020;
   --red:#ff4d4d;--blue:#4d9fff;--orange:#ff9533;
   --radius:14px;--radius-sm:8px;
@@ -351,9 +351,33 @@ select.meta-input { appearance: none; }
     color: var(--accent); 
   }
 }
+/* Premium Ambient Background Video & Glassmorphism Overlay */
+.ambient-bg-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  overflow: hidden;
+  background: #050505;
+}
 
+.ambient-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.18;
+  filter: saturate(0.7) contrast(1.15) brightness(0.9);
+  transition: opacity 1s ease-in-out;
+}
 
-
-
-
-
+.ambient-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 50% 50%, rgba(7, 7, 8, 0.35) 0%, #070708 100%);
+  z-index: 1;
+}
