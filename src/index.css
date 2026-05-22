@@ -29,7 +29,7 @@
   --accent:#c8f135;--accent2:#a8d020;
   --red:#ff4d4d;--blue:#4d9fff;--orange:#ff9533;
   --radius:14px;--radius-sm:8px;
-  font-family:'DM Sans',sans-serif;
+  font-family:'Poppins',sans-serif;
 }
 body{
   background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;overflow-x:hidden;
@@ -156,7 +156,7 @@ select.meta-input { appearance: none; }
 
 /* Save button */
 .save-area{padding:0 20px 20px;display:flex;align-items:center;justify-content:center;gap:12px;position:relative}
-.save-btn{width:100%;background:var(--accent);color:#000;border:none;border-radius:var(--radius);padding:16px;font-size:15px;font-weight:700;letter-spacing:0.5px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;box-shadow:0 4px 20px rgba(200,241,53,0.3)}
+.save-btn{width:100%;background:var(--accent);color:#000;border:none;border-radius:var(--radius);padding:16px;font-size:15px;font-weight:700;letter-spacing:0.5px;cursor:pointer;font-family:'Poppins',sans-serif;transition:all .2s;box-shadow:0 4px 20px rgba(200,241,53,0.3)}
 .save-btn:hover{transform:translateY(-2px);box-shadow:0 6px 25px rgba(200,241,53,0.4)}
 .save-ok{font-size:12px;color:#000;opacity:0;transition:opacity .3s;position:absolute;right:40px;pointer-events:none}
 
@@ -241,10 +241,10 @@ select.meta-input { appearance: none; }
 .settings-section{margin:0 20px 24px}
 .settings-label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:12px}
 .exercise-edit-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.exercise-edit-row input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none}
+.exercise-edit-row input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--text);font-family:'Poppins',sans-serif;outline:none}
 .exercise-edit-row input:focus{border-color:var(--border2)}
 .exercise-idx{font-size:11px;color:var(--text3);width:16px;text-align:center;flex-shrink:0}
-.settings-save{margin:0 20px;background:var(--accent);color:#000;border:none;border-radius:var(--radius-sm);padding:12px;width:calc(100% - 40px);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+.settings-save{margin:0 20px;background:var(--accent);color:#000;border:none;border-radius:var(--radius-sm);padding:12px;width:calc(100% - 40px);font-size:13px;font-weight:600;cursor:pointer;font-family:'Poppins',sans-serif}
 .logout-btn { background: transparent; border: 1px solid var(--red); color: var(--red); margin: 20px; padding: 12px; width: calc(100% - 40px); border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; }
 
 /* Section title */
