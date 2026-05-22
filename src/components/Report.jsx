@@ -181,6 +181,7 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
         }
       }));
     }
+    p = Math.round(p * 100) / 100;
     totalProtein += p;
     if(f.water) habitWater++;
     if(f.sleep) habitSleep++;
@@ -192,7 +193,7 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
         monthlyDataMap[monthKey] = { name: MONTHS[d.getMonth()].substring(0,3), date: `${MONTHS[d.getMonth()]} ${d.getFullYear()}`, Volume: 0, Protein: 0, Time: 0 };
       }
       monthlyDataMap[monthKey].Volume += vol;
-      monthlyDataMap[monthKey].Protein += p;
+      monthlyDataMap[monthKey].Protein = Math.round((monthlyDataMap[monthKey].Protein + p) * 100) / 100;
       monthlyDataMap[monthKey].Time += mins;
     } else {
       chartData.push({
@@ -485,7 +486,7 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
                   <div className="dash-glow blue" style={{opacity: 0.1}}></div>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                     <div><div className="dash-val" style={{fontSize: '18px', color: 'var(--blue)'}}>Protein Goal</div><div className="dash-label">Consumed Today</div></div>
-                    <div style={{textAlign:'right'}}><div className="dash-val" style={{fontSize:'24px', color:'var(--blue)'}}>{totalProtein}g <span style={{fontSize:'16px', color:'var(--text2)'}}>/ 100g</span></div></div>
+                    <div style={{textAlign:'right'}}><div className="dash-val" style={{fontSize:'24px', color:'var(--blue)'}}>{Math.round(totalProtein * 100) / 100}g <span style={{fontSize:'16px', color:'var(--text2)'}}>/ 100g</span></div></div>
                   </div>
                   <div style={{width: '100%', height: '8px', background: 'var(--border2)', borderRadius: '10px', overflow: 'hidden', marginTop: '16px'}}>
                     <div style={{width: `${Math.min(100, Math.round((totalProtein/100)*100))}%`, height: '100%', background: 'var(--blue)', transition: 'width 1s ease-out', borderRadius: '10px'}}></div>

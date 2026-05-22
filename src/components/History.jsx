@@ -80,8 +80,16 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
     let dayP = 0;
     const dietPlan = DEFAULT_DIET_PLAN[dow] || DEFAULT_DIET_PLAN[1];
     dietPlan.forEach(meal => meal.items.forEach(i => {
-      if(savedF.items && savedF.items[i.id]) dayP += i.p;
+      const valRaw = savedF.items && savedF.items[i.id];
+      let val = 0;
+      if (valRaw === true) val = 3;
+      else if (valRaw === false || valRaw === undefined) val = 0;
+      else val = Number(valRaw);
+      if (val > 0) {
+        dayP += (i.p * (val / 3));
+      }
     }));
+    dayP = Math.round(dayP * 100) / 100;
     
     const monthKey = `${yr}-${mo}`;
     if (!historyDataMap[monthKey]) {
@@ -144,12 +152,19 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
     const foodHtmlRows = [];
     const dietPlan = DEFAULT_DIET_PLAN[dow] || DEFAULT_DIET_PLAN[1];
     dietPlan.forEach(m => m.items.forEach(i => {
-      if(savedF.items && savedF.items[i.id]) {
-        dayP += i.p;
+      const valRaw = savedF.items && savedF.items[i.id];
+      let val = 0;
+      if (valRaw === true) val = 3;
+      else if (valRaw === false || valRaw === undefined) val = 0;
+      else val = Number(valRaw);
+      if (val > 0) {
+        const portionP = Math.round((i.p * (val / 3)) * 100) / 100;
+        dayP += portionP;
         const customName = (savedF.custom && savedF.custom[i.id]) ? savedF.custom[i.id] : i.name;
-        foodHtmlRows.push(<tr key={i.id}><td>{customName}</td><td style={{textAlign:'right',color:'var(--accent)'}}>{i.p}g</td></tr>);
+        foodHtmlRows.push(<tr key={i.id}><td>{customName}</td><td style={{textAlign:'right',color:'var(--accent)'}}>{portionP}g</td></tr>);
       }
     }));
+    dayP = Math.round(dayP * 100) / 100;
     const hasFood = dayP > 0 || savedF.water || savedF.sleep || savedF.junk;
 
     return (
