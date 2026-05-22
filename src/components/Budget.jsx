@@ -657,6 +657,42 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
             <span>🔵 **Financial Health: Healthy Coverage.** Your remaining cash covers your outstanding dues (₹{totalOutstandingDebt.toLocaleString()}). Settle them whenever you wish.</span>
           )}
         </div>
+
+        {/* Next Month Repayment Planner Card */}
+        {totalOutstandingDebt > 0 && (
+          <div style={{ 
+            marginTop: '16px', 
+            padding: '16px', 
+            background: 'rgba(255,255,255,0.02)', 
+            borderRadius: '16px', 
+            border: '1px solid rgba(255,255,255,0.06)' 
+          }}>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--red)', marginBottom: '10px', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', letterSpacing: '0.03em' }}>
+              <span>📅 Next Month Repayment Plan</span>
+              <span>₹{totalOutstandingDebt.toLocaleString()}</span>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {unpaidDebts.map(d => {
+                const unpaidAmt = d.amount - (d.paid || 0);
+                return (
+                  <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', background: 'rgba(0,0,0,0.15)', padding: '8px 12px', borderRadius: '10px' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--text)' }}>
+                        {d.type === 'loan' ? '🤝 Friend:' : '💳 Card:'} {d.provider}
+                      </div>
+                      {d.note && <div style={{ color: 'var(--text3)', fontSize: '10px', marginTop: '2px' }}>📝 {d.note}</div>}
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 800, color: 'var(--red)' }}>₹{unpaidAmt.toLocaleString()}</div>
+                      <div style={{ fontSize: '9px', color: 'var(--text3)' }}>Target: ₹{d.amount.toLocaleString()}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={{ padding: '0 20px', marginBottom: '24px' }}>
@@ -815,12 +851,19 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
                   </div>
                 </div>
                 <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--text3)', fontSize: '11px' }}>{day.items.filter(x => x.type === 'expense').length} Exp</span>
+                  <span style={{ color: 'var(--text3)', fontSize: '11px' }}>{day.items.filter(x => x.type === 'expense' || x.type === 'credit').length} Exp</span>
                   {day.totalIncome > 0 && <span style={{ color: 'var(--accent)', fontSize: '11px' }}>• {day.items.filter(x => x.type === 'income').length} Inc</span>}
+                  {day.items.some(x => x.type === 'loan') && <span style={{ color: 'var(--blue)', fontSize: '11px' }}>• {day.items.filter(x => x.type === 'loan').length} Loan</span>}
                   <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
                     {day.items.map((e, idx) => {
                       if (idx > 4) return null;
-                      const cat = e.type === 'income' ? { emoji: '💰' } : (CATEGORIES.find(c => c.id === e.category) || { emoji: '❓' });
+                      const cat = e.type === 'income' 
+                        ? { emoji: '💰' } 
+                        : e.type === 'loan'
+                          ? { emoji: '🤝' }
+                          : e.type === 'credit'
+                            ? { emoji: '💳' }
+                            : (CATEGORIES.find(c => c.id === e.category) || { emoji: '❓' });
                       return <span key={e.id} style={{ fontSize: '12px' }}>{cat.emoji}</span>;
                     })}
                     {day.items.length > 5 && <span style={{ fontSize: '10px', color: 'var(--text3)' }}>+</span>}
