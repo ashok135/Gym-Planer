@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Bot } from 'lucide-react';
 import Accordion from '../shared/Accordion';
 
 export default function AISettings({ syncAiSettings }) {
@@ -43,7 +44,7 @@ export default function AISettings({ syncAiSettings }) {
   };
 
   return (
-    <Accordion title="🤖 AI Coach Settings" subtitle="Configure your personal AI assistant">
+    <Accordion title={<span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Bot size={16} style={{ color: 'var(--accent)' }} /> AI Coach Settings</span>} subtitle="Configure your personal AI assistant">
       <div style={{ marginBottom: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <div style={{ fontSize: '13px', fontWeight: 600 }}>Enable AI Coach</div>

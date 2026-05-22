@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { DAYS_FULL } from '../../data';
-import { Plus, Trash2, ChevronDown, ChevronUp, Save, RotateCcw } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Save, RotateCcw, Pencil, Utensils } from 'lucide-react';
 
 // ---------- tiny helpers ----------
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -67,8 +67,8 @@ function FoodItemRow({ item, onUpdate, onRemove }) {
           )}
         </div>
         <button onClick={() => setEditing(true)}
-          style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: '13px', padding: '4px' }}>
-          ✏️
+          style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: '13px', padding: '4px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Pencil size={12} />
         </button>
         <button onClick={onRemove}
           style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: '4px' }}>
@@ -370,9 +370,9 @@ export default function DietPlanBuilder({ DIET_PLAN, syncDietPlan }) {
           fontSize: '22px', fontWeight: 900,
           background: 'linear-gradient(90deg, #C8F135, #4D9FFF)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          marginBottom: '4px'
+          marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px'
         }}>
-          🍽️ Diet Plan Builder
+          <Utensils size={20} style={{ color: 'var(--accent)' }} /> Diet Plan Builder
         </div>
         <div style={{ fontSize: '12px', color: 'var(--text3)' }}>
           Customise your meals for each day of the week

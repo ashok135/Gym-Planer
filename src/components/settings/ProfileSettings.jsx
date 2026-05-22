@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { User, Dumbbell, MapPin, Home, Users, Briefcase, GraduationCap, Zap, Rocket, Search, Settings } from 'lucide-react';
 import Accordion from '../shared/Accordion';
 
 const getJobSuggestions = (input) => {
@@ -85,7 +86,7 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
   }, [profileInfo]);
 
   return (
-    <Accordion title="👤 Profile &amp; Resume Details" subtitle="Set your name and professional background for Lucy">
+    <Accordion title={<span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><User size={16} style={{ color: 'var(--accent)' }} /> Profile &amp; Resume Details</span>} subtitle="Set your name and professional background for Lucy">
       <div style={{ marginBottom: '12px' }}>
         <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Your Name / Nickname</div>
         <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)} placeholder="e.g. Ashok"
@@ -102,7 +103,7 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
       </div>
 
       <div style={{ marginBottom: '12px' }}>
-        <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>🏋️ Fitness Goals, Diet, & Custom Life Notes</div>
+        <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}><Dumbbell size={14} style={{ color: 'var(--accent)' }} /> Fitness Goals, Diet, &amp; Custom Life Notes</div>
         <div style={{ fontSize: '10px', color: 'var(--text3)', marginBottom: '6px' }}>
           Add your weight goals, dietary preferences (vegetarian, protein intake, etc.), daily schedule, injuries, or personal context. Lucy will read this to give extremely personalized fitness and habit advice!
         </div>
@@ -117,7 +118,7 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
           {preferredLocations.map(loc => (
             <div key={loc}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', background: 'rgba(77, 159, 255, 0.1)', color: '#4D9FFF', border: '1px solid rgba(77, 159, 255, 0.3)', fontWeight: 700 }}>
-              <span>📍 {loc}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={12} /> {loc}</span>
               <span onClick={() => {
                 if (preferredLocations.length > 1) {
                   setPreferredLocations(preferredLocations.filter(l => l !== loc));
@@ -143,7 +144,7 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
                     style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text2)', cursor: 'pointer', borderBottom: '1px solid var(--border2)', background: 'transparent', transition: 'background 0.2s' }}
                     onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
                     onMouseLeave={e => e.target.style.background = 'transparent'}>
-                    📍 {item}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={12} /> {item}</span>
                   </div>
                 ))}
               </div>
@@ -166,9 +167,9 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
         <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Preferred Work Modes</div>
         <div style={{ display: 'flex', gap: '8px' }}>
           {[
-            { id: 'Remote', label: '🏠 Remote' },
-            { id: 'Hybrid', label: '🤝 Hybrid' },
-            { id: 'On-site', label: '🏢 On-site (Office)' }
+            { id: 'Remote', label: 'Remote', icon: <Home size={12} /> },
+            { id: 'Hybrid', label: 'Hybrid', icon: <Users size={12} /> },
+            { id: 'On-site', label: 'On-site (Office)', icon: <Briefcase size={12} /> }
           ].map(mode => {
             const isSelected = workTypes.includes(mode.id);
             return (
@@ -181,8 +182,8 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
                   setWorkTypes([...workTypes, mode.id]);
                 }
               }}
-                style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '12px', textAlign: 'center', cursor: 'pointer', background: isSelected ? 'var(--accent)' : 'var(--bg3)', color: isSelected ? '#000' : 'var(--text2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
-                {mode.label}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', fontSize: '12px', textAlign: 'center', cursor: 'pointer', background: isSelected ? 'var(--accent)' : 'var(--bg3)', color: isSelected ? '#000' : 'var(--text2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
+                {mode.icon} {mode.label}
               </div>
             );
           })}
@@ -194,15 +195,15 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
         <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Experience Level</div>
         <div style={{ display: 'flex', gap: '8px' }}>
           {[
-            { id: 'Fresher', label: '🎓 Fresher' },
-            { id: '1-2 Years', label: '⚡ 1 to 2 Years' },
-            { id: '3+ Years', label: '🚀 3+ Years' }
+            { id: 'Fresher', label: 'Fresher', icon: <GraduationCap size={12} /> },
+            { id: '1-2 Years', label: '1 to 2 Years', icon: <Zap size={12} /> },
+            { id: '3+ Years', label: '3+ Years', icon: <Rocket size={12} /> }
           ].map(level => {
             const isSelected = experienceLevel === level.id;
             return (
               <div key={level.id} onClick={() => setExperienceLevel(level.id)}
-                style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '12px', textAlign: 'center', cursor: 'pointer', background: isSelected ? 'var(--accent)' : 'var(--bg3)', color: isSelected ? '#000' : 'var(--text2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
-                {level.label}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', fontSize: '12px', textAlign: 'center', cursor: 'pointer', background: isSelected ? 'var(--accent)' : 'var(--bg3)', color: isSelected ? '#000' : 'var(--text2)', border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border2)'}`, fontWeight: 700, transition: 'all 0.2s' }}>
+                {level.icon} {level.label}
               </div>
             );
           })}
@@ -216,7 +217,7 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
           {targetRoles.map(role => (
             <div key={role}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', background: 'rgba(200, 241, 53, 0.1)', color: 'var(--accent)', border: '1px solid rgba(200, 241, 53, 0.3)', fontWeight: 700 }}>
-              <span>⚛️ {role}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Search size={12} style={{ color: 'var(--accent)' }} /> {role}</span>
               <span onClick={() => {
                 if (targetRoles.length > 1) {
                   setTargetRoles(targetRoles.filter(r => r !== role));
@@ -242,7 +243,7 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
                     style={{ padding: '8px 10px', fontSize: '11px', color: 'var(--text2)', cursor: 'pointer', borderBottom: '1px solid var(--border2)', background: 'transparent', transition: 'background 0.2s' }}
                     onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
                     onMouseLeave={e => e.target.style.background = 'transparent'}>
-                    🔍 {item}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Search size={12} /> {item}</span>
                   </div>
                 ))}
               </div>
@@ -262,7 +263,7 @@ export default function ProfileSettings({ profileInfo, syncProfileInfo }) {
 
       {/* ⚙️ Customizable Targets */}
       <div style={{ marginTop: '20px', borderTop: '1px solid var(--border2)', paddingTop: '16px', marginBottom: '16px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--accent)', marginBottom: '14px', letterSpacing: '0.02em' }}>⚙️ Customizable Fitness Targets</div>
+        <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--accent)', marginBottom: '14px', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '8px' }}><Settings size={14} style={{ color: 'var(--accent)' }} /> Customizable Fitness Targets</div>
         
         <div style={{ marginBottom: '14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>

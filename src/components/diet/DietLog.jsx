@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { DAYS_FULL, MONTHS, dateKey } from '../../data';
+import { Droplets, Moon, Ban, Pencil } from 'lucide-react';
 
 const SegmentBar = ({ val, onChange, color }) => {
   const activeColor = color || 'var(--accent)';
@@ -131,7 +132,7 @@ export default function DietLog({ FOOD, syncData, DB, NAMES, META, profileInfo, 
         <div className="habit-card" onClick={() => handleHabit('water', (getVal(saved.water) + 1) % 4)}
           style={{ cursor: 'pointer', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="habit-icon">💧</div>
+            <div className="habit-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Droplets size={18} color="var(--blue)" /></div>
             <div className="habit-label" style={{ margin: 0 }}>Water</div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
@@ -143,7 +144,7 @@ export default function DietLog({ FOOD, syncData, DB, NAMES, META, profileInfo, 
         <div className="habit-card" onClick={() => handleHabit('sleep', (getVal(saved.sleep) + 1) % 4)}
           style={{ cursor: 'pointer', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="habit-icon">😴</div>
+            <div className="habit-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Moon size={18} color="var(--accent)" /></div>
             <div className="habit-label" style={{ margin: 0 }}>Sleep</div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
@@ -155,7 +156,7 @@ export default function DietLog({ FOOD, syncData, DB, NAMES, META, profileInfo, 
         <div className="habit-card" onClick={() => handleHabit('junk', (getVal(saved.junk) + 1) % 4)}
           style={{ gridColumn: '1 / -1', flexDirection: 'row', justifyContent: 'space-between', padding: '16px', cursor: 'pointer' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="habit-icon">🚫</div>
+            <div className="habit-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ban size={18} color="var(--red)" /></div>
             <div style={{ textAlign: 'left' }}>
               <div className="habit-label" style={{ margin: 0 }}>No Junk & Reels</div>
               <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '4px', fontWeight: 600 }}>{JUNK_LABELS[getVal(saved.junk)]}</div>
@@ -190,7 +191,7 @@ export default function DietLog({ FOOD, syncData, DB, NAMES, META, profileInfo, 
                   </div>
                   <div className="food-name-wrap" style={{ marginLeft: '12px' }}>
                     <div className="food-name" style={{ opacity: val === 0 ? 0.6 : 1, transition: 'opacity 0.2s' }}>{customName}</div>
-                    <button className="rename-today-btn" onClick={(e) => { e.stopPropagation(); toggleRename(item.id, customName); }}>✏️</button>
+                    <button className="rename-today-btn" onClick={(e) => { e.stopPropagation(); toggleRename(item.id, customName); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Pencil size={11} /></button>
                   </div>
                   <div className="food-macros">{item.p > 0 ? Math.round(item.p * (val / 3)) + 'g P' : ''}</div>
                 </div>
