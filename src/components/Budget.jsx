@@ -396,14 +396,13 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
     return (
       <div className="modal-overlay open" onClick={(e) => { if(e.target.className.includes('modal-overlay')) setModalDay(null); }}>
         <div className="modal">
-          <div className="modal-handle"></div>
           <button className="modal-close" onClick={() => setModalDay(null)}>×</button>
           <div className="modal-title">{modalDay.dk === todayKey ? 'Today' : DAYS_SHORT[d.getDay()]}, {d.getDate()} {MONTHS[d.getMonth()]}</div>
           <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
             <div style={{ fontSize: '12px', color: 'var(--red)', fontWeight: 600 }}>Spent: ₹{modalDay.totalSpent.toLocaleString()}</div>
             {modalDay.totalIncome > 0 && <div style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600 }}>Income: ₹{modalDay.totalIncome.toLocaleString()}</div>}
           </div>
-          <div style={{ marginTop: '20px', maxHeight: '50vh', overflowY: 'auto', paddingRight: '4px', WebkitOverflowScrolling: 'touch' }}>
+          <div style={{ marginTop: '20px', maxHeight: '42vh', overflowY: 'auto', paddingRight: '4px', WebkitOverflowScrolling: 'touch' }}>
             {modalDay.items.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0)).map(e => {
               const isIncome = e.type === 'income';
               const isLoan = e.type === 'loan';
