@@ -100,6 +100,27 @@ export default function Settings({
     }));
   }, [workoutPlans]);
 
+  const getSplitDisplayName = (s) => {
+    const scheduledDays = [];
+    for (let d = 0; d < 7; d++) {
+      const currentSplit = localSchedule[d] !== undefined ? localSchedule[d] : (d === 4 ? 1 : d === 5 ? 2 : d);
+      if (currentSplit === s.id) {
+        scheduledDays.push(DAYS_SHORT[d]);
+      }
+    }
+    if (scheduledDays.length === 0) {
+      if (s.id === 0) return `${s.label} - Sun`;
+      if (s.id === 1) return `${s.label} - Mon`;
+      if (s.id === 2) return `${s.label} - Tue`;
+      if (s.id === 3) return `${s.label} - Wed`;
+      if (s.id === 4) return `${s.label} - Thu`;
+      if (s.id === 5) return `${s.label} - Fri`;
+      if (s.id === 6) return `${s.label} - Sat`;
+      return `${s.label} (ID: ${s.id})`;
+    }
+    return `${s.label} (${scheduledDays.join('/')})`;
+  };
+
   const exerciseSuggestions = useMemo(() => {
     if (!EXERCISE_GIFS) return [];
     return Object.keys(EXERCISE_GIFS).map(name => {
@@ -444,7 +465,7 @@ export default function Settings({
                 <div style={{ fontWeight: 500, color: 'var(--text)', width: '90px', fontSize: '13px' }}>{DAYS_FULL[dow]}</div>
                 <select style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', outline: 'none', fontSize: '13px' }}
                   value={currentSplit} onChange={e => setLocalSchedule(prev => ({ ...prev, [dow]: parseInt(e.target.value) }))}>
-                  {plansArray.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  {plansArray.map(s => <option key={s.id} value={s.id}>{getSplitDisplayName(s)}</option>)}
                 </select>
               </div>
             );
@@ -471,7 +492,7 @@ export default function Settings({
             <div style={{ fontSize: '12px', color: 'var(--text2)' }}>Select Workout Split to Customize</div>
             <select value={selectedSplitToEdit} onChange={e => setSelectedSplitToEdit(Number(e.target.value))}
               style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', outline: 'none', fontSize: '13px', fontWeight: 600 }}>
-              {plansArray.map(p => <option key={p.id} value={p.id}>{p.label} (Split ID: {p.id})</option>)}
+              {plansArray.map(p => <option key={p.id} value={p.id}>{getSplitDisplayName(p)}</option>)}
             </select>
           </div>
 
