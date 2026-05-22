@@ -26,7 +26,7 @@ export default function Settings({
       if (sched && sched[dow] !== undefined) {
         full[dow] = Number(sched[dow]);
       } else {
-        full[dow] = dow === 4 ? 1 : dow === 5 ? 2 : dow === 6 ? 3 : dow;
+        full[dow] = dow;
       }
     });
     return full;
@@ -101,24 +101,15 @@ export default function Settings({
   }, [workoutPlans]);
 
   const getSplitDisplayName = (s) => {
-    const scheduledDays = [];
-    for (let d = 0; d < 7; d++) {
-      const currentSplit = localSchedule[d] !== undefined ? localSchedule[d] : (d === 4 ? 1 : d === 5 ? 2 : d);
-      if (currentSplit === s.id) {
-        scheduledDays.push(DAYS_SHORT[d]);
-      }
-    }
-    if (scheduledDays.length === 0) {
-      if (s.id === 0) return `${s.label} - Sun`;
-      if (s.id === 1) return `${s.label} - Mon`;
-      if (s.id === 2) return `${s.label} - Tue`;
-      if (s.id === 3) return `${s.label} - Wed`;
-      if (s.id === 4) return `${s.label} - Thu`;
-      if (s.id === 5) return `${s.label} - Fri`;
-      if (s.id === 6) return `${s.label} - Sat`;
-      return `${s.label} (ID: ${s.id})`;
-    }
-    return `${s.label} (${scheduledDays.join('/')})`;
+    if (s.id === 0) return `${s.label} (Sunday)`;
+    if (s.id === 1) return `${s.label} (Monday)`;
+    if (s.id === 2) return `${s.label} (Tuesday)`;
+    if (s.id === 3) return `${s.label} (Wednesday)`;
+    if (s.id === 4) return `${s.label} (Thursday)`;
+    if (s.id === 5) return `${s.label} (Friday)`;
+    if (s.id === 6) return `${s.label} (Saturday)`;
+    if (s.id === 7) return `${s.label} (Full Body)`;
+    return `${s.label} (Split ID: ${s.id})`;
   };
 
   const exerciseSuggestions = useMemo(() => {
@@ -459,7 +450,7 @@ export default function Settings({
       <Accordion title="🗓️ Weekly Schedule Planner" subtitle="Customize your workout split per day" defaultOpen={true}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {[1,2,3,4,5,6,0].map(dow => {
-            const currentSplit = localSchedule[dow] !== undefined ? localSchedule[dow] : (dow === 4 ? 1 : dow === 5 ? 2 : dow);
+            const currentSplit = localSchedule[dow] !== undefined ? localSchedule[dow] : dow;
             return (
               <div key={dow} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                 <div style={{ fontWeight: 500, color: 'var(--text)', width: '90px', fontSize: '13px' }}>{DAYS_FULL[dow]}</div>
