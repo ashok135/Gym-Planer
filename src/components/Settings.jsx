@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { DEFAULT_PLAN, DAYS_FULL, DAYS_SHORT, DEFAULT_DIET_PLAN, MONTHS, dateKey, EXERCISE_GIFS } from '../data';
-import { Beaker } from 'lucide-react';
+import { Beaker, Calendar, Dumbbell, Utensils, Wallet, BookOpen, Database, Download } from 'lucide-react';
 import { generateSeedData } from '../utils/seeder';
 import Accordion from './shared/Accordion';
 import ProfileSettings from './settings/ProfileSettings';
@@ -484,7 +484,7 @@ export default function Settings({
       </div>
 
       {/* WORKOUT SCHEDULE */}
-      <Accordion title="🗓️ Weekly Schedule Planner" subtitle="Customize your workout split per day" defaultOpen={true}>
+      <Accordion title={<span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={16} style={{ color: 'var(--accent)' }} /> Weekly Schedule Planner</span>} subtitle="Customize your workout split per day" defaultOpen={true}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {[1,2,3,4,5,6,0].map(dow => {
             const currentSplit = localSchedule[dow] !== undefined ? localSchedule[dow] : dow;
@@ -514,7 +514,7 @@ export default function Settings({
       </Accordion>
 
       {/* 💪 CUSTOM WORKOUT SPLITS BUILDER */}
-      <Accordion title="💪 Workout Split Builder" subtitle="Add muscle groups, custom exercises, or delete routines">
+      <Accordion title={<span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Dumbbell size={16} style={{ color: 'var(--accent)' }} /> Workout Split Builder</span>} subtitle="Add muscle groups, custom exercises, or delete routines">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* CREATE NEW CUSTOM SPLIT FORM */}
           <div style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px dashed var(--border2)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -647,14 +647,14 @@ export default function Settings({
       </Accordion>
 
       {/* 🍽️ DIET PLAN BUILDER */}
-      <Accordion title="🍽️ Diet Plan Builder" subtitle="Configure daily meals, dishes, and protein values">
+      <Accordion title={<span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Utensils size={16} style={{ color: 'var(--accent)' }} /> Diet Plan Builder</span>} subtitle="Configure daily meals, dishes, and protein values">
         <div style={{ margin: '-10px -16px -16px' }}>
           <DietPlanBuilder DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} />
         </div>
       </Accordion>
 
-      {/* BUDGET */}
-      <Accordion title="💰 Budget Defaults" subtitle="Set monthly income and expense categories">
+      {/* 💰 BUDGET DEFAULTS */}
+      <Accordion title={<span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Wallet size={16} style={{ color: 'var(--accent)' }} /> Budget Defaults</span>} subtitle="Set monthly income and expense categories">
         <div style={{ marginBottom: '12px' }}>
           <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>Monthly Income (₹)</div>
           <input type="number" value={localIncome} onChange={e => setLocalIncome(e.target.value)}
@@ -691,8 +691,8 @@ export default function Settings({
         </div>
       </Accordion>
 
-      {/* STUDY */}
-      <Accordion title="📚 Study Defaults" subtitle="Daily target & subjects">
+      {/* 📚 STUDY DEFAULTS */}
+      <Accordion title={<span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><BookOpen size={16} style={{ color: 'var(--accent)' }} /> Study Defaults</span>} subtitle="Daily target & subjects">
         <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>Daily Target (hours)</div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
           {[2, 3, 4, 5, 6, 8].map(h => (
@@ -738,17 +738,17 @@ export default function Settings({
       <AISettings syncAiSettings={syncAiSettings} />
 
       {/* DATA & EXPORT */}
-      <Accordion title="📦 Data &amp; Export" subtitle="Backup and export your data">
+      <Accordion title={<span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Database size={16} style={{ color: 'var(--accent)' }} /> Data &amp; Export</span>} subtitle="Backup and export your data">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <button className="settings-save"
             style={{ background: 'var(--accent)', color: '#000', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             onClick={() => setShowExportModal(true)}>
-            📊 Export CSV
+            <Download size={14} /> Export CSV
           </button>
           <button className="settings-save"
             style={{ background: 'var(--bg3)', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             onClick={exportData}>
-            💾 Full Backup
+            <Database size={14} /> Full Backup
           </button>
         </div>
         <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '10px', lineHeight: 1.5 }}>
@@ -759,7 +759,7 @@ export default function Settings({
 
 
       {/* DEVELOPER OPTIONS */}
-      <Accordion title="🧪 Developer Options" subtitle="Tools for testing and debugging">
+      <Accordion title={<span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Beaker size={16} style={{ color: 'var(--accent)' }} /> Developer Options</span>} subtitle="Tools for testing and debugging">
         <div style={{ marginBottom: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div style={{ fontSize: '13px', fontWeight: 600 }}>Developer Mode</div>

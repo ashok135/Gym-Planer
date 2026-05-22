@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol, DAYS_SHORT, MONTHS } from '../data';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Dumbbell, Wallet, GraduationCap, TrendingUp, Trophy } from 'lucide-react';
 import History from './History';
 import Budget from './Budget';
 import Study from './Study';
@@ -265,11 +265,14 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
         <div style={{display:'flex', gap:'10px', marginBottom:'24px'}}>
           {['gym', 'budget', 'study'].map(id => (
             <div key={id} onClick={() => setActiveSection(id)}
-              style={{ flex:1, textAlign:'center', padding:'12px 4px', borderRadius:'14px', cursor:'pointer', fontSize:'13px', fontWeight: activeSection === id ? 700 : 400,
+              style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', padding:'12px 4px', borderRadius:'14px', cursor:'pointer', fontSize:'13px', fontWeight: activeSection === id ? 700 : 400,
                 background: activeSection === id ? 'var(--accent)' : 'var(--bg3)',
                 color: activeSection === id ? '#000' : 'var(--text2)',
                 border: '1px solid var(--border2)', transition:'all 0.2s' }}>
-              {id === 'gym' ? '🏋️ Gym & Diet' : id === 'budget' ? '💰 Budget' : '🎓 PrepHub'}
+              {id === 'gym' && <Dumbbell size={14} />}
+              {id === 'budget' && <Wallet size={14} />}
+              {id === 'study' && <GraduationCap size={14} />}
+              {id === 'gym' ? 'Gym & Diet' : id === 'budget' ? 'Budget' : 'PrepHub'}
             </div>
           ))}
         </div>
@@ -564,7 +567,7 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
             return (
               <div style={{marginTop: '40px'}}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-                  <div className="dash-val" style={{fontSize: '18px'}}>💪 Lift Progression Analytics</div>
+                  <div className="dash-val" style={{fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px'}}><TrendingUp size={18} style={{ color: 'var(--accent)' }} /> Lift Progression Analytics</div>
                   <select value={currentSelectedInList} onChange={e => setSelectedProgressionExercise(e.target.value)}
                     style={{ padding: '8px 12px', borderRadius: '10px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', outline: 'none', fontSize: '13px', maxWidth: '240px', fontWeight: 600 }}>
                     {loggedExercisesList.map(ex => <option key={ex} value={ex}>{ex}</option>)}
@@ -577,8 +580,8 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
                   {(() => {
                     if (progressionData.length < 2) {
                       return (
-                        <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: '13px', padding: '36px 0', border: '1px dashed var(--border2)', borderRadius: '16px', marginTop: '16px' }}>
-                          🏋️ Log this exercise on at least 2 different days to generate progression curves!
+                        <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: '13px', padding: '36px 0', border: '1px dashed var(--border2)', borderRadius: '16px', marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                          <Dumbbell size={14} /> Log this exercise on at least 2 different days to generate progression curves!
                         </div>
                       );
                     }
@@ -646,7 +649,7 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
           })()}
 
           <div style={{marginTop: '40px'}}>
-            <div className="dash-val" style={{fontSize: '18px', marginBottom: '16px'}}>🏆 Hall of Fame</div>
+            <div className="dash-val" style={{fontSize: '18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}><Trophy size={18} style={{ color: 'var(--orange)' }} /> Hall of Fame</div>
             <div className="dash-card full" style={{background: 'linear-gradient(145deg, var(--bg3), var(--bg2))', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden', display:'block'}}>
               <div className="dash-glow accent" style={{opacity: 0.15}}></div>
               <div className="dash-label" style={{marginBottom: '16px'}}>Top 3 All-Time Heaviest Lifts</div>

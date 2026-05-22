@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Pencil, Video } from 'lucide-react';
 
 export default function ExerciseCard({
   ex,
@@ -37,11 +37,11 @@ export default function ExerciseCard({
           <div className="exercise-name" style={{ textDecoration: isDone === false ? 'line-through' : 'none', color: isDone === true ? 'var(--accent)' : 'var(--text)', flex: 1 }}>{ex}</div>
           
           <button className="rename-today-btn" onClick={() => setActiveDemo(activeDemo === ek ? null : ek)} style={{ cursor: 'pointer', marginRight: '6px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', background: activeDemo === ek ? 'rgba(200,241,53,0.1)' : 'transparent', color: activeDemo === ek ? 'var(--accent)' : 'var(--text3)', border: activeDemo === ek ? '1px solid var(--accent)' : 'none', padding: '4px 8px', borderRadius: '6px', transition: 'all 0.2s' }}>
-            🎬 {activeDemo === ek ? 'Hide' : 'Demo'}
+            <Video size={13} /> {activeDemo === ek ? 'Hide' : 'Demo'}
           </button>
           
           {showRenameBtn && (
-            <button className="rename-today-btn" onClick={() => !isSkipped && toggleRename(ek, ex)} disabled={isSkipped} style={{ cursor: isSkipped ? 'not-allowed' : 'pointer' }}>✏️</button>
+            <button className="rename-today-btn" onClick={() => !isSkipped && toggleRename(ek, ex)} disabled={isSkipped} style={{ cursor: isSkipped ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}><Pencil size={13} /></button>
           )}
         </div>
       </div>
