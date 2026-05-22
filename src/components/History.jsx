@@ -160,7 +160,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
           <div className="modal-title">{DAYS_FULL[dow]}, {formatFull(d)}</div>
           <div className="modal-sub">{plan.label}{hasAbs ? ' & Abs' : ''}{hasProgressive ? ' & Progressive' : ''} · {vol ? vol.toLocaleString()+' kg total' : 'No volume logged'}</div>
           
-          <div style={{ maxHeight: '42vh', overflowY: 'auto', paddingRight: '4px', marginTop: '12px', WebkitOverflowScrolling: 'touch' }}>
+          <div style={{ flex: '1 1 auto', maxHeight: '60vh', overflowY: 'auto', paddingRight: '4px', marginTop: '12px', WebkitOverflowScrolling: 'touch' }}>
             {(meta.notes || meta.bw || meta.start) && (
               <div style={{background:'var(--bg3)',padding:'12px',borderRadius:'8px',marginBottom:'16px',fontSize:'12px',color:'var(--text2)'}}>
                 {meta.start && <div>⏱️ Time: {meta.start} - {meta.end||'?'}</div>}
