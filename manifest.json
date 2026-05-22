@@ -2,7 +2,7 @@
   "name": "LifeTraker",
   "short_name": "LifeTraker",
   "description": "Personal life and workout tracker with cloud sync",
-  "start_url": "./index.html",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#c8f135",
