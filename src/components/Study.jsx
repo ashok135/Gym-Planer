@@ -552,8 +552,8 @@ Return the output strictly in the following JSON format:
       {/* Brand Title */}
       <div style={{ padding: '0 20px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ fontSize: '24px', fontWeight: 900, background: 'linear-gradient(90deg, #C8F135, #34D399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            🎓 PrepHub
+          <div style={{ fontSize: '24px', fontWeight: 400, background: 'linear-gradient(90deg, #C8F135, #34D399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <BookOpen size={22} style={{ color: 'var(--accent)' }} /> PrepHub
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Your ultimate learning & career accelerator</div>
         </div>

@@ -19,7 +19,7 @@ export default function Diet({ FOOD, syncData, DB, NAMES, META, profileInfo, DIE
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          fontSize: '24px', fontWeight: 900,
+          fontSize: '24px', fontWeight: 400,
           background: 'linear-gradient(90deg, #C8F135, #FB923C)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           marginBottom: '2px'

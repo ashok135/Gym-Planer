@@ -77,7 +77,7 @@ input, textarea, select { user-select: auto; -webkit-user-select: auto; }
   margin-bottom:24px;
 }
 .header-left .greeting{font-size:12px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
-.header-left .title{font-size:24px;font-weight:600;color:var(--text)}
+.header-left .title{font-size:24px;font-weight:400;color:var(--text)}
 .header-right .date-chip{background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--text2);font-family:'DM Mono',monospace}
 
 /* Bottom nav */

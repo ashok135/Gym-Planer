@@ -367,7 +367,7 @@ export default function DietPlanBuilder({ DIET_PLAN, syncDietPlan }) {
       {/* Header */}
       <div style={{ marginBottom: '20px' }}>
         <div style={{
-          fontSize: '22px', fontWeight: 900,
+          fontSize: '22px', fontWeight: 400,
           background: 'linear-gradient(90deg, #C8F135, #4D9FFF)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px'
