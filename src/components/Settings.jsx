@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DEFAULT_PLAN, DAYS_FULL, DEFAULT_DIET_PLAN, MONTHS, dateKey, EXERCISE_GIFS } from '../data';
+import { DEFAULT_PLAN, DAYS_FULL, DAYS_SHORT, DEFAULT_DIET_PLAN, MONTHS, dateKey, EXERCISE_GIFS } from '../data';
 import { Beaker } from 'lucide-react';
 import { generateSeedData } from '../utils/seeder';
 import Accordion from './shared/Accordion';
