@@ -155,84 +155,85 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
     return (
       <div className="modal-overlay open" onClick={(e) => { if(e.target.className.includes('modal-overlay')) setModalDk(null); }}>
         <div className="modal" style={{position:'relative'}}>
-          <div className="modal-handle"></div>
           <button className="modal-close" onClick={() => setModalDk(null)}>×</button>
           
           <div className="modal-title">{DAYS_FULL[dow]}, {formatFull(d)}</div>
           <div className="modal-sub">{plan.label}{hasAbs ? ' & Abs' : ''}{hasProgressive ? ' & Progressive' : ''} · {vol ? vol.toLocaleString()+' kg total' : 'No volume logged'}</div>
           
-          {(meta.notes || meta.bw || meta.start) && (
-            <div style={{background:'var(--bg3)',padding:'12px',borderRadius:'8px',marginBottom:'16px',fontSize:'12px',color:'var(--text2)'}}>
-              {meta.start && <div>⏱️ Time: {meta.start} - {meta.end||'?'}</div>}
-              {meta.bw && <div>⚖️ Bodyweight: {meta.bw} kg</div>}
-              {meta.energy > 0 && <div>⚡ Energy: {meta.energy}/5</div>}
-              {meta.notes && <div style={{marginTop:'6px',color:'var(--text)'}}>"{meta.notes}"</div>}
-            </div>
-          )}
+          <div style={{ maxHeight: '42vh', overflowY: 'auto', paddingRight: '4px', marginTop: '12px', WebkitOverflowScrolling: 'touch' }}>
+            {(meta.notes || meta.bw || meta.start) && (
+              <div style={{background:'var(--bg3)',padding:'12px',borderRadius:'8px',marginBottom:'16px',fontSize:'12px',color:'var(--text2)'}}>
+                {meta.start && <div>⏱️ Time: {meta.start} - {meta.end||'?'}</div>}
+                {meta.bw && <div>⚖️ Bodyweight: {meta.bw} kg</div>}
+                {meta.energy > 0 && <div>⚡ Energy: {meta.energy}/5</div>}
+                {meta.notes && <div style={{marginTop:'6px',color:'var(--text)'}}>"{meta.notes}"</div>}
+              </div>
+            )}
 
-          {!Object.keys(entry).length && !hasFood ? (
-            <div style={{color:'var(--text2)',fontSize:'13px',textAlign:'center',padding:'20px 0'}}>No data logged for this day.</div>
-          ) : (
-            <>
-              {plan.muscles.map(m => {
-                const rows = m.exercises.map((ex, i) => {
-                  const ek = `${m._prefix || ''}${m.name}_${i}`;
-                  const sv = entry[ek] || {};
-                  const isDone = sv.done;
-                  const hasVol = sv.s && sv.r && sv.w;
-                  if(!hasVol && isDone === undefined) return null;
-                  
-                  const v = hasVol ? Math.round(sv.s * sv.r * sv.w) : '—';
-                  const nameStr = NAMES[`${currentPlanId}_${m.name}_${i}`] || ex;
-                  const isTimeBased = nameStr.toLowerCase().includes('plank') || nameStr.toLowerCase().includes('hold') || nameStr.toLowerCase().includes('cardio');
-                  
+            {!Object.keys(entry).length && !hasFood ? (
+              <div style={{color:'var(--text2)',fontSize:'13px',textAlign:'center',padding:'20px 0'}}>No data logged for this day.</div>
+            ) : (
+              <>
+                {plan.muscles.map(m => {
+                  const rows = m.exercises.map((ex, i) => {
+                    const ek = `${m._prefix || ''}${m.name}_${i}`;
+                    const sv = entry[ek] || {};
+                    const isDone = sv.done;
+                    const hasVol = sv.s && sv.r && sv.w;
+                    if(!hasVol && isDone === undefined) return null;
+                    
+                    const v = hasVol ? Math.round(sv.s * sv.r * sv.w) : '—';
+                    const nameStr = NAMES[`${currentPlanId}_${m.name}_${i}`] || ex;
+                    const isTimeBased = nameStr.toLowerCase().includes('plank') || nameStr.toLowerCase().includes('hold') || nameStr.toLowerCase().includes('cardio');
+                    
+                    return (
+                      <tr key={ek}>
+                        <td>
+                          <div style={{display:'flex', alignItems:'center', gap:'6px'}}>
+                            {isDone === true ? <CheckCircle2 size={14} color="var(--accent)" /> : (isDone === false ? <XCircle size={14} color="var(--red)" /> : null)}
+                            <span style={{textDecoration: isDone === false ? 'line-through' : 'none', color: isDone === false ? 'var(--text3)' : 'var(--text)'}}>{nameStr}</span>
+                          </div>
+                        </td>
+                        <td>{sv.s || '—'}</td><td>{sv.r ? (sv.r + (isTimeBased ? 's' : '')) : '—'}</td><td>{sv.w || '—'}</td>
+                        <td style={{color:'var(--accent)'}}>{v !== '—' ? v+'kg' : '—'}</td>
+                      </tr>
+                    );
+                  }).filter(Boolean);
+
+                  if(!rows.length) return null;
                   return (
-                    <tr key={ek}>
-                      <td>
-                        <div style={{display:'flex', alignItems:'center', gap:'6px'}}>
-                          {isDone === true ? <CheckCircle2 size={14} color="var(--accent)" /> : (isDone === false ? <XCircle size={14} color="var(--red)" /> : null)}
-                          <span style={{textDecoration: isDone === false ? 'line-through' : 'none', color: isDone === false ? 'var(--text3)' : 'var(--text)'}}>{nameStr}</span>
-                        </div>
-                      </td>
-                      <td>{sv.s || '—'}</td><td>{sv.r ? (sv.r + (isTimeBased ? 's' : '')) : '—'}</td><td>{sv.w || '—'}</td>
-                      <td style={{color:'var(--accent)'}}>{v !== '—' ? v+'kg' : '—'}</td>
-                    </tr>
+                    <div key={m.name}>
+                      <div className="mini-section">{m.name}</div>
+                      <table className="mini-table">
+                        <thead><tr><th>Exercise</th><th>Sets</th><th>Reps/Secs</th><th>Kg/Lvl</th><th>Vol</th></tr></thead>
+                        <tbody>{rows}</tbody>
+                      </table>
+                    </div>
                   );
-                }).filter(Boolean);
+                })}
 
-                if(!rows.length) return null;
-                return (
-                  <div key={m.name}>
-                    <div className="mini-section">{m.name}</div>
-                    <table className="mini-table">
-                      <thead><tr><th>Exercise</th><th>Sets</th><th>Reps/Secs</th><th>Kg/Lvl</th><th>Vol</th></tr></thead>
-                      <tbody>{rows}</tbody>
-                    </table>
-                  </div>
-                );
-              })}
-
-              {hasFood && (
-                <>
-                  <div className="mini-section" style={{color:'var(--blue)',marginTop:'20px'}}>Diet & Habits</div>
-                  {foodHtmlRows.length > 0 && (
-                    <table className="mini-table">
-                      <thead><tr><th>Food Logged</th><th style={{textAlign:'right'}}>Protein</th></tr></thead>
-                      <tbody>
-                        {foodHtmlRows}
-                        <tr><td style={{fontWeight:'bold',color:'var(--text)'}}>Total</td><td style={{textAlign:'right',fontWeight:'bold',color:'var(--accent)'}}>{dayP}g</td></tr>
-                      </tbody>
-                    </table>
-                  )}
-                  <div style={{display:'flex',gap:'8px',marginBottom:'16px',flexWrap:'wrap'}}>
-                    {savedF.water && <div style={{display:'flex', alignItems:'center', gap:'4px', background:'rgba(77,159,255,0.1)', color:'var(--blue)', padding:'4px 8px', borderRadius:'8px', fontSize:'11px'}}><CheckCircle2 size={12}/> 3-4L Water</div>}
-                    {savedF.sleep && <div style={{display:'flex', alignItems:'center', gap:'4px', background:'rgba(200,241,53,0.1)', color:'var(--accent)', padding:'4px 8px', borderRadius:'8px', fontSize:'11px'}}><CheckCircle2 size={12}/> 7-8h Sleep</div>}
-                    {savedF.junk && <div style={{display:'flex', alignItems:'center', gap:'4px', background:'rgba(255,77,77,0.1)', color:'var(--red)', padding:'4px 8px', borderRadius:'8px', fontSize:'11px'}}><CheckCircle2 size={12}/> No Junk</div>}
-                  </div>
-                </>
-              )}
-            </>
-          )}
+                {hasFood && (
+                  <>
+                    <div className="mini-section" style={{color:'var(--blue)',marginTop:'20px'}}>Diet & Habits</div>
+                    {foodHtmlRows.length > 0 && (
+                      <table className="mini-table">
+                        <thead><tr><th>Food Logged</th><th style={{textAlign:'right'}}>Protein</th></tr></thead>
+                        <tbody>
+                          {foodHtmlRows}
+                          <tr><td style={{fontWeight:'bold',color:'var(--text)'}}>Total</td><td style={{textAlign:'right',fontWeight:'bold',color:'var(--accent)'}}>{dayP}g</td></tr>
+                        </tbody>
+                      </table>
+                    )}
+                    <div style={{display:'flex',gap:'8px',marginBottom:'16px',flexWrap:'wrap'}}>
+                      {savedF.water && <div style={{display:'flex', alignItems:'center', gap:'4px', background:'rgba(77,159,255,0.1)', color:'var(--blue)', padding:'4px 8px', borderRadius:'8px', fontSize:'11px'}}><CheckCircle2 size={12}/> 3-4L Water</div>}
+                      {savedF.sleep && <div style={{display:'flex', alignItems:'center', gap:'4px', background:'rgba(200,241,53,0.1)', color:'var(--accent)', padding:'4px 8px', borderRadius:'8px', fontSize:'11px'}}><CheckCircle2 size={12}/> 7-8h Sleep</div>}
+                      {savedF.junk && <div style={{display:'flex', alignItems:'center', gap:'4px', background:'rgba(255,77,77,0.1)', color:'var(--red)', padding:'4px 8px', borderRadius:'8px', fontSize:'11px'}}><CheckCircle2 size={12}/> No Junk</div>}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     );
