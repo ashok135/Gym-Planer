@@ -10,6 +10,7 @@ import Settings from './components/Settings';
 import Budget from './components/Budget';
 import Study from './components/Study';
 import AIChat from './components/AIChat';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { DEFAULT_PLAN, DEFAULT_DIET_PLAN } from './data';
 import './index.css';
 
@@ -443,6 +444,7 @@ export default function App() {
       </div>
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} showNav={showNav} />
       {aiEnabled && <AIChat DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} syncAiSettings={syncAiSettings} profileInfo={profileInfo} workoutPlans={workoutPlans} />}
+      <PWAInstallPrompt />
     </div>
   );
 }
