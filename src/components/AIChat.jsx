@@ -243,7 +243,6 @@ const CopyButton = ({ text, isUser }) => {
     </button>
   );
 };
-
 export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHEDULE, syncAiSettings, profileInfo = { name: '', resume: '' } }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -251,6 +250,25 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleGlobalScroll = (e) => {
+      const target = e.target;
+      if (target && target.scrollTop !== undefined) {
+        if (target.scrollTop > 30) {
+          setIsScrolled(true);
+        } else {
+          setIsScrolled(false);
+        }
+      }
+    };
+    window.addEventListener('scroll', handleGlobalScroll, true);
+    return () => {
+      window.removeEventListener('scroll', handleGlobalScroll, true);
+    };
+  }, []);
+
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(GEMINI_KEY_STORAGE) || '');
   const [openrouterKey, setOpenrouterKey] = useState(() => localStorage.getItem('openrouter_api_key') || '');
   const [provider, setProvider] = useState(() => localStorage.getItem('ai_provider') || 'gemini');
@@ -738,31 +756,151 @@ Guidelines for Lucy:
     <>
       {/* Floating Button */}
       {!open && (
-        <button onClick={() => setOpen(true)}
-          style={{ 
-            position: 'fixed', 
-            bottom: 'calc(95px + env(safe-area-inset-bottom))', 
-            right: '24px', 
-            height: '46px', 
-            borderRadius: '23px', 
-            padding: '0 16px',
-            background: 'var(--bg2)', 
-            border: '1px solid var(--border2)', 
-            cursor: 'pointer', 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.4)', 
-            zIndex: 999, 
-            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-            color: 'var(--text)'
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.transform = 'none'; }}
-        >
-          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 8px var(--accent)' }}></div>
-          <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text2)' }}>TALK TO LUCY</span>
-        </button>
+        <div style={{
+          position: 'fixed',
+          bottom: 'calc(95px + env(safe-area-inset-bottom))',
+          right: '24px',
+          zIndex: 999,
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          {/* Speech Bubble (only shown when not scrolled) */}
+          <div 
+            className="lucy-speech-bubble"
+            style={{
+              position: 'absolute',
+              bottom: '10px',
+              right: '74px',
+              background: 'rgba(15, 23, 42, 0.95)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid var(--border2)',
+              borderRadius: '16px 16px 4px 16px',
+              padding: '8px 14px',
+              color: 'var(--text)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              whiteSpace: 'nowrap',
+              zIndex: 998,
+              pointerEvents: 'none',
+              transformOrigin: 'bottom right',
+              opacity: isScrolled ? 0 : 1,
+              transform: isScrolled ? 'scale(0.8) translateY(12px)' : 'scale(1) translateY(0)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
+          >
+            <div style={{ fontSize: '10px', color: 'var(--accent)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>AI Coach Lucy</div>
+            <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              Hey {profileInfo?.name || 'Athlete'}! Let's crush it! 👋
+            </div>
+          </div>
+
+          {/* Round Waving Girl Button */}
+          <button onClick={() => setOpen(true)}
+            style={{ 
+              width: '60px', 
+              height: '60px', 
+              borderRadius: '50%', 
+              background: 'linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%)', 
+              border: '2px solid var(--accent)', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              boxShadow: '0 8px 32px rgba(200, 241, 53, 0.25), 0 0 15px rgba(200, 241, 53, 0.15)', 
+              zIndex: 999, 
+              transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+              color: 'var(--text)',
+              outline: 'none',
+              padding: 0,
+              overflow: 'visible',
+              position: 'relative'
+            }}
+            className="lucy-floating-trigger"
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08) rotate(2deg)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1) rotate(0deg)'; }}
+          >
+            {/* The Girl Avatar (Clipped inside circle) */}
+            <div style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              position: 'relative',
+              background: 'radial-gradient(circle, rgba(200,241,53,0.15) 0%, rgba(18,18,20,0.9) 100%)'
+            }}>
+              {/* Lucy SVG Face Vector */}
+              <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', display: 'block' }}>
+                {/* Hair (Back) */}
+                <path d="M 30 70 C 20 50, 20 30, 50 25 C 80 30, 80 50, 70 70" fill="#2d1500" />
+                
+                {/* Neck */}
+                <rect x="44" y="60" width="12" height="15" fill="#ffd3b6" rx="4" />
+                <path d="M 44 68 Q 50 72 56 68" fill="#e0b295" />
+                
+                {/* Face */}
+                <circle cx="50" cy="45" r="22" fill="#ffd3b6" />
+                
+                {/* Hair Ponytail / Bun */}
+                <circle cx="72" cy="30" r="14" fill="#2d1500" />
+                <path d="M 72 30 Q 84 45 76 56 Q 70 48 72 30" fill="#2d1500" />
+                
+                {/* Sporty Headband */}
+                <path d="M 32 36 Q 50 30 68 36" stroke="var(--accent)" strokeWidth="6" strokeLinecap="round" fill="none" />
+                
+                {/* Cute minimalist eyes */}
+                <circle cx="43" cy="44" r="2.5" fill="#1e293b" />
+                <circle cx="57" cy="44" r="2.5" fill="#1e293b" />
+                
+                {/* Happy smiling mouth */}
+                <path d="M 45 52 Q 50 57 55 52" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                
+                {/* Blushing cheeks */}
+                <circle cx="37" cy="48" r="3" fill="#f43f5e" opacity="0.3" />
+                <circle cx="63" cy="48" r="3" fill="#f43f5e" opacity="0.3" />
+                
+                {/* Sporty Collar / Shirt */}
+                <path d="M 33 75 Q 50 84 67 75" stroke="var(--accent)" strokeWidth="8" strokeLinecap="round" fill="none" />
+                <path d="M 36 78 L 50 94 L 64 78 Z" fill="#1e293b" />
+                
+                {/* Neon Sporty Over-Ear Headphone Arch */}
+                <path d="M 28 45 C 28 20, 72 20, 72 45" stroke="#4d9fff" strokeWidth="3" fill="none" strokeDasharray="1 3" />
+                {/* Earcups */}
+                <rect x="25" y="38" width="6" height="14" fill="#4d9fff" rx="3" />
+                <rect x="69" y="38" width="6" height="14" fill="#4d9fff" rx="3" />
+              </svg>
+            </div>
+
+            {/* Waving Hand coming out of the button */}
+            <div 
+              className="lucy-waving-hand"
+              style={{
+                position: 'absolute',
+                bottom: '-2px',
+                right: '-6px',
+                fontSize: '24px',
+                zIndex: 10,
+                userSelect: 'none',
+                filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.3))'
+              }}
+            >
+              👋
+            </div>
+            
+            {/* Glowing Online Ring Indicator */}
+            <div style={{
+              position: 'absolute',
+              top: '0px',
+              left: '0px',
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              background: 'var(--accent)',
+              border: '2px solid var(--bg2)',
+              boxShadow: '0 0 8px var(--accent)',
+              zIndex: 11
+            }} />
+          </button>
+        </div>
       )}
 
       {/* Blur Backdrop Glassmorphism Overlay when AI Chat is Open */}
