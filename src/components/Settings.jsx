@@ -334,15 +334,67 @@ export default function Settings({
   };
 
   const exportData = () => {
-    const data = { workouts: DB, names: localNames, meta: META, food: FOOD };
+    const moodEnergyConfig = localStorage.getItem('gmood_energy_config');
+    const data = {
+      workouts: DB,
+      names: localNames,
+      meta: META,
+      food: FOOD,
+      schedule: SCHEDULE,
+      budget: BUDGET,
+      budgetSettings: BUDGET_SETTINGS,
+      study: STUDY,
+      studySettings: STUDY_SETTINGS,
+      profileInfo: profileInfo,
+      workoutPlans: workoutPlans,
+      dietPlan: DIET_PLAN,
+      moodEnergyConfig: moodEnergyConfig ? JSON.parse(moodEnergyConfig) : null
+    };
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'LifeTraker_Backup.json';
+    a.download = `LifeTraker_FullBackup_${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const importData = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (!data || typeof data !== 'object') {
+          alert('Invalid backup file structure!');
+          return;
+        }
+
+        // Apply backup keys if they exist
+        if (data.workouts) syncData(data.workouts, data.names || localNames, data.meta || {}, data.food || {}, data.schedule || SCHEDULE);
+        if (data.budget) syncBudget(data.budget);
+        if (data.budgetSettings) localStorage.setItem('gym_budget_settings', JSON.stringify(data.budgetSettings));
+        if (data.study) syncStudy(data.study);
+        if (data.studySettings) localStorage.setItem('gym_study_settings', JSON.stringify(data.studySettings));
+        if (data.profileInfo) syncProfileInfo(data.profileInfo);
+        if (data.workoutPlans) syncWorkoutPlans(data.workoutPlans);
+        if (data.dietPlan) syncDietPlan(data.dietPlan);
+        
+        if (data.moodEnergyConfig) {
+          localStorage.setItem('gmood_energy_config', JSON.stringify(data.moodEnergyConfig));
+          window.dispatchEvent(new Event('moodEnergyConfigUpdated'));
+        }
+
+        alert('🎉 Backup successfully restored! All your workouts, budgets, custom setups, and gallery photos are now fully active.');
+        window.location.reload();
+      } catch (err) {
+        alert('Failed to parse backup file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
   };
 
   const exportCSV = () => {
@@ -752,8 +804,33 @@ export default function Settings({
             <Database size={14} /> Full Backup
           </button>
         </div>
-        <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '10px', lineHeight: 1.5 }}>
-          CSV exports your gym, diet, budget and study data. Full Backup saves everything as a JSON file.
+        <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '8px', lineHeight: 1.5 }}>
+          CSV exports your gym, diet, budget and study data. Full Backup saves all customization, history, and custom slider photos as a JSON file.
+        </div>
+
+        {/* RESTORE FROM BACKUP */}
+        <div style={{ marginTop: '14px', borderTop: '1px solid var(--border2)', paddingTop: '14px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px', fontWeight: 600 }}>Restore from Backup</div>
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '12px',
+            background: 'var(--bg2)',
+            border: '1.5px dashed var(--border2)',
+            borderRadius: '12px',
+            color: 'var(--text)',
+            fontSize: '13px',
+            cursor: 'pointer',
+            textAlign: 'center',
+            transition: 'all 0.2s',
+            boxSizing: 'border-box'
+          }} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border2)'}>
+            <Database size={14} color="var(--accent)" />
+            <span>Select Backup JSON File</span>
+            <input type="file" accept=".json" onChange={importData} style={{ display: 'none' }} />
+          </label>
         </div>
       </Accordion>
 

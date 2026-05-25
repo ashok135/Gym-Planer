@@ -20,6 +20,18 @@ function getStageIdx(value) {
   return 4;
 }
 
+function hexToRgb(hex) {
+  if (!hex) return '200,241,53';
+  if (hex === 'var(--accent)') return '200,241,53';
+  if (hex.startsWith('#')) hex = hex.slice(1);
+  if (hex.length === 3) {
+    hex = hex.split('').map(c => c + c).join('');
+  }
+  const num = parseInt(hex, 16);
+  if (isNaN(num)) return '200,241,53';
+  return `${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}`;
+}
+
 /* ─── The animated image display — ONE image at a time, fades on stage change ─── */
 function StageDisplay({ value, stages, anims, filters }) {
   const idx = getStageIdx(value);
@@ -201,8 +213,45 @@ export default function SessionMeta({ meta, isSkipped, handleMetaChange }) {
     ? Math.round((rawEnergy / 5) * 100)
     : (typeof rawEnergy === 'number' ? rawEnergy : 50);
 
+  const activeMoodStage = moodStages[getStageIdx(moodVal)];
+  const activeEnergyStage = energyStages[getStageIdx(energyVal)];
+
+  const moodColor = activeMoodStage?.color || 'var(--accent)';
+  const energyColor = activeEnergyStage?.color || 'var(--accent)';
+
   return (
-    <div className="session-meta">
+    <div 
+      className="session-meta"
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        border: `1.5px solid ${isSkipped ? 'var(--border)' : moodColor}`,
+        boxShadow: isSkipped ? 'none' : `0 8px 32px rgba(0, 0, 0, 0.4), 0 0 16px rgba(${hexToRgb(moodColor)}, 0.08)`,
+        background: 'rgba(20, 20, 20, 0.65)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: '24px',
+        padding: '20px',
+        transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+      }}
+    >
+      {/* Dynamic ambient energy glow */}
+      {!isSkipped && (
+        <div 
+          style={{
+            position: 'absolute',
+            top: '-40px',
+            right: '-40px',
+            width: '100px',
+            height: '100px',
+            borderRadius: '50%',
+            background: energyColor,
+            filter: 'blur(45px)',
+            opacity: 0.15,
+            pointerEvents: 'none',
+            transition: 'all 0.5s ease'
+          }}
+        />
+      )}
       {/* Standard meta grid */}
       <div className="meta-grid">
         <div className="meta-group">

@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle, Dumbbell, Wallet, GraduationCap, TrendingUp, Tro
 import History from './History';
 import Budget from './Budget';
 import Study from './Study';
+import { loadMoodEnergyConfig, DEFAULT_MOOD_STAGES, DEFAULT_ENERGY_STAGES } from './settings/MoodEnergySettings';
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
@@ -236,6 +237,51 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
     }
   }
 
+  // Mood & Energy Analytics Correlation Data Prep
+  const moodEnergyConfig = loadMoodEnergyConfig();
+  const energyStages = moodEnergyConfig?.energy || DEFAULT_ENERGY_STAGES;
+
+  const stageStats = [1, 2, 3, 4, 5].map(lvl => ({
+    level: `${lvl}/5`,
+    label: energyStages[lvl - 1]?.label || `Lvl ${lvl}`,
+    avgVolume: 0,
+    count: 0,
+    totalVol: 0
+  }));
+
+  for(let i = daysToLookBack - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const k = dateKey(d);
+    const day = DB[k] || {};
+    const meta = META[k] || {};
+    const vol = getDayVol(day);
+
+    if (vol > 0 && meta.energy !== undefined && meta.status !== 'Skipped') {
+      let val = meta.energy;
+      if (typeof val === 'number' && val <= 5) {
+        // Already on 1-5 scale
+      } else {
+        // Map 0-100 to 1-5
+        if (val <= 20) val = 1;
+        else if (val <= 40) val = 2;
+        else if (val <= 60) val = 3;
+        else if (val <= 80) val = 4;
+        else val = 5;
+      }
+      const lvlIdx = Math.max(1, Math.min(5, Math.round(val))) - 1;
+      stageStats[lvlIdx].totalVol += vol;
+      stageStats[lvlIdx].count += 1;
+    }
+  }
+
+  const correlationData = stageStats.map(stat => ({
+    level: stat.level,
+    'Avg Volume': stat.count > 0 ? Math.round(stat.totalVol / stat.count) : 0,
+    count: stat.count,
+    name: stat.level,
+    date: stat.label
+  }));
+
   const muscleData = Object.entries(muscleCounts).map(([name, value]) => ({ 
     name, 
     value, 
@@ -466,6 +512,18 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
                       <Tooltip content={<CustomTooltip />} />
                       <Area type="monotone" dataKey="Protein" stroke="var(--blue)" strokeWidth={3} fillOpacity={1} fill="url(#colorProtein)" />
                     </AreaChart>
+                  </div>
+                </div>
+                <div className="dash-card full" style={{background: 'var(--bg3)', padding: '10px', display: 'block'}}>
+                  <div className="dash-val" style={{fontSize: '18px', color: 'var(--accent)'}}>Energy vs. Performance</div>
+                  <div className="dash-label">Correlation: Average Workout Volume (kg) by Energy Level</div>
+                  <div style={{width: '100%', height: '180px', marginTop: '20px'}}>
+                    <BarChart width={chartWidth} height={180} data={correlationData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                      <XAxis dataKey="level" tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                      <YAxis tick={{fontSize: 10, fill: 'var(--text2)'}} axisLine={false} tickLine={false} />
+                      <Tooltip content={<CustomTooltip />} cursor={{fill: 'var(--border2)', opacity: 0.2}} />
+                      <Bar dataKey="Avg Volume" fill="var(--accent)" radius={[8, 8, 8, 8]} maxBarSize={30} />
+                    </BarChart>
                   </div>
                 </div>
 
