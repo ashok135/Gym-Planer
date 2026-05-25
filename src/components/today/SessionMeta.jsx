@@ -137,7 +137,7 @@ function MemeSlider({ id, value, onChange, disabled, stages, anims, filters, bot
         fontWeight: 400,
         lineHeight: 1.4,
       }}>
-        {stage.label}
+        {stage.label} <span style={{ opacity: 0.8, fontSize: '10px', fontWeight: 300 }}>({idx + 1}/5)</span>
       </div>
 
       {/* Slider track */}

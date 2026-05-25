@@ -223,7 +223,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                         style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${stage.color}` }}
                         onError={e => { e.target.style.display = 'none'; }}
                       />
-                      <span style={{ color: stage.color }}>{stage.label}</span>
+                      <span style={{ color: stage.color }}>{stage.label} <span style={{ color: 'var(--text3)', fontSize: '11px', fontWeight: 300 }}>({getStageIdx(meta.mood) + 1}/5)</span></span>
                     </div>
                   );
                 })()}
@@ -238,7 +238,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                         style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${stage.color}` }}
                         onError={e => { e.target.style.display = 'none'; }}
                       />
-                      <span style={{ color: stage.color }}>{stage.label}</span>
+                      <span style={{ color: stage.color }}>{stage.label} <span style={{ color: 'var(--text3)', fontSize: '11px', fontWeight: 300 }}>({getStageIdx(meta.energy) + 1}/5)</span></span>
                     </div>
                   );
                 })()}
@@ -374,27 +374,31 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                   )}
                   {day.meta.mood !== undefined && (() => {
                     const stage = getMoodStage(day.meta.mood, moodEnergyConfig);
+                    const lvl = getStageIdx(day.meta.mood) + 1;
                     return (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle' }} title={stage.label}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle', gap: '3px' }} title={`${stage.label} (${lvl}/5)`}>
                         <img 
                           src={stage.img} 
                           alt="" 
                           style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${stage.color}`, display: 'block' }}
                           onError={e => { e.target.style.display = 'none'; }}
                         />
+                        <span style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 400 }}>{lvl}/5</span>
                       </span>
                     );
                   })()}
                   {day.meta.energy !== undefined && (() => {
                     const stage = getEnergyStage(day.meta.energy, moodEnergyConfig);
+                    const lvl = getStageIdx(day.meta.energy) + 1;
                     return (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '4px', verticalAlign: 'middle' }} title={stage.label}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle', gap: '3px' }} title={`${stage.label} (${lvl}/5)`}>
                         <img 
                           src={stage.img} 
                           alt="" 
                           style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${stage.color}`, display: 'block' }}
                           onError={e => { e.target.style.display = 'none'; }}
                         />
+                        <span style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 400 }}>{lvl}/5</span>
                       </span>
                     );
                   })()}
