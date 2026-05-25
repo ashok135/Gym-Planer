@@ -256,7 +256,11 @@ export default function SessionMeta({ meta, isSkipped, handleMetaChange }) {
       <div className="meta-grid">
         <div className="meta-group">
           <div className="meta-label">Status</div>
-          <select className="meta-input" value={meta.status || 'Completed'} onChange={e => handleMetaChange('status', e.target.value)}>
+          <select className="meta-input" value={meta.status || 'Completed'} onChange={e => {
+            const val = e.target.value;
+            handleMetaChange('status', val);
+            window.dispatchEvent(new CustomEvent('workoutStatusChanged', { detail: val }));
+          }}>
             <option value="Completed">Completed</option>
             <option value="Partial">Partial</option>
             <option value="Skipped">Skipped</option>

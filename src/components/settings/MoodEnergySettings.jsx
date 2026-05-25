@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { RotateCcw, Upload, Check, Smile, Zap } from 'lucide-react';
+import { loadStatusResponses, saveStatusResponses, DEFAULT_STATUS_RESPONSES } from './StatusResponseSettings';
 
 /* ─── Defaults (fallback if user hasn't customised) ─── */
 export const DEFAULT_MOOD_STAGES = [
@@ -198,6 +199,10 @@ export default function MoodEnergySettings() {
     return cfg?.energy || DEFAULT_ENERGY_STAGES;
   });
 
+  const [statusResponses, setStatusResponses] = useState(() => {
+    return loadStatusResponses();
+  });
+
   const handleMoodChange = (idx, updated) => {
     setMoodStages(prev => prev.map((s, i) => i === idx ? updated : s));
   };
@@ -208,17 +213,22 @@ export default function MoodEnergySettings() {
 
   const handleSave = () => {
     saveMoodEnergyConfig({ mood: moodStages, energy: energyStages });
+    saveStatusResponses(statusResponses);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     // Notify SessionMeta to re-read
     window.dispatchEvent(new Event('moodEnergyConfigUpdated'));
+    window.dispatchEvent(new Event('statusResponsesUpdated'));
   };
 
   const handleResetAll = () => {
     setMoodStages(DEFAULT_MOOD_STAGES);
     setEnergyStages(DEFAULT_ENERGY_STAGES);
+    setStatusResponses(DEFAULT_STATUS_RESPONSES);
     saveMoodEnergyConfig({ mood: DEFAULT_MOOD_STAGES, energy: DEFAULT_ENERGY_STAGES });
+    saveStatusResponses(DEFAULT_STATUS_RESPONSES);
     window.dispatchEvent(new Event('moodEnergyConfigUpdated'));
+    window.dispatchEvent(new Event('statusResponsesUpdated'));
   };
 
   const labelStyle = {
@@ -264,6 +274,103 @@ export default function MoodEnergySettings() {
           defaultImg={DEFAULT_ENERGY_STAGES[i].img}
         />
       ))}
+
+      {/* WORKOUT STATUS RESPONSES section */}
+      <div style={{ ...labelStyle, marginTop: '18px' }}>
+        <Smile size={14} color="var(--accent)" />
+        Status Motivational Lucy Responses
+      </div>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '10px', 
+        background: 'var(--bg)', 
+        border: '1px solid var(--border)', 
+        borderRadius: '12px', 
+        padding: '14px', 
+        marginBottom: '14px' 
+      }}>
+        {/* Completed */}
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: 600, color: '#10B981', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+            Completed Response (Motivate / Tamil)
+          </div>
+          <textarea
+            value={statusResponses.Completed}
+            onChange={e => setStatusResponses(prev => ({ ...prev, Completed: e.target.value }))}
+            style={{
+              width: '100%',
+              height: '46px',
+              background: 'var(--bg3)',
+              border: '1px solid var(--border2)',
+              color: 'var(--text)',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              fontSize: '11px',
+              outline: 'none',
+              fontFamily: 'inherit',
+              resize: 'none',
+              boxSizing: 'border-box'
+            }}
+            onFocus={e => e.target.style.borderColor = '#10B981'}
+            onBlur={e => e.target.style.borderColor = 'var(--border2)'}
+          />
+        </div>
+
+        {/* Partial */}
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+            Partial Response (Motivate / Tamil)
+          </div>
+          <textarea
+            value={statusResponses.Partial}
+            onChange={e => setStatusResponses(prev => ({ ...prev, Partial: e.target.value }))}
+            style={{
+              width: '100%',
+              height: '46px',
+              background: 'var(--bg3)',
+              border: '1px solid var(--border2)',
+              color: 'var(--text)',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              fontSize: '11px',
+              outline: 'none',
+              fontFamily: 'inherit',
+              resize: 'none',
+              boxSizing: 'border-box'
+            }}
+            onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+            onBlur={e => e.target.style.borderColor = 'var(--border2)'}
+          />
+        </div>
+
+        {/* Skipped */}
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+            Skipped Response (Tamil / Ashamed)
+          </div>
+          <textarea
+            value={statusResponses.Skipped}
+            onChange={e => setStatusResponses(prev => ({ ...prev, Skipped: e.target.value }))}
+            style={{
+              width: '100%',
+              height: '46px',
+              background: 'var(--bg3)',
+              border: '1px solid var(--border2)',
+              color: 'var(--text)',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              fontSize: '11px',
+              outline: 'none',
+              fontFamily: 'inherit',
+              resize: 'none',
+              boxSizing: 'border-box'
+            }}
+            onFocus={e => e.target.style.borderColor = 'var(--red)'}
+            onBlur={e => e.target.style.borderColor = 'var(--border2)'}
+          />
+        </div>
+      </div>
 
       {/* Action buttons */}
       <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>

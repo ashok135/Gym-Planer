@@ -243,15 +243,6 @@ const CopyButton = ({ text, isUser }) => {
     </button>
   );
 };
-const MOTIVATIONAL_QUESTIONS = [
-  "Hey {NAME}! Ready to crush today's fitness goals? 💪 Let's get moving!",
-  "Hey {NAME}! Did you track your meals yet? Let's hit that protein target! 🍗",
-  "Quick water check! 💧 Have we had at least 3 glasses today?",
-  "Ready to level up your study streak today? What topic are we doing? 📚",
-  "Hey {NAME}! How's our energy level feeling today? Let's check! ⚡",
-  "Are we logging a workout session today or is it a rest day? 🏋️‍♀️",
-  "Hey champion! Did you get at least 7-8 hours of sleep last night? 😴"
-];
 
 export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHEDULE, syncAiSettings, profileInfo = { name: '', resume: '' } }) {
   const [open, setOpen] = useState(false);
@@ -260,33 +251,6 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState("Hey there! Ready to crush today's goals? 💪");
-
-  useEffect(() => {
-    const name = profileInfo?.name || 'Athlete';
-    const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUESTIONS.length);
-    const selected = MOTIVATIONAL_QUESTIONS[randomIndex].replace('{NAME}', name);
-    setCurrentQuestion(selected);
-  }, [profileInfo]);
-
-  useEffect(() => {
-    const handleGlobalScroll = (e) => {
-      const target = e.target;
-      if (target && target.scrollTop !== undefined) {
-        if (target.scrollTop > 30) {
-          setIsScrolled(true);
-        } else {
-          setIsScrolled(false);
-        }
-      }
-    };
-    window.addEventListener('scroll', handleGlobalScroll, true);
-    return () => {
-      window.removeEventListener('scroll', handleGlobalScroll, true);
-    };
-  }, []);
-
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(GEMINI_KEY_STORAGE) || '');
   const [openrouterKey, setOpenrouterKey] = useState(() => localStorage.getItem('openrouter_api_key') || '');
   const [provider, setProvider] = useState(() => localStorage.getItem('ai_provider') || 'gemini');
@@ -774,124 +738,31 @@ Guidelines for Lucy:
     <>
       {/* Floating Button */}
       {!open && (
-        <div style={{
-          position: 'fixed',
-          bottom: 'calc(95px + env(safe-area-inset-bottom))',
-          right: '24px',
-          zIndex: 999,
-          display: 'flex',
-          alignItems: 'center'
-        }}>
-          {/* Speech Bubble (only shown when not scrolled) */}
-          <div 
-            className="lucy-speech-bubble"
-            style={{
-              position: 'absolute',
-              bottom: '10px',
-              right: '74px',
-              background: 'rgba(15, 23, 42, 0.95)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid var(--border2)',
-              borderRadius: '16px 16px 4px 16px',
-              padding: '8px 14px',
-              color: 'var(--text)',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-              whiteSpace: 'nowrap',
-              zIndex: 998,
-              pointerEvents: 'none',
-              transformOrigin: 'bottom right',
-              opacity: isScrolled ? 0 : 1,
-              transform: isScrolled ? 'scale(0.8) translateY(12px)' : 'scale(1) translateY(0)',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
-          >
-            <div style={{ fontSize: '10px', color: 'var(--accent)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>AI Coach Lucy</div>
-            <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              {currentQuestion}
-            </div>
-          </div>
-
-          {/* Round Waving Girl Button */}
-          <button onClick={() => setOpen(true)}
-            style={{ 
-              width: '60px', 
-              height: '60px', 
-              borderRadius: '50%', 
-              background: 'linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%)', 
-              border: '2px solid var(--accent)', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              boxShadow: '0 8px 32px rgba(200, 241, 53, 0.25), 0 0 15px rgba(200, 241, 53, 0.15)', 
-              zIndex: 999, 
-              transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-              color: 'var(--text)',
-              outline: 'none',
-              padding: 0,
-              overflow: 'visible',
-              position: 'relative'
-            }}
-            className="lucy-floating-trigger"
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08) rotate(2deg)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1) rotate(0deg)'; }}
-          >
-            {/* The Girl Avatar (Clipped inside circle with 3D Pop-Out Entrance Animation!) */}
-            <div 
-              className="lucy-avatar-pop-out"
-              style={{
-                width: '100%',
-                height: '100%',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                position: 'relative',
-                border: '1px solid rgba(255,255,255,0.1)'
-              }}
-            >
-              <img 
-                src="/lucy.png" 
-                alt="Lucy AI Coach" 
-                style={{ 
-                  width: '100%', 
-                  height: '100%', 
-                  objectFit: 'cover',
-                  display: 'block'
-                }} 
-              />
-            </div>
-
-            {/* Waving Hand coming out of the button with entrance slide! */}
-            <div 
-              className="lucy-waving-hand lucy-hand-pop-out"
-              style={{
-                position: 'absolute',
-                bottom: '-2px',
-                right: '-6px',
-                fontSize: '24px',
-                zIndex: 10,
-                userSelect: 'none',
-                filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.3))'
-              }}
-            >
-              👋
-            </div>
-            
-            {/* Glowing Online Ring Indicator */}
-            <div style={{
-              position: 'absolute',
-              top: '0px',
-              left: '0px',
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              background: 'var(--accent)',
-              border: '2px solid var(--bg2)',
-              boxShadow: '0 0 8px var(--accent)',
-              zIndex: 11
-            }} />
-          </button>
-        </div>
+        <button onClick={() => setOpen(true)}
+          style={{ 
+            position: 'fixed', 
+            bottom: 'calc(95px + env(safe-area-inset-bottom))', 
+            right: '24px', 
+            height: '46px', 
+            borderRadius: '23px', 
+            padding: '0 16px',
+            background: 'var(--bg2)', 
+            border: '1px solid var(--border2)', 
+            cursor: 'pointer', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.4)', 
+            zIndex: 999, 
+            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            color: 'var(--text)'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.transform = 'none'; }}
+        >
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 8px var(--accent)' }}></div>
+          <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text2)' }}>TALK TO LUCY</span>
+        </button>
       )}
 
       {/* Blur Backdrop Glassmorphism Overlay when AI Chat is Open */}
@@ -937,9 +808,7 @@ Guidelines for Lucy:
           {/* Chat Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'linear-gradient(135deg, rgba(200,241,53,0.05), rgba(77,159,255,0.05))', borderRadius: '20px 20px 0 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }}>
-                <img src="/lucy.png" alt="Lucy Coach" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
+              <Bot size={20} color="var(--accent)" />
               <div>
                 <div style={{ fontWeight: 800, fontSize: '14px', letterSpacing: '0.02em' }}>Lucy · AI Coach</div>
                 <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{provider === 'gemini' ? 'Gemini AI' : 'OpenRouter AI'}</div>
