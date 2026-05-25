@@ -345,16 +345,33 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                 border: (day.isRestDay && !day.hasData) ? '1px solid rgba(255,255,255,0.06)' : undefined
               }}
             >
-              <div className="hday-top" style={{ marginBottom: '10px' }}>
-                <div className="hday-date" style={{ fontSize: '16px', fontWeight: 800 }}>
-                  {day.isToday ? 'Today — ' : ''}{DAYS_SHORT[day.dow]}, {day.d} {MONTHS[month.mo].slice(0,3)}
+              <div className="hday-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                <div className="hday-date" style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  flexWrap: 'wrap', 
+                  gap: '6px', 
+                  fontSize: '16px', 
+                  fontWeight: 800,
+                  flex: 1,
+                  minWidth: '200px'
+                }}>
+                  <span style={{ whiteSpace: 'nowrap' }}>
+                    {day.isToday ? 'Today — ' : ''}{DAYS_SHORT[day.dow]}, {day.d} {MONTHS[month.mo].slice(0,3)}
+                  </span>
                   {/* Rest Day badge */}
                   {day.isRestDay ? (
                     <span className="hday-status" style={{
-                      fontSize: '11px', marginLeft: '8px',
+                      fontSize: '11px',
                       color: '#A78BFA',
                       background: 'rgba(167, 139, 250, 0.12)',
-                      border: '1px solid rgba(167, 139, 250, 0.25)'
+                      border: '1px solid rgba(167, 139, 250, 0.25)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      height: '18px',
+                      padding: '0 8px',
+                      borderRadius: '99px',
+                      fontWeight: 400
                     }}>
                       😴 Rest Day
                     </span>
@@ -363,16 +380,15 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                       {day.meta.status && (
                         <span className="hday-status" style={{ 
                           fontSize: '11px', 
-                          marginLeft: '8px', 
                           color: day.meta.status === 'Skipped' ? 'var(--red)' : 'var(--accent)',
                           background: day.meta.status === 'Skipped' ? 'rgba(255, 77, 77, 0.1)' : 'rgba(200, 241, 53, 0.1)',
                           border: day.meta.status === 'Skipped' ? '1px solid rgba(255, 77, 77, 0.2)' : '1px solid rgba(200, 241, 53, 0.2)',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          verticalAlign: 'middle',
                           height: '18px',
                           padding: '0 8px',
-                          borderRadius: '99px'
+                          borderRadius: '99px',
+                          fontWeight: 400
                         }}>
                           {day.meta.status}
                         </span>
@@ -382,7 +398,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                         const stage = getMoodStage(moodVal, moodEnergyConfig);
                         const lvl = day.meta.status === 'Skipped' ? 1 : getStageIdx(moodVal) + 1;
                         return (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle', gap: '3px' }} title={`${stage.label} (${lvl}/5)`}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontWeight: 400 }} title={`${stage.label} (${lvl}/5)`}>
                             <img 
                               src={stage.img} 
                               alt="" 
@@ -398,7 +414,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                         const stage = getEnergyStage(energyVal, moodEnergyConfig);
                         const lvl = day.meta.status === 'Skipped' ? 1 : getStageIdx(energyVal) + 1;
                         return (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle', gap: '3px' }} title={`${stage.label} (${lvl}/5)`}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontWeight: 400 }} title={`${stage.label} (${lvl}/5)`}>
                             <img 
                               src={stage.img} 
                               alt="" 
@@ -412,7 +428,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                     </>
                   )}
                 </div>
-                <div style={{textAlign:'right'}}>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   {day.vol > 0 && <div className="hday-vol" style={{ fontSize: '18px', fontWeight: 900 }}>{day.vol.toLocaleString()} <span style={{fontSize:'12px', fontWeight: 400}}>kg</span></div>}
                   {day.dayP > 0 && <div className="hday-vol" style={{color:'var(--text)', fontSize:'13px', fontWeight: 700, marginTop:'4px'}}>{day.dayP}g <span style={{fontSize:'10px', fontWeight: 400}}>Protein</span></div>}
                 </div>
