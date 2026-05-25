@@ -490,9 +490,9 @@ export default function Settings({
           {[1,2,3,4,5,6,0].map(dow => {
             const currentSplit = localSchedule[dow] !== undefined ? localSchedule[dow] : dow;
             return (
-              <div key={dow} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                <div style={{ fontWeight: 500, color: 'var(--text)', width: '90px', fontSize: '13px' }}>{DAYS_FULL[dow]}</div>
-                <select style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', outline: 'none', fontSize: '13px' }}
+              <div key={dow} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ fontWeight: 400, color: 'var(--text2)', minWidth: '80px', flexShrink: 0, fontSize: '13px' }}>{DAYS_FULL[dow]}</div>
+                <select style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: '8px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', outline: 'none', fontSize: '12px', fontWeight: 400 }}
                   value={currentSplit} onChange={e => setLocalSchedule(prev => ({ ...prev, [dow]: parseInt(e.target.value) }))}>
                   {plansArray.map(s => <option key={s.id} value={s.id}>{getSplitDisplayName(s)}</option>)}
                 </select>
@@ -507,7 +507,7 @@ export default function Settings({
             color: schedMsg ? '#fff' : '#000',
             boxShadow: schedMsg ? '0 4px 15px rgba(16, 185, 129, 0.3)' : 'none',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            fontWeight: 'bold'
+            fontWeight: 400,
           }}>
             {schedMsg ? 'Saved ✓' : 'Save Schedule'}
           </button>
