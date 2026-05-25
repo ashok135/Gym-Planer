@@ -11,7 +11,7 @@ import Budget from './components/Budget';
 import Study from './components/Study';
 import AIChat from './components/AIChat';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
-import { DEFAULT_PLAN, DEFAULT_DIET_PLAN } from './data';
+import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, THEMES } from './data';
 import './index.css';
 
 const DEFAULT_BUDGET_SETTINGS = { income: 22400, currency: '₹' };
@@ -46,6 +46,21 @@ const sanitizeForFirestore = (val) => {
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTheme, setActiveTheme] = useState(() => {
+    return localStorage.getItem('gm_active_theme') || 'cyber-lime';
+  });
+
+  useEffect(() => {
+    const applyTheme = (themeId) => {
+      const t = THEMES.find(item => item.id === themeId) || THEMES[0];
+      const root = document.documentElement;
+      Object.keys(t.colors).forEach(key => {
+        root.style.setProperty(`--${key}`, t.colors[key]);
+      });
+    };
+    applyTheme(activeTheme);
+    localStorage.setItem('gm_active_theme', activeTheme);
+  }, [activeTheme]);
   const [showNav, setShowNav] = useState(true);
   const lastScrollY = React.useRef(0);
   
@@ -453,7 +468,7 @@ export default function App() {
         {activeTab === 'budget'   && <Budget   BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} />}
         {activeTab === 'study'    && <Study    STUDY={STUDY} syncStudy={syncStudy} STUDY_SETTINGS={STUDY_SETTINGS} profileInfo={profileInfo} />}
         {activeTab === 'report'   && <Report   DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} BUDGET={BUDGET} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY={STUDY} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} workoutPlans={workoutPlans} DIET_PLAN={DIET_PLAN} />}
-        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} syncAiSettings={syncAiSettings} profileInfo={profileInfo} syncProfileInfo={syncProfileInfo} workoutPlans={workoutPlans} syncWorkoutPlans={syncWorkoutPlans} DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} user={user} />}
+        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} syncAiSettings={syncAiSettings} profileInfo={profileInfo} syncProfileInfo={syncProfileInfo} workoutPlans={workoutPlans} syncWorkoutPlans={syncWorkoutPlans} DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} user={user} activeTheme={activeTheme} setActiveTheme={setActiveTheme} />}
       </div>
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} showNav={showNav} />
       {aiEnabled && <AIChat DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} syncAiSettings={syncAiSettings} profileInfo={profileInfo} workoutPlans={workoutPlans} />}

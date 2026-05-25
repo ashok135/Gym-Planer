@@ -147,3 +147,90 @@ export const EXERCISE_GIFS = {
   'weighted pull-ups': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Pull-up.gif',
   'barbell row': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Bent-Over-Row.gif'
 };
+
+export const THEMES = [
+  {
+    id: 'cyber-lime',
+    name: 'Cyber Lime',
+    colors: {
+      accent: '#c8f135',
+      accent2: '#a8d020',
+      bg: '#070708',
+      bg2: '#121214',
+      bg3: '#1a1a1e',
+      bg4: '#242429',
+      border: '#26262b',
+      border2: '#32323a'
+    }
+  },
+  {
+    id: 'neon-crimson',
+    name: 'Neon Crimson',
+    colors: {
+      accent: '#ff4d4d',
+      accent2: '#dd2e2e',
+      bg: '#0a0505',
+      bg2: '#170c0c',
+      bg3: '#241414',
+      bg4: '#321c1c',
+      border: '#2b1414',
+      border2: '#3c1c1c'
+    }
+  },
+  {
+    id: 'ocean-breeze',
+    name: 'Ocean Breeze',
+    colors: {
+      accent: '#4d9fff',
+      accent2: '#2d7fdf',
+      bg: '#05090e',
+      bg2: '#0c1420',
+      bg3: '#141f30',
+      bg4: '#1d2b40',
+      border: '#172335',
+      border2: '#22354f'
+    }
+  },
+  {
+    id: 'sunset-gold',
+    name: 'Sunset Gold',
+    colors: {
+      accent: '#ff9533',
+      accent2: '#df7c1a',
+      bg: '#0a0705',
+      bg2: '#17110c',
+      bg3: '#241a14',
+      bg4: '#32251c',
+      border: '#2c1e14',
+      border2: '#3d2b1c'
+    }
+  },
+  {
+    id: 'amethyst-dream',
+    name: 'Amethyst Dream',
+    colors: {
+      accent: '#a78bfa',
+      accent2: '#8b5cf6',
+      bg: '#08050a',
+      bg2: '#130c17',
+      bg3: '#1e1424',
+      bg4: '#2a1c32',
+      border: '#23142c',
+      border2: '#321c3d'
+    }
+  },
+  {
+    id: 'stealth-mono',
+    name: 'Stealth Mono',
+    colors: {
+      accent: '#ffffff',
+      accent2: '#cccccc',
+      bg: '#050505',
+      bg2: '#101010',
+      bg3: '#181818',
+      bg4: '#222222',
+      border: '#202020',
+      border2: '#2e2e2e'
+    }
+  }
+];

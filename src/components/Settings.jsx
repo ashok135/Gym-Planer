@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DEFAULT_PLAN, DAYS_FULL, DAYS_SHORT, DEFAULT_DIET_PLAN, MONTHS, dateKey, EXERCISE_GIFS } from '../data';
+import { DEFAULT_PLAN, DAYS_FULL, DAYS_SHORT, DEFAULT_DIET_PLAN, MONTHS, dateKey, EXERCISE_GIFS, THEMES } from '../data';
 import { Beaker, Calendar, Dumbbell, Utensils, Wallet, BookOpen, Database, Download, Smile, Zap } from 'lucide-react';
 import { generateSeedData } from '../utils/seeder';
 import Accordion from './shared/Accordion';
@@ -13,7 +13,8 @@ export default function Settings({
   NAMES, syncData, DB, META, FOOD, handleLogout, SCHEDULE, 
   BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, 
   BUDGET, STUDY, syncAiSettings, profileInfo, syncProfileInfo,
-  workoutPlans, syncWorkoutPlans, DIET_PLAN, syncDietPlan, user
+  workoutPlans, syncWorkoutPlans, DIET_PLAN, syncDietPlan, user,
+  activeTheme, setActiveTheme
 }) {
   const [localNames, setLocalNames] = useState(NAMES);
   const [saveMsg, setSaveMsg] = useState(false);
@@ -894,6 +895,66 @@ export default function Settings({
             </button>
           </>
         )}
+      </Accordion>
+
+      {/* ─── APP THEMES ACCORDION ─── */}
+      <Accordion title={
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Zap size={16} color="var(--accent)" />
+          <span>Custom App Themes</span>
+        </span>
+      }>
+        <div style={{ padding: '4px 0' }}>
+          <p style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '14px', lineHeight: 1.4 }}>
+            Personalize your workspace experience with premium custom accent themes.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px' }}>
+            {THEMES.map(theme => {
+              const isActive = activeTheme === theme.id;
+              return (
+                <div
+                  key={theme.id}
+                  onClick={() => setActiveTheme(theme.id)}
+                  style={{
+                    background: 'var(--bg2)',
+                    border: isActive ? `1.5px solid ${theme.colors.accent}` : '1.5px solid var(--border2)',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isActive ? `0 0 12px ${theme.colors.accent}20` : 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '10px'
+                  }}
+                  onMouseEnter={e => {
+                    if (!isActive) e.currentTarget.style.borderColor = theme.colors.accent;
+                  }}
+                  onMouseLeave={e => {
+                    if (!isActive) e.currentTarget.style.borderColor = 'var(--border2)';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '12px', fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--text)' : 'var(--text2)' }}>
+                      {theme.name}
+                    </span>
+                    {isActive && (
+                      <span style={{ fontSize: '10px', color: theme.colors.accent, fontWeight: 'bold' }}>✓</span>
+                    )}
+                  </div>
+                  
+                  {/* Colors Preview row */}
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: theme.colors.accent, border: '1px solid rgba(255,255,255,0.1)' }} title="Accent" />
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: theme.colors.bg, border: '1px solid rgba(255,255,255,0.1)' }} title="Background" />
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: theme.colors.bg3, border: '1px solid rgba(255,255,255,0.1)' }} title="Card Background" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </Accordion>
 
       {/* ─── MOOD & ENERGY CUSTOMISATION ─── */}
