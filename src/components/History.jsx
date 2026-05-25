@@ -146,6 +146,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
     if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[modalDk] !== undefined) currentPlanId = SCHEDULE.thisWeek[modalDk];
 
     const basePlan = DEFAULT_PLAN[currentPlanId] || DEFAULT_PLAN[0];
+    const isRestDay = basePlan.muscles.length === 0;
     const plan = { ...basePlan, muscles: [...basePlan.muscles] };
     const entry = DB[modalDk] || {};
     const meta = META[modalDk] || {};
