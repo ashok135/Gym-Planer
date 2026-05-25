@@ -1,205 +1,180 @@
 import React from 'react';
 
-/* ─── Meme Cat images for MOOD ─── 
-   0 = crying/dead   → 100 = absolute euphoria
-*/
-const MOOD_CATS = [
+/* ─── MOOD: Local cat meme images (0=sad → 4=IDGAF legend) ─── */
+const MOOD_STAGES = [
   {
-    // 0-20: Crying sad cat
-    img: 'https://i.kym-cdn.com/photos/images/newsfeed/001/505/714/814.jpg',
+    img: '/cats/cat1.jpg',
     label: '💀 I cannot even...',
-    color: '#888',
-    scale: 0.9,
-    rotate: -5,
-    filter: 'grayscale(70%) brightness(0.7)',
-    animation: 'catSad 2s ease-in-out infinite alternate',
-  },
-  {
-    // 20-40: Grumpy / disappointed cat
-    img: 'https://i.kym-cdn.com/entries/icons/original/000/000/774/ihave.jpg',
-    label: '😑 Not amused.',
-    color: '#aaa',
-    scale: 0.93,
-    rotate: -2,
+    color: '#888888',
     filter: 'grayscale(40%) brightness(0.8)',
+    animation: 'catCry 1.8s ease-in-out infinite alternate',
+  },
+  {
+    img: '/cats/cat2.jpg',
+    label: '😂 Dying inside lol',
+    color: '#aaaaaa',
+    filter: 'brightness(0.9)',
     animation: 'none',
   },
   {
-    // 40-60: THE POLITE CAT (your meme) — awkward middle
-    img: 'https://i.kym-cdn.com/photos/images/original/001/682/293/f40.jpg',
-    label: '🙂 Fine I guess...',
+    img: '/cats/cat3.jpg',
+    label: '😤 Do not talk to me',
     color: '#c8c8cc',
-    scale: 1.0,
-    rotate: 0,
     filter: 'none',
     animation: 'none',
   },
   {
-    // 60-80: Smiling happy cat
-    img: 'https://i.kym-cdn.com/photos/images/original/002/197/551/9b9.jpg',
-    label: '😄 Actually feeling good!',
+    img: '/cats/cat4.jpg',
+    label: '😎 Too cool for this',
     color: '#c8f135',
-    scale: 1.04,
-    rotate: 2,
-    filter: 'brightness(1.1) saturate(1.2)',
+    filter: 'brightness(1.05) saturate(1.1)',
     animation: 'none',
   },
   {
-    // 80-100: Extremely happy / euphoric cat
-    img: 'https://i.kym-cdn.com/photos/images/newsfeed/001/981/356/b5f.jpg',
-    label: "🔥 LET'S GOOOOO!!!",
+    img: '/cats/cat5.jpg',
+    label: "🔥 ABSOLUTE LEGEND — DON'T CARE",
     color: '#ff6b35',
-    scale: 1.1,
-    rotate: 0,
-    filter: 'brightness(1.2) saturate(1.5)',
-    animation: 'catHype 0.4s ease-in-out infinite alternate',
-  },
-];
-
-/* ─── Meme Cat images for ENERGY ─── */
-const ENERGY_CATS = [
-  {
-    // 0-20: Completely flat cat / loaf
-    img: 'https://i.kym-cdn.com/photos/images/original/001/560/849/8b8.jpg',
-    label: '☠️ I am the floor.',
-    color: '#888',
-    scale: 0.85,
-    rotate: 0,
-    filter: 'grayscale(80%) brightness(0.65)',
-    animation: 'catFlat 3s ease-in-out infinite alternate',
-  },
-  {
-    // 20-40: Sleepy / half awake cat
-    img: 'https://i.kym-cdn.com/photos/images/original/001/194/195/e7c.jpg',
-    label: '🥱 5 more minutes...',
-    color: '#aaa',
-    scale: 0.92,
-    rotate: -3,
-    filter: 'grayscale(30%) brightness(0.8)',
-    animation: 'none',
-  },
-  {
-    // 40-60: Normal alert cat sitting
-    img: 'https://i.kym-cdn.com/photos/images/original/001/682/293/f40.jpg',
-    label: '⚡ Warming up...',
-    color: '#bbb',
-    scale: 1.0,
-    rotate: 0,
-    filter: 'none',
-    animation: 'none',
-  },
-  {
-    // 60-80: Excited ready cat
-    img: 'https://i.kym-cdn.com/photos/images/original/002/197/551/9b9.jpg',
-    label: '💪 Let\'s get it!',
-    color: '#c8f135',
-    scale: 1.05,
-    rotate: 0,
     filter: 'brightness(1.15) saturate(1.3)',
-    animation: 'none',
-  },
-  {
-    // 80-100: Zoomies / absolute chaos cat
-    img: 'https://i.kym-cdn.com/photos/images/newsfeed/001/981/356/b5f.jpg',
-    label: '⚡ ZOOMIES ACTIVATED ⚡',
-    color: '#ff6b35',
-    scale: 1.12,
-    rotate: 0,
-    filter: 'brightness(1.3) saturate(1.8) hue-rotate(10deg)',
-    animation: 'catZoom 0.25s ease-in-out infinite alternate',
+    animation: 'catHype 0.5s ease-in-out infinite alternate',
   },
 ];
 
-/* ─── Map 0-100 slider to a 0-4 stage index + inner progress ─── */
-function getStage(value) {
-  const idx = Math.min(4, Math.floor(value / 20));
-  const innerT = (value % 20) / 20; // 0..1 within the stage
-  return { idx, innerT };
+/* ─── ENERGY: One Piece power level (Luffy dead → Gear 5 GOD) ─── */
+const ENERGY_STAGES = [
+  {
+    img: '/power/power1.png',
+    label: '💀 Send a medic NOW',
+    color: '#888888',
+    filter: 'grayscale(50%) brightness(0.7)',
+    animation: 'powerDead 2s ease-in-out infinite alternate',
+  },
+  {
+    img: '/power/power2.jpg',
+    label: '😩 Running on nothing...',
+    color: '#aaaaaa',
+    filter: 'grayscale(20%) brightness(0.85)',
+    animation: 'none',
+  },
+  {
+    img: '/power/power3.jpg',
+    label: "😄 Let's gooo!",
+    color: '#c8c8cc',
+    filter: 'brightness(1.05)',
+    animation: 'none',
+  },
+  {
+    img: '/power/power4.jpg',
+    label: '😤 ZORO MODE — Nothing can stop me',
+    color: '#c8f135',
+    filter: 'brightness(1.1) saturate(1.3)',
+    animation: 'none',
+  },
+  {
+    img: '/power/power5.jpg',
+    label: '⚡ GEAR 5 — I AM INEVITABLE ⚡',
+    color: '#ff6b35',
+    filter: 'brightness(1.25) saturate(1.6)',
+    animation: 'gear5Shake 0.2s ease-in-out infinite alternate',
+  },
+];
+
+/* ─── Map 0-100 slider value → stage index (0..4) ─── */
+function getStageIdx(value) {
+  if (value <= 20) return 0;
+  if (value <= 40) return 1;
+  if (value <= 60) return 2;
+  if (value <= 80) return 3;
+  return 4;
 }
 
-/* ─── Cat Image with smooth CSS crossfade ─── */
-function CatSlider({ value, cats }) {
-  const { idx, innerT } = getStage(value);
+/* ─── How far through current stage (0..1) for crossfade ─── */
+function getStageProgress(value) {
+  const band = 20;
+  return ((value % band) || (value === 100 ? band : 0)) / band;
+}
+
+/* ─── The animated image display ─── */
+function StageDisplay({ value, stages }) {
+  const idx = getStageIdx(value);
+  const progress = getStageProgress(value);
+  const stage = stages[idx];
+  const nextStage = stages[Math.min(4, idx + 1)];
 
   return (
-    <div style={{ position: 'relative', width: '110px', height: '110px', margin: '0 auto' }}>
-      {cats.map((cat, i) => {
-        // Determine opacity for smooth crossfade
-        let opacity = 0;
-        if (i === idx) {
-          // Current stage fades OUT toward end
-          opacity = i === 4 ? 1 : 1 - innerT * 0.4;
-        } else if (i === idx + 1) {
-          // Next stage fades IN
-          opacity = innerT * 0.9;
-        }
-
-        const active = i === idx;
-        const catStyle = active ? cat : (cats[Math.min(4, idx + 1)] || cat);
-        const lerpScale = active
-          ? cat.scale + (innerT * ((cats[Math.min(4, i + 1)]?.scale || cat.scale) - cat.scale))
-          : cat.scale;
-
-        return (
-          <img
-            key={i}
-            src={cat.img}
-            alt={`cat mood ${i}`}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              borderRadius: '50%',
-              border: `3px solid ${active ? cat.color : 'transparent'}`,
-              opacity,
-              transform: `scale(${cat.scale}) rotate(${cat.rotate}deg)`,
-              filter: cat.filter,
-              animation: active ? cat.animation : 'none',
-              transition: 'opacity 0.25s ease, border-color 0.3s ease, filter 0.4s ease',
-              boxShadow: active && value > 60 ? `0 0 ${Math.round(value * 0.3)}px ${cat.color}88` : 'none',
-              userSelect: 'none',
-              pointerEvents: 'none',
-            }}
-            onError={e => { e.target.src = 'https://placekitten.com/200/200'; }}
-          />
-        );
-      })}
+    <div style={{ position: 'relative', width: '112px', height: '112px', margin: '0 auto' }}>
+      {/* Current image */}
+      <img
+        src={stage.img}
+        alt="stage"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          borderRadius: '50%',
+          border: `3px solid ${stage.color}`,
+          opacity: 1 - (progress * 0.5),
+          filter: stage.filter,
+          animation: stage.animation,
+          transition: 'opacity 0.2s ease, border-color 0.3s ease',
+          boxShadow: value > 60 ? `0 0 ${Math.round(value * 0.25)}px ${stage.color}66` : 'none',
+          userSelect: 'none',
+          pointerEvents: 'none',
+        }}
+        onError={e => { e.target.style.opacity = 0; }}
+      />
+      {/* Next image fading in */}
+      {idx < 4 && progress > 0.3 && (
+        <img
+          src={nextStage.img}
+          alt="next-stage"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            borderRadius: '50%',
+            border: `3px solid ${nextStage.color}`,
+            opacity: (progress - 0.3) / 0.7 * 0.7,
+            filter: nextStage.filter,
+            transition: 'opacity 0.2s ease',
+            userSelect: 'none',
+            pointerEvents: 'none',
+          }}
+          onError={e => { e.target.style.opacity = 0; }}
+        />
+      )}
     </div>
   );
 }
 
-/* ─── Label ─── */
-function getCatLabel(value, cats) {
-  const { idx } = getStage(value);
-  return cats[idx];
-}
-
-/* ─── Shared Slider Input ─── */
-function AnimSlider({ id, value, onChange, disabled, cats, face }) {
-  const cat = getCatLabel(value, cats);
+/* ─── Single animated slider card ─── */
+function MemeSlider({ id, value, onChange, disabled, stages, bottomLeft, bottomRight }) {
+  const idx = getStageIdx(value);
+  const stage = stages[idx];
 
   return (
-    <div style={{ padding: '4px 0' }}>
+    <div style={{ padding: '2px 0' }}>
       <style>{`
-        @keyframes catSad {
-          from { transform: scale(0.88) rotate(-6deg) translateY(0); }
-          to   { transform: scale(0.92) rotate(-4deg) translateY(3px); }
-        }
-        @keyframes catFlat {
-          from { transform: scale(0.83) translateY(2px); }
-          to   { transform: scale(0.87) translateY(-1px); }
+        @keyframes catCry {
+          from { transform: scale(0.95) rotate(-3deg) translateY(2px); }
+          to   { transform: scale(0.98) rotate(-1deg) translateY(-1px); }
         }
         @keyframes catHype {
-          from { transform: scale(1.08) rotate(-3deg); }
-          to   { transform: scale(1.13) rotate(3deg); }
+          from { transform: scale(1.05) rotate(-3deg); }
+          to   { transform: scale(1.1) rotate(3deg); }
         }
-        @keyframes catZoom {
-          from { transform: scale(1.10) rotate(-4deg) translateX(-3px); }
-          to   { transform: scale(1.15) rotate(4deg) translateX(3px); }
+        @keyframes powerDead {
+          from { transform: scale(0.93) translateY(3px); }
+          to   { transform: scale(0.97) translateY(0px); }
         }
-        .meme-slider-track {
+        @keyframes gear5Shake {
+          from { transform: scale(1.06) rotate(-4deg) translateX(-2px); }
+          to   { transform: scale(1.11) rotate(4deg) translateX(2px); }
+        }
+        .meme-range {
           -webkit-appearance: none;
           appearance: none;
           width: 100%;
@@ -208,52 +183,49 @@ function AnimSlider({ id, value, onChange, disabled, cats, face }) {
           outline: none;
           cursor: pointer;
         }
-        .meme-slider-track:disabled {
-          cursor: not-allowed;
-          opacity: 0.4;
-        }
-        .meme-slider-track::-webkit-slider-thumb {
+        .meme-range:disabled { cursor: not-allowed; opacity: 0.4; }
+        .meme-range::-webkit-slider-thumb {
           -webkit-appearance: none;
-          appearance: none;
           width: 24px;
           height: 24px;
           border-radius: 50%;
           background: var(--accent);
-          cursor: pointer;
           border: 3px solid #111;
-          box-shadow: 0 0 10px rgba(200,241,53,0.5);
+          box-shadow: 0 0 10px rgba(200,241,53,0.55);
+          cursor: pointer;
+          transition: box-shadow 0.2s;
         }
-        .meme-slider-track::-moz-range-thumb {
+        .meme-range::-moz-range-thumb {
           width: 24px;
           height: 24px;
           border-radius: 50%;
           background: var(--accent);
-          cursor: pointer;
           border: 3px solid #111;
-          box-shadow: 0 0 10px rgba(200,241,53,0.5);
+          cursor: pointer;
         }
       `}</style>
 
-      {/* Cat image crossfade display */}
+      {/* Image display */}
       <div style={{ marginBottom: '10px' }}>
-        <CatSlider value={value} cats={cats} />
+        <StageDisplay value={value} stages={stages} />
       </div>
 
       {/* Meme label */}
       <div style={{
         textAlign: 'center',
         fontSize: '11px',
-        color: cat.color,
-        letterSpacing: '0.03em',
+        color: stage.color,
+        letterSpacing: '0.02em',
         marginBottom: '10px',
-        minHeight: '16px',
-        transition: 'color 0.35s ease',
+        minHeight: '18px',
+        transition: 'color 0.3s ease',
         fontWeight: 400,
+        lineHeight: 1.4,
       }}>
-        {cat.label}
+        {stage.label}
       </div>
 
-      {/* Slider */}
+      {/* Slider track */}
       <input
         id={id}
         type="range"
@@ -263,39 +235,39 @@ function AnimSlider({ id, value, onChange, disabled, cats, face }) {
         value={value}
         disabled={disabled}
         onChange={e => onChange(parseInt(e.target.value))}
-        className="meme-slider-track"
+        className="meme-range"
         style={{
-          background: `linear-gradient(to right, ${cat.color} 0%, ${cat.color} ${value}%, rgba(255,255,255,0.08) ${value}%, rgba(255,255,255,0.08) 100%)`,
+          background: `linear-gradient(to right, ${stage.color} 0%, ${stage.color} ${value}%, rgba(255,255,255,0.08) ${value}%, rgba(255,255,255,0.08) 100%)`,
         }}
       />
 
-      {/* End labels */}
+      {/* Min/Max labels */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '10px', color: 'var(--text3)' }}>
-        <span>{face === 'mood' ? '💀 Dead' : '☠️ Flat'}</span>
-        <span>{face === 'mood' ? '🔥 LFG' : '⚡ Zoom'}</span>
+        <span>{bottomLeft}</span>
+        <span>{bottomRight}</span>
       </div>
     </div>
   );
 }
 
-/* ─── Main SessionMeta ─── */
+/* ─── Main SessionMeta export ─── */
 export default function SessionMeta({ meta, isSkipped, handleMetaChange }) {
-  // Convert legacy emoji mood → numeric
+  // Support both old emoji mood and new numeric mood
   const MOOD_EMOJI_MAP = { '😴': 5, '😐': 25, '🙂': 55, '🔥': 80, '💪': 100 };
   const rawMood = meta.mood;
-  let moodVal = typeof rawMood === 'number'
+  const moodVal = typeof rawMood === 'number'
     ? rawMood
     : (MOOD_EMOJI_MAP[rawMood] ?? 50);
 
-  // Convert legacy 1-5 energy → 0-100
+  // Support old 1-5 energy scale and new 0-100
   const rawEnergy = meta.energy;
-  let energyVal = typeof rawEnergy === 'number' && rawEnergy <= 5
+  const energyVal = typeof rawEnergy === 'number' && rawEnergy <= 5
     ? Math.round((rawEnergy / 5) * 100)
     : (typeof rawEnergy === 'number' ? rawEnergy : 50);
 
   return (
     <div className="session-meta">
-      {/* Top meta grid */}
+      {/* Standard meta grid */}
       <div className="meta-grid">
         <div className="meta-group">
           <div className="meta-label">Status</div>
@@ -319,7 +291,7 @@ export default function SessionMeta({ meta, isSkipped, handleMetaChange }) {
         </div>
       </div>
 
-      {/* ─── MEME CAT SLIDERS ─── */}
+      {/* ─── MEME SLIDERS ─── */}
       <div
         style={{
           display: 'grid',
@@ -331,43 +303,53 @@ export default function SessionMeta({ meta, isSkipped, handleMetaChange }) {
           pointerEvents: isSkipped ? 'none' : 'auto',
         }}
       >
-        {/* MOOD CAT */}
+        {/* MOOD — Cat slider */}
         <div style={{
           background: 'var(--bg3)',
           border: '1px solid var(--border2)',
           borderRadius: '16px',
           padding: '14px 12px',
         }}>
-          <div style={{ fontSize: '11px', color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'center', marginBottom: '10px' }}>
+          <div style={{
+            fontSize: '11px', color: 'var(--text2)',
+            textTransform: 'uppercase', letterSpacing: '0.1em',
+            textAlign: 'center', marginBottom: '10px',
+          }}>
             Mood
           </div>
-          <AnimSlider
+          <MemeSlider
             id="mood-slider"
             value={moodVal}
             onChange={v => handleMetaChange('mood', v)}
             disabled={isSkipped}
-            cats={MOOD_CATS}
-            face="mood"
+            stages={MOOD_STAGES}
+            bottomLeft="💀 Dead"
+            bottomRight="🔥 Legend"
           />
         </div>
 
-        {/* ENERGY CAT */}
+        {/* ENERGY — One Piece power slider */}
         <div style={{
           background: 'var(--bg3)',
           border: '1px solid var(--border2)',
           borderRadius: '16px',
           padding: '14px 12px',
         }}>
-          <div style={{ fontSize: '11px', color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'center', marginBottom: '10px' }}>
+          <div style={{
+            fontSize: '11px', color: 'var(--text2)',
+            textTransform: 'uppercase', letterSpacing: '0.1em',
+            textAlign: 'center', marginBottom: '10px',
+          }}>
             Energy
           </div>
-          <AnimSlider
+          <MemeSlider
             id="energy-slider"
             value={energyVal}
             onChange={v => handleMetaChange('energy', v)}
             disabled={isSkipped}
-            cats={ENERGY_CATS}
-            face="energy"
+            stages={ENERGY_STAGES}
+            bottomLeft="💀 Empty"
+            bottomRight="⚡ Gear 5"
           />
         </div>
       </div>
@@ -375,7 +357,12 @@ export default function SessionMeta({ meta, isSkipped, handleMetaChange }) {
       {/* Notes */}
       <div className="meta-group" style={{ marginTop: '8px' }}>
         <div className="meta-label">Notes</div>
-        <textarea className="notes-input" value={meta.notes || ''} onChange={e => handleMetaChange('notes', e.target.value)} placeholder="How did it feel?" />
+        <textarea
+          className="notes-input"
+          value={meta.notes || ''}
+          onChange={e => handleMetaChange('notes', e.target.value)}
+          placeholder="How did it feel?"
+        />
       </div>
     </div>
   );
