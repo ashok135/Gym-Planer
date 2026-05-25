@@ -826,48 +826,18 @@ Guidelines for Lucy:
               borderRadius: '50%',
               overflow: 'hidden',
               position: 'relative',
-              background: 'radial-gradient(circle, rgba(200,241,53,0.15) 0%, rgba(18,18,20,0.9) 100%)'
+              border: '1px solid rgba(255,255,255,0.1)'
             }}>
-              {/* Lucy SVG Face Vector */}
-              <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', display: 'block' }}>
-                {/* Hair (Back) */}
-                <path d="M 30 70 C 20 50, 20 30, 50 25 C 80 30, 80 50, 70 70" fill="#2d1500" />
-                
-                {/* Neck */}
-                <rect x="44" y="60" width="12" height="15" fill="#ffd3b6" rx="4" />
-                <path d="M 44 68 Q 50 72 56 68" fill="#e0b295" />
-                
-                {/* Face */}
-                <circle cx="50" cy="45" r="22" fill="#ffd3b6" />
-                
-                {/* Hair Ponytail / Bun */}
-                <circle cx="72" cy="30" r="14" fill="#2d1500" />
-                <path d="M 72 30 Q 84 45 76 56 Q 70 48 72 30" fill="#2d1500" />
-                
-                {/* Sporty Headband */}
-                <path d="M 32 36 Q 50 30 68 36" stroke="var(--accent)" strokeWidth="6" strokeLinecap="round" fill="none" />
-                
-                {/* Cute minimalist eyes */}
-                <circle cx="43" cy="44" r="2.5" fill="#1e293b" />
-                <circle cx="57" cy="44" r="2.5" fill="#1e293b" />
-                
-                {/* Happy smiling mouth */}
-                <path d="M 45 52 Q 50 57 55 52" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-                
-                {/* Blushing cheeks */}
-                <circle cx="37" cy="48" r="3" fill="#f43f5e" opacity="0.3" />
-                <circle cx="63" cy="48" r="3" fill="#f43f5e" opacity="0.3" />
-                
-                {/* Sporty Collar / Shirt */}
-                <path d="M 33 75 Q 50 84 67 75" stroke="var(--accent)" strokeWidth="8" strokeLinecap="round" fill="none" />
-                <path d="M 36 78 L 50 94 L 64 78 Z" fill="#1e293b" />
-                
-                {/* Neon Sporty Over-Ear Headphone Arch */}
-                <path d="M 28 45 C 28 20, 72 20, 72 45" stroke="#4d9fff" strokeWidth="3" fill="none" strokeDasharray="1 3" />
-                {/* Earcups */}
-                <rect x="25" y="38" width="6" height="14" fill="#4d9fff" rx="3" />
-                <rect x="69" y="38" width="6" height="14" fill="#4d9fff" rx="3" />
-              </svg>
+              <img 
+                src="/lucy.png" 
+                alt="Lucy AI Coach" 
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'cover',
+                  display: 'block'
+                }} 
+              />
             </div>
 
             {/* Waving Hand coming out of the button */}
@@ -946,7 +916,9 @@ Guidelines for Lucy:
           {/* Chat Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'linear-gradient(135deg, rgba(200,241,53,0.05), rgba(77,159,255,0.05))', borderRadius: '20px 20px 0 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Bot size={20} color="var(--accent)" />
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }}>
+                <img src="/lucy.png" alt="Lucy Coach" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
               <div>
                 <div style={{ fontWeight: 800, fontSize: '14px', letterSpacing: '0.02em' }}>Lucy · AI Coach</div>
                 <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{provider === 'gemini' ? 'Gemini AI' : 'OpenRouter AI'}</div>
