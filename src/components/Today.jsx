@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { DEFAULT_PLAN, dateKey, DAYS_SHORT, DAYS_FULL, MONTHS, EXERCISE_GIFS } from '../data';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Plus, Flame, Zap, Dumbbell, ChevronDown, ChevronUp } from 'lucide-react';
 import ExerciseCard from './today/ExerciseCard';
 import SessionMeta from './today/SessionMeta';
 
@@ -346,7 +346,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
               fontWeight: 500,
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '8px',
               cursor: isSkipped ? 'not-allowed' : 'pointer',
               opacity: isSkipped ? 0.4 : 0.9,
               transition: 'all 0.2s'
@@ -354,8 +354,9 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
             onMouseEnter={e => !isSkipped && (e.currentTarget.style.borderColor = 'var(--accent)')}
             onMouseLeave={e => !isSkipped && (e.currentTarget.style.borderColor = 'var(--border2)')}
           >
-            <span>⚡ Add Extra Routine</span>
-            <span style={{ fontSize: '9px', opacity: 0.7 }}>{showExtrasMenu ? '▲' : '▼'}</span>
+            <Plus size={14} style={{ color: 'var(--accent)' }} />
+            <span>Add Extra Routine</span>
+            {showExtrasMenu ? <ChevronUp size={12} style={{ opacity: 0.7 }} /> : <ChevronDown size={12} style={{ opacity: 0.7 }} />}
           </button>
 
           {showExtrasMenu && (
@@ -384,12 +385,16 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
                     color: 'var(--text)',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    textAlign: 'left'
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
                   }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  ➕ Add Abs Workout
+                  <Flame size={13} style={{ color: '#F97316' }} />
+                  <span>Abs Workout</span>
                 </div>
               )}
               {!showProgressive && (
@@ -402,12 +407,16 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
                     color: 'var(--text)',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    textAlign: 'left'
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
                   }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  ⚡ Add Progressive
+                  <Zap size={13} style={{ color: 'var(--accent)' }} />
+                  <span>Progressive Work</span>
                 </div>
               )}
               {!showFullBody && (
@@ -422,6 +431,9 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                     textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
                     borderTop: '1px solid rgba(255,255,255,0.03)',
                     marginTop: '2px',
                     paddingTop: '10px'
@@ -429,7 +441,8 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(200,241,53,0.08)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  💪 Add Full Body Extra
+                  <Dumbbell size={13} />
+                  <span>Full Body Extra</span>
                 </div>
               )}
             </div>
