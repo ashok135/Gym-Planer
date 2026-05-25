@@ -1,6 +1,36 @@
 import React, { useState } from 'react';
 import { MONTHS, DAYS_SHORT, DAYS_FULL, DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol } from '../data';
 import { CheckCircle2, XCircle, Calendar } from 'lucide-react';
+import { loadMoodEnergyConfig, DEFAULT_MOOD_STAGES, DEFAULT_ENERGY_STAGES } from './settings/MoodEnergySettings';
+
+function getStageIdx(value) {
+  if (typeof value !== 'number') return 2; // middle default
+  if (value <= 20) return 0;
+  if (value <= 40) return 1;
+  if (value <= 60) return 2;
+  if (value <= 80) return 3;
+  return 4;
+}
+
+function getMoodStage(value, config) {
+  const stages = config?.mood || DEFAULT_MOOD_STAGES;
+  const MOOD_EMOJI_MAP = { '😴': 0, '😐': 1, '🙂': 2, '🔥': 3, '💪': 4 };
+  if (typeof value === 'string' && MOOD_EMOJI_MAP[value] !== undefined) {
+    return stages[MOOD_EMOJI_MAP[value]];
+  }
+  const idx = getStageIdx(typeof value === 'number' ? value : 50);
+  return stages[idx];
+}
+
+function getEnergyStage(value, config) {
+  const stages = config?.energy || DEFAULT_ENERGY_STAGES;
+  if (typeof value === 'number' && value <= 5) {
+    const idx = Math.max(0, Math.min(4, value - 1));
+    return stages[idx];
+  }
+  const idx = getStageIdx(typeof value === 'number' ? value : 50);
+  return stages[idx];
+}
 
 export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
   const [modalDk, setModalDk] = useState(null);
@@ -103,6 +133,8 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
 
   const historyData = Object.values(historyDataMap).sort((a, b) => (b.yr - a.yr) || (b.mo - a.mo));
 
+  const moodEnergyConfig = loadMoodEnergyConfig();
+
   const renderModal = () => {
     if(!modalDk) return null;
     const [y, m, day] = modalDk.split('-');
@@ -176,12 +208,41 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
           <div className="modal-sub">{plan.label}{hasAbs ? ' & Abs' : ''}{hasProgressive ? ' & Progressive' : ''} · {vol ? vol.toLocaleString()+' kg total' : 'No volume logged'}</div>
           
           <div style={{ flex: '1 1 auto', maxHeight: '60vh', overflowY: 'auto', paddingRight: '4px', marginTop: '12px', WebkitOverflowScrolling: 'touch' }}>
-            {(meta.notes || meta.bw || meta.start) && (
-              <div style={{background:'var(--bg3)',padding:'12px',borderRadius:'8px',marginBottom:'16px',fontSize:'12px',color:'var(--text2)'}}>
+            {(meta.notes || meta.bw || meta.start || meta.mood !== undefined || meta.energy !== undefined) && (
+              <div style={{background:'var(--bg3)',padding:'14px',borderRadius:'12px',marginBottom:'16px',fontSize:'12px',color:'var(--text2)', display:'flex', flexDirection:'column', gap:'8px'}}>
                 {meta.start && <div>⏱️ Time: {meta.start} - {meta.end||'?'}</div>}
                 {meta.bw && <div>⚖️ Bodyweight: {meta.bw} kg</div>}
-                {meta.energy > 0 && <div>⚡ Energy: {meta.energy}/5</div>}
-                {meta.notes && <div style={{marginTop:'6px',color:'var(--text)'}}>"{meta.notes}"</div>}
+                {meta.mood !== undefined && (() => {
+                  const stage = getMoodStage(meta.mood, moodEnergyConfig);
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ color: 'var(--text3)' }}>Mood:</span>
+                      <img 
+                        src={stage.img} 
+                        alt="" 
+                        style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${stage.color}` }}
+                        onError={e => { e.target.style.display = 'none'; }}
+                      />
+                      <span style={{ color: stage.color }}>{stage.label}</span>
+                    </div>
+                  );
+                })()}
+                {meta.energy !== undefined && (() => {
+                  const stage = getEnergyStage(meta.energy, moodEnergyConfig);
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ color: 'var(--text3)' }}>Energy:</span>
+                      <img 
+                        src={stage.img} 
+                        alt="" 
+                        style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${stage.color}` }}
+                        onError={e => { e.target.style.display = 'none'; }}
+                      />
+                      <span style={{ color: stage.color }}>{stage.label}</span>
+                    </div>
+                  );
+                })()}
+                {meta.notes && <div style={{marginTop:'6px',color:'var(--text)', borderTop:'1px solid var(--border2)', paddingTop:'8px', fontStyle:'italic'}}>"{meta.notes}"</div>}
               </div>
             )}
 
@@ -300,11 +361,43 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                       marginLeft: '8px', 
                       color: day.meta.status === 'Skipped' ? 'var(--red)' : 'var(--accent)',
                       background: day.meta.status === 'Skipped' ? 'rgba(255, 77, 77, 0.1)' : 'rgba(200, 241, 53, 0.1)',
-                      border: day.meta.status === 'Skipped' ? '1px solid rgba(255, 77, 77, 0.2)' : '1px solid rgba(200, 241, 53, 0.2)'
+                      border: day.meta.status === 'Skipped' ? '1px solid rgba(255, 77, 77, 0.2)' : '1px solid rgba(200, 241, 53, 0.2)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      verticalAlign: 'middle',
+                      height: '18px',
+                      padding: '0 8px',
+                      borderRadius: '99px'
                     }}>
-                      {day.meta.status} {day.meta.mood||''}
+                      {day.meta.status}
                     </span>
                   )}
+                  {day.meta.mood !== undefined && (() => {
+                    const stage = getMoodStage(day.meta.mood, moodEnergyConfig);
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle' }} title={stage.label}>
+                        <img 
+                          src={stage.img} 
+                          alt="" 
+                          style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${stage.color}`, display: 'block' }}
+                          onError={e => { e.target.style.display = 'none'; }}
+                        />
+                      </span>
+                    );
+                  })()}
+                  {day.meta.energy !== undefined && (() => {
+                    const stage = getEnergyStage(day.meta.energy, moodEnergyConfig);
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '4px', verticalAlign: 'middle' }} title={stage.label}>
+                        <img 
+                          src={stage.img} 
+                          alt="" 
+                          style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${stage.color}`, display: 'block' }}
+                          onError={e => { e.target.style.display = 'none'; }}
+                        />
+                      </span>
+                    );
+                  })()}
                 </div>
                 <div style={{textAlign:'right'}}>
                   {day.vol > 0 && <div className="hday-vol" style={{ fontSize: '18px', fontWeight: 900 }}>{day.vol.toLocaleString()} <span style={{fontSize:'12px', fontWeight: 400}}>kg</span></div>}
