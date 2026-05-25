@@ -502,3 +502,46 @@ select.meta-input { appearance: none; }
 .lucy-speech-bubble {
   animation: speech-pulse 4s ease-in-out infinite;
 }
+
+/* 🙋‍♀️ Lucy 3D Pop-Out & Waving Hand Entrance Animations */
+@keyframes lucy-slide-out {
+  0% {
+    transform: translateY(30px) scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(-12px) scale(1.1); /* Peak up out of the round circle boundary */
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(-3px) scale(0.98);
+  }
+  100% {
+    transform: translateY(-6px) scale(1.03); /* Settle nicely popped out above circle top */
+    opacity: 1;
+  }
+}
+
+.lucy-avatar-pop-out {
+  animation: lucy-slide-out 1.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+  transform-origin: bottom center;
+  will-change: transform, opacity;
+}
+
+@keyframes hand-slide-out {
+  0% {
+    transform: scale(0) translate(10px, 10px) rotate(0deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.2) translate(-2px, -2px) rotate(15deg);
+  }
+  100% {
+    transform: scale(1) translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.lucy-hand-pop-out {
+  animation: hand-slide-out 1.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}

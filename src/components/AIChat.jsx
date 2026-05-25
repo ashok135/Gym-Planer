@@ -243,6 +243,16 @@ const CopyButton = ({ text, isUser }) => {
     </button>
   );
 };
+const MOTIVATIONAL_QUESTIONS = [
+  "Hey {NAME}! Ready to crush today's fitness goals? 💪 Let's get moving!",
+  "Hey {NAME}! Did you track your meals yet? Let's hit that protein target! 🍗",
+  "Quick water check! 💧 Have we had at least 3 glasses today?",
+  "Ready to level up your study streak today? What topic are we doing? 📚",
+  "Hey {NAME}! How's our energy level feeling today? Let's check! ⚡",
+  "Are we logging a workout session today or is it a rest day? 🏋️‍♀️",
+  "Hey champion! Did you get at least 7-8 hours of sleep last night? 😴"
+];
+
 export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHEDULE, syncAiSettings, profileInfo = { name: '', resume: '' } }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -251,6 +261,14 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState("Hey there! Ready to crush today's goals? 💪");
+
+  useEffect(() => {
+    const name = profileInfo?.name || 'Athlete';
+    const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUESTIONS.length);
+    const selected = MOTIVATIONAL_QUESTIONS[randomIndex].replace('{NAME}', name);
+    setCurrentQuestion(selected);
+  }, [profileInfo]);
 
   useEffect(() => {
     const handleGlobalScroll = (e) => {
@@ -790,7 +808,7 @@ Guidelines for Lucy:
           >
             <div style={{ fontSize: '10px', color: 'var(--accent)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>AI Coach Lucy</div>
             <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Hey {profileInfo?.name || 'Athlete'}! Let's crush it! 👋
+              {currentQuestion}
             </div>
           </div>
 
@@ -819,15 +837,18 @@ Guidelines for Lucy:
             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08) rotate(2deg)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1) rotate(0deg)'; }}
           >
-            {/* The Girl Avatar (Clipped inside circle) */}
-            <div style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: '50%',
-              overflow: 'hidden',
-              position: 'relative',
-              border: '1px solid rgba(255,255,255,0.1)'
-            }}>
+            {/* The Girl Avatar (Clipped inside circle with 3D Pop-Out Entrance Animation!) */}
+            <div 
+              className="lucy-avatar-pop-out"
+              style={{
+                width: '100%',
+                height: '100%',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                position: 'relative',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}
+            >
               <img 
                 src="/lucy.png" 
                 alt="Lucy AI Coach" 
@@ -840,9 +861,9 @@ Guidelines for Lucy:
               />
             </div>
 
-            {/* Waving Hand coming out of the button */}
+            {/* Waving Hand coming out of the button with entrance slide! */}
             <div 
-              className="lucy-waving-hand"
+              className="lucy-waving-hand lucy-hand-pop-out"
               style={{
                 position: 'absolute',
                 bottom: '-2px',
