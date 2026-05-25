@@ -93,59 +93,45 @@ function getStageProgress(value) {
   return ((value % band) || (value === 100 ? band : 0)) / band;
 }
 
-/* ─── The animated image display ─── */
+/* ─── The animated image display — ONE image at a time, fades on stage change ─── */
 function StageDisplay({ value, stages }) {
   const idx = getStageIdx(value);
-  const progress = getStageProgress(value);
   const stage = stages[idx];
-  const nextStage = stages[Math.min(4, idx + 1)];
+
+  const animStr = stage.animation && stage.animation !== 'none'
+    ? `stageFadeIn 0.35s ease forwards, ${stage.animation}`
+    : 'stageFadeIn 0.35s ease forwards';
 
   return (
     <div style={{ position: 'relative', width: '112px', height: '112px', margin: '0 auto' }}>
-      {/* Current image */}
-      <img
-        src={stage.img}
-        alt="stage"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          borderRadius: '50%',
-          border: `3px solid ${stage.color}`,
-          opacity: 1 - (progress * 0.5),
-          filter: stage.filter,
-          animation: stage.animation,
-          transition: 'opacity 0.2s ease, border-color 0.3s ease',
-          boxShadow: value > 60 ? `0 0 ${Math.round(value * 0.25)}px ${stage.color}66` : 'none',
-          userSelect: 'none',
-          pointerEvents: 'none',
-        }}
-        onError={e => { e.target.style.opacity = 0; }}
-      />
-      {/* Next image fading in */}
-      {idx < 4 && progress > 0.3 && (
+      <style>{`
+        @keyframes stageFadeIn {
+          from { opacity: 0; transform: scale(0.9); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+      {/* key on the wrapper forces React to remount when stage changes → clean fade-in */}
+      <div key={idx} style={{ position: 'absolute', inset: 0 }}>
         <img
-          src={nextStage.img}
-          alt="next-stage"
+          src={stage.img}
+          alt=""
           style={{
-            position: 'absolute',
-            inset: 0,
             width: '100%',
             height: '100%',
             objectFit: 'cover',
             borderRadius: '50%',
-            border: `3px solid ${nextStage.color}`,
-            opacity: (progress - 0.3) / 0.7 * 0.7,
-            filter: nextStage.filter,
-            transition: 'opacity 0.2s ease',
+            border: `3px solid ${stage.color}`,
+            filter: stage.filter,
+            animation: animStr,
+            boxShadow: value > 60 ? `0 0 ${Math.round(value * 0.22)}px ${stage.color}55` : 'none',
+            transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
             userSelect: 'none',
             pointerEvents: 'none',
+            display: 'block',
           }}
           onError={e => { e.target.style.opacity = 0; }}
         />
-      )}
+      </div>
     </div>
   );
 }
