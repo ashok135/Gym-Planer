@@ -133,6 +133,47 @@ export default function App() {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
+  // Scroll Reveal Animation Observer with automatic MutationObserver!
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('reveal-active');
+        }
+      });
+    }, { threshold: 0.01, rootMargin: '0px 0px -10px 0px' });
+
+    const observeNewElements = () => {
+      const elements = document.querySelectorAll('.scroll-reveal:not(.reveal-active)');
+      elements.forEach(el => {
+        observer.observe(el);
+        // Fallback for above-the-fold content: trigger immediately if in viewport
+        const rect = el.getBoundingClientRect();
+        if (rect.top >= 0 && rect.top <= window.innerHeight) {
+          el.classList.add('reveal-active');
+        }
+      });
+    };
+
+    // Run initially
+    observeNewElements();
+
+    // Watch for any sub-tab changes, modal opens or dynamic items mounting
+    const mutationObserver = new MutationObserver(() => {
+      observeNewElements();
+    });
+
+    mutationObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    return () => {
+      observer.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, []);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
@@ -436,12 +477,29 @@ export default function App() {
     lastScrollY.current = currentScrollY;
   };
 
+  const tabBackgrounds = {
+    today: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=1200&auto=format&fit=crop',
+    diet: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=1200&auto=format&fit=crop',
+    budget: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?q=80&w=1200&auto=format&fit=crop',
+    study: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?q=80&w=1200&auto=format&fit=crop',
+    report: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1200&auto=format&fit=crop',
+    settings: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop'
+  };
+
   const displayName = user?.email ? user.email.split('@')[0] : 'Athlete';
 
   return (
     <div className="app">
       {/* Premium Ambient Background Video & Glassmorphism Overlay */}
-      <div className="ambient-bg-container">
+      <div 
+        className="ambient-bg-container"
+        style={{
+          backgroundImage: `url(${tabBackgrounds[activeTab] || tabBackgrounds.today})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          transition: 'background-image 0.5s ease-in-out'
+        }}
+      >
         <video 
           className="ambient-video" 
           src="https://cdn.pixabay.com/video/2021/04/12/70860-536965158_large.mp4" 
@@ -464,7 +522,7 @@ export default function App() {
       </div>
       <div className="screen active" onScroll={handleScroll} style={{paddingBottom:'90px', flex:1, overflowY:'auto'}}>
         {activeTab === 'today'    && <Today    DB={DB} NAMES={NAMES} META={META} syncData={syncData} FOOD={FOOD} SCHEDULE={SCHEDULE} workoutPlans={workoutPlans} />}
-        {activeTab === 'diet'     && <Diet     FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} profileInfo={profileInfo} DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} />}
+        {activeTab === 'diet'     && <Diet     FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} profileInfo={profileInfo} DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} syncProfileInfo={syncProfileInfo} />}
         {activeTab === 'budget'   && <Budget   BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} />}
         {activeTab === 'study'    && <Study    STUDY={STUDY} syncStudy={syncStudy} STUDY_SETTINGS={STUDY_SETTINGS} profileInfo={profileInfo} />}
         {activeTab === 'report'   && <Report   DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} BUDGET={BUDGET} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY={STUDY} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} workoutPlans={workoutPlans} DIET_PLAN={DIET_PLAN} />}

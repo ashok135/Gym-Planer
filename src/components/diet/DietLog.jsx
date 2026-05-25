@@ -108,17 +108,10 @@ export default function DietLog({ FOOD, syncData, DB, NAMES, META, profileInfo, 
   };
 
   return (
-    <div id="food-content" style={{ padding: '20px 0' }}>
-      {/* Date Header */}
-      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-        <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text)' }}>
-          {DAYS_FULL[dow]}, {today.getDate()}-{MONTHS[today.getMonth()].slice(0, 3)}-{today.getFullYear()}
-        </div>
-        <div style={{ fontSize: '13px', color: 'var(--text2)' }}>Log your meals and habits for today</div>
-      </div>
+    <div id="food-content" style={{ padding: '0 0 20px' }}>
 
       {/* Protein Ring */}
-      <div className="food-ring-container">
+      <div className="food-ring-container scroll-reveal">
         <div className="food-ring" style={{ background: `conic-gradient(var(--accent) ${pct}%, var(--bg3) 0%)` }}>
           <div className="food-ring-inner">
             <div className="food-ring-val">{totalP}g</div>
@@ -129,7 +122,7 @@ export default function DietLog({ FOOD, syncData, DB, NAMES, META, profileInfo, 
 
       {/* Habit Grid */}
       <div className="habit-grid">
-        <div className="habit-card" onClick={() => handleHabit('water', (getVal(saved.water) + 1) % 4)}
+        <div className="habit-card scroll-reveal" onClick={() => handleHabit('water', (getVal(saved.water) + 1) % 4)}
           style={{ cursor: 'pointer', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div className="habit-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Droplets size={18} color="var(--blue)" /></div>
@@ -141,7 +134,7 @@ export default function DietLog({ FOOD, syncData, DB, NAMES, META, profileInfo, 
           </div>
         </div>
 
-        <div className="habit-card" onClick={() => handleHabit('sleep', (getVal(saved.sleep) + 1) % 4)}
+        <div className="habit-card scroll-reveal" onClick={() => handleHabit('sleep', (getVal(saved.sleep) + 1) % 4)}
           style={{ cursor: 'pointer', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div className="habit-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Moon size={18} color="var(--accent)" /></div>
@@ -153,7 +146,7 @@ export default function DietLog({ FOOD, syncData, DB, NAMES, META, profileInfo, 
           </div>
         </div>
 
-        <div className="habit-card" onClick={() => handleHabit('junk', (getVal(saved.junk) + 1) % 4)}
+        <div className="habit-card scroll-reveal" onClick={() => handleHabit('junk', (getVal(saved.junk) + 1) % 4)}
           style={{ gridColumn: '1 / -1', flexDirection: 'row', justifyContent: 'space-between', padding: '16px', cursor: 'pointer' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div className="habit-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ban size={18} color="var(--red)" /></div>
@@ -174,7 +167,7 @@ export default function DietLog({ FOOD, syncData, DB, NAMES, META, profileInfo, 
       )}
 
       {dietPlan.map(meal => (
-        <div className="meal-block" key={meal.id || meal.meal}>
+        <div className="meal-block scroll-reveal" key={meal.id || meal.meal}>
           <div className="meal-header">{meal.meal}</div>
           {(meal.items || []).map(item => {
             const val        = getVal(saved.items && saved.items[item.id]);

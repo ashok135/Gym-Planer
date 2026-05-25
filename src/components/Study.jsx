@@ -547,17 +547,30 @@ Return the output strictly in the following JSON format:
   };
 
   return (
-    <div id="study-content" style={{ padding: '20px 0' }}>
+    <div id="study-content" style={{ padding: '0 0 20px' }}>
       
-      {/* Brand Title */}
-      <div style={{ padding: '0 20px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: '24px', fontWeight: 400, background: 'linear-gradient(90deg, #C8F135, #34D399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BookOpen size={22} style={{ color: 'var(--accent)' }} /> PrepHub
+      {/* PrepHub Study Card Banner with abstract workspace / coding matrix library background */}
+      {!isReport && (
+        <div 
+          className="scroll-reveal" 
+          style={{
+            margin: '0 20px 24px',
+            padding: '24px 20px',
+            borderRadius: 'var(--radius)',
+            backgroundImage: 'linear-gradient(to right, rgba(18, 18, 20, 0.95) 45%, rgba(18, 18, 20, 0.45) 100%), url(https://images.unsplash.com/photo-1506784983877-45594efa4cbe?q=80&w=600&auto=format&fit=crop)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)',
+          }}
+        >
+          <div style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }}>
+            PrepHub Career Accelerator
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Your ultimate learning & career accelerator</div>
+          <div style={{ fontSize: '22px', fontWeight: 800, color: '#fff' }}>Learning Space</div>
+          <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '4px' }}>Log study hours, track mock coding interviews, and review target role jobs.</div>
         </div>
-      </div>
+      )}
 
       {/* Sleek Sub-space Switcher */}
       {!isReport && (

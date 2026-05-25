@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ClipboardList, Calculator, Apple } from 'lucide-react';
+import { DAYS_FULL, MONTHS } from '../data';
 import DietLog from './diet/DietLog';
 import HealthCalc from './diet/HealthCalc';
 
@@ -8,29 +9,36 @@ const TABS = [
   { id: 'calc',    label: 'Calculators',   icon: Calculator },
 ];
 
-export default function Diet({ FOOD, syncData, DB, NAMES, META, profileInfo, DIET_PLAN }) {
+export default function Diet({ FOOD, syncData, DB, NAMES, META, profileInfo, DIET_PLAN, syncProfileInfo }) {
   const [activeTab, setActiveTab] = useState('log');
+  const today = new Date();
+  const dow = today.getDay();
 
   return (
     <div style={{ padding: '0' }}>
-      {/* Page Title */}
-      <div style={{ padding: '20px 20px 0' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          fontSize: '24px', fontWeight: 400,
-          background: 'linear-gradient(90deg, #C8F135, #FB923C)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          marginBottom: '2px'
-        }}>
-          <Apple size={24} style={{ stroke: 'url(#diet-grad)', strokeWidth: 2.5, color: '#C8F135' }} /> Diet
+      {/* Diet Hero Card Banner with beautiful fresh citrus flatlay background */}
+      <div 
+        className="scroll-reveal" 
+        style={{
+          margin: '0 20px 24px',
+          padding: '24px 20px',
+          borderRadius: 'var(--radius)',
+          backgroundImage: 'linear-gradient(to right, rgba(18, 18, 20, 0.95) 45%, rgba(18, 18, 20, 0.45) 100%), url(https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=600&auto=format&fit=crop)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)',
+        }}
+      >
+        <div style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }}>
+          {DAYS_FULL[dow]}, {today.getDate()}-{MONTHS[today.getMonth()].slice(0, 3)}
         </div>
-        <div style={{ fontSize: '11px', color: 'var(--text3)' }}>Track meals · Calculate macros</div>
+        <div style={{ fontSize: '22px', fontWeight: 800, color: '#fff' }}>Fuel Your Body</div>
+        <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '4px' }}>Log nutrition, water intake, and recovery sleep.</div>
       </div>
 
       {/* Sub-Tab Switcher */}
-      <div style={{ padding: '14px 20px 0' }}>
+      <div style={{ padding: '0 20px 0' }}>
         <div style={{
           display: 'flex', background: 'var(--bg3)', borderRadius: '16px',
           padding: '4px', border: '1px solid var(--border2)',
@@ -69,7 +77,10 @@ export default function Diet({ FOOD, syncData, DB, NAMES, META, profileInfo, DIE
       )}
 
       {activeTab === 'calc' && (
-        <HealthCalc />
+        <HealthCalc 
+          profileInfo={profileInfo}
+          syncProfileInfo={syncProfileInfo}
+        />
       )}
     </div>
   );

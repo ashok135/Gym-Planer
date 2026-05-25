@@ -301,7 +301,7 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
   const pctColor = (timeRange === 'Today') ? (totalDaysAttended > 0 ? 'var(--accent)' : 'var(--red)') : (pct >= 50 ? 'var(--accent)' : 'var(--red)');
 
   return (
-    <div id="report-content" style={{padding:'20px 0'}}>
+    <div id="report-content" style={{padding:'0 0 20px'}}>
       <div style={{padding:'0 10px 16px', display:'flex', justifyContent:'flex-end'}}>
         
       </div>

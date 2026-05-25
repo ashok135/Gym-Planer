@@ -337,7 +337,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
           <div className="month-label" style={{ fontSize: '13px', color: 'var(--accent)', fontWeight: 700, marginBottom: '16px' }}>{MONTHS[month.mo]} {month.yr}</div>
           {month.days.map(day => (
             <div key={day.dk}
-              className={`history-day ${day.hasData ? 'has-data' : ''}`}
+              className={`history-day ${day.hasData ? 'has-data' : ''} scroll-reveal`}
               onClick={() => setModalDk(day.dk)}
               style={{
                 padding: '20px', marginBottom: '16px', borderRadius: '20px',

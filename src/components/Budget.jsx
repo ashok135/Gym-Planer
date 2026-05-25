@@ -449,9 +449,31 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
   };
 
   return (
-    <div id="budget-content" style={{ padding: '20px 0' }}>
+    <div id="budget-content" style={{ padding: '0 0 20px' }}>
+      {/* Dynamic Wealth Banner with futuristic network/financial lines overlay background */}
+      {!isReport && (
+        <div 
+          className="scroll-reveal" 
+          style={{
+            margin: '0 20px 24px',
+            padding: '24px 20px',
+            borderRadius: 'var(--radius)',
+            backgroundImage: 'linear-gradient(to right, rgba(18, 18, 20, 0.95) 45%, rgba(18, 18, 20, 0.45) 100%), url(https://images.unsplash.com/photo-1639762681485-074b7f938ba0?q=80&w=600&auto=format&fit=crop)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)',
+          }}
+        >
+          <div style={{ fontSize: '11px', color: 'var(--blue)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }}>
+            Capital & Liabilities
+          </div>
+          <div style={{ fontSize: '22px', fontWeight: 800, color: '#fff' }}>Wealth Ledger</div>
+          <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '4px' }}>Track liquid assets, pending repayments, and transaction flow.</div>
+        </div>
+      )}
+
       <div style={{ padding: '0 20px', marginBottom: '16px' }}>
-        {!isReport && <div className="ai-title" style={{ fontSize: '32px', marginBottom: '20px' }}>Bud<span style={{ color: 'var(--blue)' }}>get</span></div>}
         <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }} className="hide-scroll">
           {(() => {
             const months = []; for (let i = 0; i < 6; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); const mk = monthKey(d); months.push({ mk, label: `${MONTHS[d.getMonth()].slice(0, 3)} ${String(d.getFullYear()).slice(2)}` }); }
@@ -600,7 +622,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
       )}
 
       {/* 📊 BANKING & CREDIT INSIGHTS CARD */}
-      <div style={{ margin: '0 20px 24px', background: 'linear-gradient(135deg, rgba(77,159,255,0.05), rgba(200,241,53,0.03))', borderRadius: '24px', padding: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="scroll-reveal" style={{ margin: '0 20px 24px', background: 'linear-gradient(135deg, rgba(77,159,255,0.05), rgba(200,241,53,0.03))', borderRadius: '24px', padding: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
           <TrendingUp size={18} color="var(--accent)" />
           <div style={{ fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Banking & Credit Position</div>
@@ -733,7 +755,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
               const isPaid = d.status === 'paid';
               
               return (
-                <div key={d.id} style={{ background: isPaid ? 'rgba(52,211,153,0.02)' : 'var(--bg2)', borderRadius: '16px', padding: '16px', border: `1px solid ${isPaid ? 'rgba(52,211,153,0.15)' : 'var(--border2)'}` }}>
+                <div key={d.id} className="scroll-reveal" style={{ background: isPaid ? 'rgba(52,211,153,0.02)' : 'var(--bg2)', borderRadius: '16px', padding: '16px', border: `1px solid ${isPaid ? 'rgba(52,211,153,0.15)' : 'var(--border2)'}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

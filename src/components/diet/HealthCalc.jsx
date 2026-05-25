@@ -35,18 +35,55 @@ function RingMeter({ pct, color, size = 100, strokeWidth = 8 }) {
   );
 }
 
-export default function HealthCalc() {
+export default function HealthCalc({ profileInfo, syncProfileInfo }) {
+  const [applySuccess, setApplySuccess] = useState(false);
+
   // BMI State
-  const [heightCm, setHeightCm] = useState('170');
-  const [weightKg, setWeightKg] = useState('70');
+  const [heightCm, setHeightCm] = useState(() => localStorage.getItem('calc_bmi_height') || '170');
+  const [weightKg, setWeightKg] = useState(() => localStorage.getItem('calc_bmi_weight') || '70');
 
   // Calorie calc state
-  const [cAge,      setCAge]      = useState('22');
-  const [cGender,   setCGender]   = useState('male');
-  const [cHeight,   setCHeight]   = useState('170');
-  const [cWeight,   setCWeight]   = useState('70');
-  const [cActivity, setCActivity] = useState('moderate');
-  const [cGoal,     setCGoal]     = useState('fat_loss');
+  const [cAge,      setCAge]      = useState(() => localStorage.getItem('calc_tdee_age') || '22');
+  const [cGender,   setCGender]   = useState(() => localStorage.getItem('calc_tdee_gender') || 'male');
+  const [cHeight,   setCHeight]   = useState(() => localStorage.getItem('calc_tdee_height') || '170');
+  const [cWeight,   setCWeight]   = useState(() => localStorage.getItem('calc_tdee_weight') || '70');
+  const [cActivity, setCActivity] = useState(() => localStorage.getItem('calc_tdee_activity') || 'moderate');
+  const [cGoal,     setCGoal]     = useState(() => localStorage.getItem('calc_tdee_goal') || 'fat_loss');
+
+  // Sync state helpers
+  const handleHeightChange = (val) => {
+    setHeightCm(val);
+    setCHeight(val);
+    localStorage.setItem('calc_bmi_height', val);
+    localStorage.setItem('calc_tdee_height', val);
+  };
+
+  const handleWeightChange = (val) => {
+    setWeightKg(val);
+    setCWeight(val);
+    localStorage.setItem('calc_bmi_weight', val);
+    localStorage.setItem('calc_tdee_weight', val);
+  };
+
+  const handleAgeChange = (val) => {
+    setCAge(val);
+    localStorage.setItem('calc_tdee_age', val);
+  };
+
+  const handleGenderChange = (val) => {
+    setCGender(val);
+    localStorage.setItem('calc_tdee_gender', val);
+  };
+
+  const handleActivityChange = (val) => {
+    setCActivity(val);
+    localStorage.setItem('calc_tdee_activity', val);
+  };
+
+  const handleGoalChange = (val) => {
+    setCGoal(val);
+    localStorage.setItem('calc_tdee_goal', val);
+  };
 
   // --- BMI Calculation ---
   const h   = parseFloat(heightCm) / 100;
@@ -104,12 +141,12 @@ export default function HealthCalc() {
           <div>
             <div style={labelStyle}>Height (cm)</div>
             <input type="number" min="100" max="250" value={heightCm}
-              onChange={e => setHeightCm(e.target.value)} style={inputStyle} />
+              onChange={e => handleHeightChange(e.target.value)} style={inputStyle} />
           </div>
           <div>
             <div style={labelStyle}>Weight (kg)</div>
             <input type="number" min="30" max="300" value={weightKg}
-              onChange={e => setWeightKg(e.target.value)} style={inputStyle} />
+              onChange={e => handleWeightChange(e.target.value)} style={inputStyle} />
           </div>
         </div>
 
@@ -161,13 +198,13 @@ export default function HealthCalc() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
           <div>
             <div style={labelStyle}>Age</div>
-            <input type="number" min="10" max="100" value={cAge} onChange={e => setCAge(e.target.value)} style={inputStyle} />
+            <input type="number" min="10" max="100" value={cAge} onChange={e => handleAgeChange(e.target.value)} style={inputStyle} />
           </div>
           <div>
             <div style={labelStyle}>Gender</div>
             <div style={{ display: 'flex', gap: '6px' }}>
               {['male', 'female'].map(g => (
-                <button key={g} onClick={() => setCGender(g)} style={{
+                <button key={g} onClick={() => handleGenderChange(g)} style={{
                   flex: 1, padding: '10px', borderRadius: '12px', border: 'none', cursor: 'pointer',
                   background: cGender === g ? 'var(--accent)' : 'var(--bg)',
                   color: cGender === g ? '#000' : 'var(--text2)',
@@ -182,11 +219,11 @@ export default function HealthCalc() {
           </div>
           <div>
             <div style={labelStyle}>Height (cm)</div>
-            <input type="number" value={cHeight} onChange={e => setCHeight(e.target.value)} style={inputStyle} />
+            <input type="number" value={cHeight} onChange={e => handleHeightChange(e.target.value)} style={inputStyle} />
           </div>
           <div>
             <div style={labelStyle}>Weight (kg)</div>
-            <input type="number" value={cWeight} onChange={e => setCWeight(e.target.value)} style={inputStyle} />
+            <input type="number" value={cWeight} onChange={e => handleWeightChange(e.target.value)} style={inputStyle} />
           </div>
         </div>
 
@@ -195,7 +232,7 @@ export default function HealthCalc() {
           <div style={labelStyle}>Activity Level</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {ACTIVITY_LEVELS.map(a => (
-              <div key={a.id} onClick={() => setCActivity(a.id)} style={{
+              <div key={a.id} onClick={() => handleActivityChange(a.id)} style={{
                 padding: '10px 14px', borderRadius: '12px', cursor: 'pointer',
                 background: cActivity === a.id ? 'rgba(200,241,53,0.12)' : 'var(--bg)',
                 border: cActivity === a.id ? '1px solid var(--accent)' : '1px solid var(--border2)',
@@ -227,7 +264,7 @@ export default function HealthCalc() {
               { id: 'maintain', label: '⚖️ Maintain',    color: '#4D9FFF' },
               { id: 'muscle',   label: '💪 Build Muscle', color: '#C8F135' },
             ].map(g => (
-              <button key={g.id} onClick={() => setCGoal(g.id)} style={{
+              <button key={g.id} onClick={() => handleGoalChange(g.id)} style={{
                 flex: 1, padding: '10px 6px', borderRadius: '12px', border: 'none',
                 background: cGoal === g.id ? 'rgba(200,241,53,0.15)' : 'var(--bg3)',
                 color: cGoal === g.id ? g.color : 'var(--text3)',
@@ -294,6 +331,38 @@ export default function HealthCalc() {
               <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '10px', textAlign: 'center' }}>
                 Based on Mifflin-St Jeor formula • Adjust based on how your body responds
               </div>
+              <button 
+                onClick={async () => {
+                  if (syncProfileInfo) {
+                    await syncProfileInfo({
+                      ...profileInfo,
+                      dailyProteinTarget: Number(targetMacro.protein),
+                    });
+                    setApplySuccess(true);
+                    setTimeout(() => setApplySuccess(false), 2000);
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  marginTop: '16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: applySuccess ? '#10B981' : 'var(--accent)',
+                  color: applySuccess ? '#fff' : '#000',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  boxShadow: applySuccess ? '0 4px 15px rgba(16, 185, 129, 0.3)' : 'none',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                {applySuccess ? 'Applied successfully! ✓' : '🎯 Apply Protein Target to Daily Log'}
+              </button>
             </div>
           </>
         )}

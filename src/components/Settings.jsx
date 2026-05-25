@@ -531,7 +531,7 @@ export default function Settings({
   };
 
   return (
-    <div id="settings-content" style={{ padding: '20px' }}>
+    <div id="settings-content" style={{ padding: '0 20px 20px' }}>
       <div style={{ marginBottom: '20px' }}>
         <div className="greeting">Configuration</div>
         <div className="ai-title">Settings</div>

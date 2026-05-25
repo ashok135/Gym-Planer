@@ -35,6 +35,23 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
   const saved = DB[key] || {};
   const meta = META[key] || { mood: '', energy: 0, status: 'Completed', bw: '', start: '06:30', end: '08:10', notes: '' };
   const isSkipped = meta.status === 'Skipped';
+
+  const getHeroBgImage = () => {
+    const focusName = (plan?.label || '').toLowerCase();
+    if (focusName.includes('chest') || focusName.includes('push')) {
+      return 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?q=80&w=600&auto=format&fit=crop';
+    }
+    if (focusName.includes('back') || focusName.includes('pull')) {
+      return 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=600&auto=format&fit=crop';
+    }
+    if (focusName.includes('leg') || focusName.includes('squat')) {
+      return 'https://images.unsplash.com/photo-1434596994896-0bae009710f4?q=80&w=600&auto=format&fit=crop';
+    }
+    if (focusName.includes('abs') || focusName.includes('core')) {
+      return 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=600&auto=format&fit=crop';
+    }
+    return 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=600&auto=format&fit=crop';
+  };
   
   let currentPlanId = dow;
   if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) currentPlanId = SCHEDULE.fullTime[dow];
@@ -203,7 +220,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
   if(!plan.muscles.length) {
     return (
       <div id="today-content">
-        <div className="rest-card">
+        <div className="rest-card scroll-reveal">
           <div className="rest-icon">🛌</div>
           <div className="rest-title">Rest day</div>
           <div className="rest-sub">Recovery is part of the process. Come back tomorrow.</div>
@@ -213,8 +230,21 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
   }
 
   return (
-    <div id="today-content" style={{padding:'20px 0'}}>
-      <div className="workout-hero">
+    <div id="today-content" style={{padding:'0 0 20px'}}>
+      <div 
+        className="workout-hero scroll-reveal" 
+        style={{
+          backgroundImage: `linear-gradient(to right, rgba(18, 18, 20, 0.95) 40%, rgba(18, 18, 20, 0.5) 100%), url(${getHeroBgImage()})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          minHeight: '130px'
+        }}
+      >
         <div className="workout-type">{DAYS_FULL[dow]}</div>
         <div className="workout-name">{showFullBody ? 'Full Body' : (plan.label + (showAbs ? ' & Abs' : '') + (showProgressive ? ' & Progressive' : ''))}</div>
         <div className="workout-meta">
@@ -247,7 +277,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
         if(m.name === 'FullBody' && showFullBody) {
           return (
             <React.Fragment key="fullbody-wrapper">
-              <div className="muscle-block" key="fullbody-header" style={{ opacity: isSkipped ? 0.5 : 1 }}>
+              <div className="muscle-block scroll-reveal" key="fullbody-header" style={{ opacity: isSkipped ? 0.5 : 1 }}>
                 <div className="muscle-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                   <div style={{display:'flex', alignItems:'center'}}>
                     <div className="muscle-dot" style={{background:'var(--accent)'}}></div>
@@ -257,7 +287,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
                 </div>
               </div>
               {FULL_BODY_MUSCLES.map(fm => (
-                <div className="muscle-block" key={`fb-${fm.name}`} style={{ opacity: isSkipped ? 0.5 : 1, marginTop: '4px' }}>
+                <div className="muscle-block scroll-reveal" key={`fb-${fm.name}`} style={{ opacity: isSkipped ? 0.5 : 1, marginTop: '4px' }}>
                   <div className="muscle-header" style={{display:'flex', alignItems:'center'}}>
                     <div className="muscle-dot"></div>
                     <div className="muscle-name" style={{fontSize:'13px'}}>{fm.name}</div>
@@ -294,7 +324,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
         }
 
         return (
-          <div className="muscle-block" key={m.name} style={{ opacity: isSkipped ? 0.5 : 1 }}>
+          <div className="muscle-block scroll-reveal" key={m.name} style={{ opacity: isSkipped ? 0.5 : 1 }}>
             <div className="muscle-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
               <div style={{display:'flex', alignItems:'center'}}><div className="muscle-dot"></div><div className="muscle-name">{m.name}</div></div>
               {(m.name === 'Abs' || m.name === 'Progressive') && (
