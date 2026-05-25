@@ -208,12 +208,14 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
           <div className="modal-sub">{plan.label}{hasAbs ? ' & Abs' : ''}{hasProgressive ? ' & Progressive' : ''} · {vol ? vol.toLocaleString()+' kg total' : 'No volume logged'}</div>
           
           <div style={{ flex: '1 1 auto', maxHeight: '60vh', overflowY: 'auto', paddingRight: '4px', marginTop: '12px', WebkitOverflowScrolling: 'touch' }}>
-            {(meta.notes || meta.bw || meta.start || meta.mood !== undefined || meta.energy !== undefined) && (
+            {(meta.notes || meta.bw || meta.start || (!isRestDay && (meta.status === 'Skipped' || meta.mood !== undefined || meta.energy !== undefined))) && (
               <div style={{background:'var(--bg3)',padding:'14px',borderRadius:'12px',marginBottom:'16px',fontSize:'12px',color:'var(--text2)', display:'flex', flexDirection:'column', gap:'8px'}}>
                 {meta.start && <div>⏱️ Time: {meta.start} - {meta.end||'?'}</div>}
                 {meta.bw && <div>⚖️ Bodyweight: {meta.bw} kg</div>}
-                {meta.mood !== undefined && (() => {
-                  const stage = getMoodStage(meta.mood, moodEnergyConfig);
+                {!isRestDay && (meta.status === 'Skipped' || meta.mood !== undefined) && (() => {
+                  const moodVal = meta.status === 'Skipped' ? 0 : meta.mood;
+                  const stage = getMoodStage(moodVal, moodEnergyConfig);
+                  const lvl = meta.status === 'Skipped' ? 1 : getStageIdx(moodVal) + 1;
                   return (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ color: 'var(--text3)' }}>Mood:</span>
@@ -223,12 +225,14 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                         style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${stage.color}` }}
                         onError={e => { e.target.style.display = 'none'; }}
                       />
-                      <span style={{ color: stage.color }}>{stage.label} <span style={{ color: 'var(--text3)', fontSize: '11px', fontWeight: 300 }}>({getStageIdx(meta.mood) + 1}/5)</span></span>
+                      <span style={{ color: stage.color }}>{stage.label} <span style={{ color: 'var(--text3)', fontSize: '11px', fontWeight: 300 }}>({lvl}/5)</span></span>
                     </div>
                   );
                 })()}
-                {meta.energy !== undefined && (() => {
-                  const stage = getEnergyStage(meta.energy, moodEnergyConfig);
+                {!isRestDay && (meta.status === 'Skipped' || meta.energy !== undefined) && (() => {
+                  const energyVal = meta.status === 'Skipped' ? 0 : meta.energy;
+                  const stage = getEnergyStage(energyVal, moodEnergyConfig);
+                  const lvl = meta.status === 'Skipped' ? 1 : getStageIdx(energyVal) + 1;
                   return (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ color: 'var(--text3)' }}>Energy:</span>
@@ -238,7 +242,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                         style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${stage.color}` }}
                         onError={e => { e.target.style.display = 'none'; }}
                       />
-                      <span style={{ color: stage.color }}>{stage.label} <span style={{ color: 'var(--text3)', fontSize: '11px', fontWeight: 300 }}>({getStageIdx(meta.energy) + 1}/5)</span></span>
+                      <span style={{ color: stage.color }}>{stage.label} <span style={{ color: 'var(--text3)', fontSize: '11px', fontWeight: 300 }}>({lvl}/5)</span></span>
                     </div>
                   );
                 })()}
@@ -345,7 +349,7 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                 <div className="hday-date" style={{ fontSize: '16px', fontWeight: 800 }}>
                   {day.isToday ? 'Today — ' : ''}{DAYS_SHORT[day.dow]}, {day.d} {MONTHS[month.mo].slice(0,3)}
                   {/* Rest Day badge */}
-                  {day.isRestDay && !day.meta.status && (
+                  {day.isRestDay ? (
                     <span className="hday-status" style={{
                       fontSize: '11px', marginLeft: '8px',
                       color: '#A78BFA',
@@ -354,54 +358,59 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                     }}>
                       😴 Rest Day
                     </span>
+                  ) : (
+                    <>
+                      {day.meta.status && (
+                        <span className="hday-status" style={{ 
+                          fontSize: '11px', 
+                          marginLeft: '8px', 
+                          color: day.meta.status === 'Skipped' ? 'var(--red)' : 'var(--accent)',
+                          background: day.meta.status === 'Skipped' ? 'rgba(255, 77, 77, 0.1)' : 'rgba(200, 241, 53, 0.1)',
+                          border: day.meta.status === 'Skipped' ? '1px solid rgba(255, 77, 77, 0.2)' : '1px solid rgba(200, 241, 53, 0.2)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          verticalAlign: 'middle',
+                          height: '18px',
+                          padding: '0 8px',
+                          borderRadius: '99px'
+                        }}>
+                          {day.meta.status}
+                        </span>
+                      )}
+                      {(day.meta.status === 'Skipped' || day.meta.mood !== undefined) && (() => {
+                        const moodVal = day.meta.status === 'Skipped' ? 0 : day.meta.mood;
+                        const stage = getMoodStage(moodVal, moodEnergyConfig);
+                        const lvl = day.meta.status === 'Skipped' ? 1 : getStageIdx(moodVal) + 1;
+                        return (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle', gap: '3px' }} title={`${stage.label} (${lvl}/5)`}>
+                            <img 
+                              src={stage.img} 
+                              alt="" 
+                              style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${stage.color}`, display: 'block' }}
+                              onError={e => { e.target.style.display = 'none'; }}
+                            />
+                            <span style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 400 }}>{lvl}/5</span>
+                          </span>
+                        );
+                      })()}
+                      {(day.meta.status === 'Skipped' || day.meta.energy !== undefined) && (() => {
+                        const energyVal = day.meta.status === 'Skipped' ? 0 : day.meta.energy;
+                        const stage = getEnergyStage(energyVal, moodEnergyConfig);
+                        const lvl = day.meta.status === 'Skipped' ? 1 : getStageIdx(energyVal) + 1;
+                        return (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle', gap: '3px' }} title={`${stage.label} (${lvl}/5)`}>
+                            <img 
+                              src={stage.img} 
+                              alt="" 
+                              style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${stage.color}`, display: 'block' }}
+                              onError={e => { e.target.style.display = 'none'; }}
+                            />
+                            <span style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 400 }}>{lvl}/5</span>
+                          </span>
+                        );
+                      })()}
+                    </>
                   )}
-                  {day.meta.status && (
-                    <span className="hday-status" style={{ 
-                      fontSize: '11px', 
-                      marginLeft: '8px', 
-                      color: day.meta.status === 'Skipped' ? 'var(--red)' : 'var(--accent)',
-                      background: day.meta.status === 'Skipped' ? 'rgba(255, 77, 77, 0.1)' : 'rgba(200, 241, 53, 0.1)',
-                      border: day.meta.status === 'Skipped' ? '1px solid rgba(255, 77, 77, 0.2)' : '1px solid rgba(200, 241, 53, 0.2)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      verticalAlign: 'middle',
-                      height: '18px',
-                      padding: '0 8px',
-                      borderRadius: '99px'
-                    }}>
-                      {day.meta.status}
-                    </span>
-                  )}
-                  {day.meta.mood !== undefined && (() => {
-                    const stage = getMoodStage(day.meta.mood, moodEnergyConfig);
-                    const lvl = getStageIdx(day.meta.mood) + 1;
-                    return (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle', gap: '3px' }} title={`${stage.label} (${lvl}/5)`}>
-                        <img 
-                          src={stage.img} 
-                          alt="" 
-                          style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${stage.color}`, display: 'block' }}
-                          onError={e => { e.target.style.display = 'none'; }}
-                        />
-                        <span style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 400 }}>{lvl}/5</span>
-                      </span>
-                    );
-                  })()}
-                  {day.meta.energy !== undefined && (() => {
-                    const stage = getEnergyStage(day.meta.energy, moodEnergyConfig);
-                    const lvl = getStageIdx(day.meta.energy) + 1;
-                    return (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '6px', verticalAlign: 'middle', gap: '3px' }} title={`${stage.label} (${lvl}/5)`}>
-                        <img 
-                          src={stage.img} 
-                          alt="" 
-                          style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${stage.color}`, display: 'block' }}
-                          onError={e => { e.target.style.display = 'none'; }}
-                        />
-                        <span style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 400 }}>{lvl}/5</span>
-                      </span>
-                    );
-                  })()}
                 </div>
                 <div style={{textAlign:'right'}}>
                   {day.vol > 0 && <div className="hday-vol" style={{ fontSize: '18px', fontWeight: 900 }}>{day.vol.toLocaleString()} <span style={{fontSize:'12px', fontWeight: 400}}>kg</span></div>}
