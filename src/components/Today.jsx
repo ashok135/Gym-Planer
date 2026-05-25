@@ -65,6 +65,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
   const [renameBox, setRenameBox] = useState(null);
   const [renameInput, setRenameInput] = useState('');
   const [saveMsg, setSaveMsg] = useState(false);
+  const [showExtrasMenu, setShowExtrasMenu] = useState(false);
   const [showAbs, setShowAbs] = useState(() => {
     return meta.absEnabled || Object.keys(saved).some(k => k.startsWith('Abs_'));
   });
@@ -231,28 +232,15 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
         }
 
         if(m.name === 'Abs' && !showAbs) {
-          return (
-            <div className="muscle-block" key={m.name} onClick={() => !isSkipped && addAbs()} style={{cursor: isSkipped ? 'not-allowed' : 'pointer', opacity: isSkipped ? 0.4 : 0.8, textAlign: 'center', padding: '16px', background: 'var(--bg3)', borderRadius: 'var(--radius)', border: '1px dashed var(--border2)'}}>
-              <div style={{fontSize: '12px', fontWeight: 600, color: 'var(--text2)', letterSpacing: '0.1em'}}>+ ADD ABS WORKOUT</div>
-            </div>
-          );
+          return null;
         }
 
         if(m.name === 'Progressive' && !showProgressive) {
-          return (
-            <div className="muscle-block" key={m.name} onClick={() => !isSkipped && addProgressive()} style={{cursor: isSkipped ? 'not-allowed' : 'pointer', opacity: isSkipped ? 0.4 : 0.8, textAlign: 'center', padding: '16px', background: 'var(--bg3)', borderRadius: 'var(--radius)', border: '1px dashed var(--border2)', marginTop: '8px'}}>
-              <div style={{fontSize: '12px', fontWeight: 600, color: 'var(--text2)', letterSpacing: '0.1em'}}>+ ADD PROGRESSIVE WORKOUT</div>
-            </div>
-          );
+          return null;
         }
 
         if(m.name === 'FullBody' && !showFullBody) {
-          return (
-            <div className="muscle-block" key={m.name} onClick={() => !isSkipped && addFullBody()} style={{cursor: isSkipped ? 'not-allowed' : 'pointer', opacity: isSkipped ? 0.4 : 0.8, textAlign: 'center', padding: '16px', background: 'var(--bg3)', borderRadius: 'var(--radius)', border: '1px dashed var(--accent)', marginTop: '8px'}}>
-              <div style={{fontSize: '12px', fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.1em'}}>💪 ADD FULL BODY WORKOUT</div>
-              <div style={{fontSize: '10px', color: 'var(--text3)', marginTop: '4px'}}>2 exercises · 6 muscle groups · After long break</div>
-            </div>
-          );
+          return null;
         }
 
         // Render Full Body expanded muscles inline
@@ -341,6 +329,113 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
           </div>
         );
       })}
+
+      {/* ⚡ EXTRA ROUTINES SELECTOR */}
+      {(!showAbs || !showProgressive || !showFullBody) && (
+        <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', margin: '8px 0 24px 0' }}>
+          <button
+            onClick={() => !isSkipped && setShowExtrasMenu(!showExtrasMenu)}
+            disabled={isSkipped}
+            style={{
+              background: 'var(--bg3)',
+              border: '1px solid var(--border2)',
+              borderRadius: '20px',
+              color: 'var(--text2)',
+              padding: '8px 18px',
+              fontSize: '12px',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: isSkipped ? 'not-allowed' : 'pointer',
+              opacity: isSkipped ? 0.4 : 0.9,
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={e => !isSkipped && (e.currentTarget.style.borderColor = 'var(--accent)')}
+            onMouseLeave={e => !isSkipped && (e.currentTarget.style.borderColor = 'var(--border2)')}
+          >
+            <span>⚡ Add Extra Routine</span>
+            <span style={{ fontSize: '9px', opacity: 0.7 }}>{showExtrasMenu ? '▲' : '▼'}</span>
+          </button>
+
+          {showExtrasMenu && (
+            <div style={{
+              position: 'absolute',
+              bottom: '42px',
+              background: 'rgba(25, 25, 25, 0.95)',
+              border: '1px solid var(--border2)',
+              borderRadius: '16px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+              backdropFilter: 'blur(10px)',
+              padding: '6px',
+              zIndex: 100,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              width: '180px'
+            }}>
+              {!showAbs && (
+                <div 
+                  onClick={() => { addAbs(); setShowExtrasMenu(false); }}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    fontSize: '12px',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    textAlign: 'left'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  ➕ Add Abs Workout
+                </div>
+              )}
+              {!showProgressive && (
+                <div 
+                  onClick={() => { addProgressive(); setShowExtrasMenu(false); }}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    fontSize: '12px',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    textAlign: 'left'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  ⚡ Add Progressive
+                </div>
+              )}
+              {!showFullBody && (
+                <div 
+                  onClick={() => { addFullBody(); setShowExtrasMenu(false); }}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    fontSize: '12px',
+                    color: 'var(--accent)',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    textAlign: 'left',
+                    borderTop: '1px solid rgba(255,255,255,0.03)',
+                    marginTop: '2px',
+                    paddingTop: '10px'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(200,241,53,0.08)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  💪 Add Full Body Extra
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="save-area">
         <button 
