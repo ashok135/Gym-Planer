@@ -125,6 +125,44 @@ export default function App() {
 
 
 
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    const handleStatusEvent = (e) => {
+      const status = e.detail; // 'Completed', 'Partial', 'Skipped'
+      let config = {
+        Completed: "Super, Vera level! 💪 Today's workout is complete, you are absolutely crushing it!",
+        Partial: "Paravala, half workout is better than no workout! 👍 Keep moving!",
+        Skipped: "Enna ya achu? Somaari! Are you ashamed? 💀 Let's get back to it tomorrow!"
+      };
+      try {
+        const saved = JSON.parse(localStorage.getItem('gstatus_responses_config'));
+        if (saved) {
+          config = { ...config, ...saved };
+        }
+      } catch (err) {
+        console.error(err);
+      }
+      
+      const message = config[status];
+      if (message) {
+        setToast({ message, status });
+      }
+    };
+
+    window.addEventListener('workoutStatusChanged', handleStatusEvent);
+    return () => window.removeEventListener('workoutStatusChanged', handleStatusEvent);
+  }, []);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   useEffect(() => {
     const handleStorage = () => {
       setAiEnabled(localStorage.getItem('ai_enabled') === 'true');
@@ -530,6 +568,69 @@ export default function App() {
       </div>
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} showNav={showNav} />
       {aiEnabled && <AIChat DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} syncAiSettings={syncAiSettings} profileInfo={profileInfo} workoutPlans={workoutPlans} />}
+      {toast && (
+        <div 
+          className="lucy-snackbar"
+          style={{
+            position: 'fixed',
+            top: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(15, 23, 42, 0.95)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: `1px solid ${
+              toast.status === 'Completed' ? '#10B981' : (toast.status === 'Partial' ? 'var(--accent)' : 'var(--red)')
+            }`,
+            borderRadius: '14px',
+            padding: '14px 20px',
+            color: 'var(--text)',
+            boxShadow: '0 16px 36px rgba(0,0,0,0.4), 0 0 15px rgba(255,255,255,0.02)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            maxWidth: '90%',
+            width: '360px',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <div style={{ 
+              fontSize: '10px', 
+              fontWeight: 800, 
+              color: toast.status === 'Completed' ? '#10B981' : (toast.status === 'Partial' ? 'var(--accent)' : 'var(--red)'), 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.08em',
+              marginBottom: '4px'
+            }}>
+              Coach Lucy Reacts
+            </div>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text2)', lineHeight: 1.4 }}>
+              {toast.message}
+            </div>
+          </div>
+          
+          <button 
+            onClick={() => setToast(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text3)',
+              cursor: 'pointer',
+              fontSize: '16px',
+              padding: '2px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              outline: 'none',
+              marginLeft: '6px'
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <PWAInstallPrompt />
     </div>
   );
