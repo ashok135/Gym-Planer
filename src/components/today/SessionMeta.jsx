@@ -1,82 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import {
+  DEFAULT_MOOD_STAGES,
+  DEFAULT_ENERGY_STAGES,
+  loadMoodEnergyConfig,
+} from '../settings/MoodEnergySettings';
 
-/* ─── MOOD: Local cat meme images (0=sad → 4=IDGAF legend) ─── */
-const MOOD_STAGES = [
-  {
-    img: '/cats/cat1.jpg',
-    label: '💀 I cannot even...',
-    color: '#888888',
-    filter: 'grayscale(40%) brightness(0.8)',
-    animation: 'catCry 1.8s ease-in-out infinite alternate',
-  },
-  {
-    img: '/cats/cat2.jpg',
-    label: '😂 Dying inside lol',
-    color: '#aaaaaa',
-    filter: 'brightness(0.9)',
-    animation: 'none',
-  },
-  {
-    img: '/cats/cat3.jpg',
-    label: '😤 Do not talk to me',
-    color: '#c8c8cc',
-    filter: 'none',
-    animation: 'none',
-  },
-  {
-    img: '/cats/cat4.jpg',
-    label: '😎 Too cool for this',
-    color: '#c8f135',
-    filter: 'brightness(1.05) saturate(1.1)',
-    animation: 'none',
-  },
-  {
-    img: '/cats/cat5.jpg',
-    label: "🔥 ABSOLUTE LEGEND — DON'T CARE",
-    color: '#ff6b35',
-    filter: 'brightness(1.15) saturate(1.3)',
-    animation: 'catHype 0.5s ease-in-out infinite alternate',
-  },
-];
-
-/* ─── ENERGY: One Piece power level (Luffy dead → Gear 5 GOD) ─── */
-const ENERGY_STAGES = [
-  {
-    img: '/power/power1.png',
-    label: '💀 Send a medic NOW',
-    color: '#888888',
-    filter: 'grayscale(50%) brightness(0.7)',
-    animation: 'powerDead 2s ease-in-out infinite alternate',
-  },
-  {
-    img: '/power/power2.jpg',
-    label: '😩 Running on nothing...',
-    color: '#aaaaaa',
-    filter: 'grayscale(20%) brightness(0.85)',
-    animation: 'none',
-  },
-  {
-    img: '/power/power3.jpg',
-    label: "😄 Let's gooo!",
-    color: '#c8c8cc',
-    filter: 'brightness(1.05)',
-    animation: 'none',
-  },
-  {
-    img: '/power/power4.jpg',
-    label: '😤 ZORO MODE — Nothing can stop me',
-    color: '#c8f135',
-    filter: 'brightness(1.1) saturate(1.3)',
-    animation: 'none',
-  },
-  {
-    img: '/power/power5.jpg',
-    label: '⚡ GEAR 5 — I AM INEVITABLE ⚡',
-    color: '#ff6b35',
-    filter: 'brightness(1.25) saturate(1.6)',
-    animation: 'gear5Shake 0.2s ease-in-out infinite alternate',
-  },
-];
+/* ─── Animation config (based on stage index, not stored in localStorage) ─── */
+const MOOD_ANIMS   = ['catCry 1.8s ease-in-out infinite alternate', 'none', 'none', 'none', 'catHype 0.5s ease-in-out infinite alternate'];
+const ENERGY_ANIMS = ['powerDead 2s ease-in-out infinite alternate', 'none', 'none', 'none', 'gear5Shake 0.2s ease-in-out infinite alternate'];
+const MOOD_FILTERS   = ['grayscale(40%) brightness(0.8)', 'brightness(0.9)', 'none', 'brightness(1.05) saturate(1.1)', 'brightness(1.15) saturate(1.3)'];
+const ENERGY_FILTERS = ['grayscale(50%) brightness(0.7)', 'grayscale(20%) brightness(0.85)', 'brightness(1.05)', 'brightness(1.1) saturate(1.3)', 'brightness(1.25) saturate(1.6)'];
 
 /* ─── Map 0-100 slider value → stage index (0..4) ─── */
 function getStageIdx(value) {
@@ -87,19 +20,15 @@ function getStageIdx(value) {
   return 4;
 }
 
-/* ─── How far through current stage (0..1) for crossfade ─── */
-function getStageProgress(value) {
-  const band = 20;
-  return ((value % band) || (value === 100 ? band : 0)) / band;
-}
-
 /* ─── The animated image display — ONE image at a time, fades on stage change ─── */
-function StageDisplay({ value, stages }) {
+function StageDisplay({ value, stages, anims, filters }) {
   const idx = getStageIdx(value);
   const stage = stages[idx];
+  const anim = anims[idx];
+  const filter = filters[idx];
 
-  const animStr = stage.animation && stage.animation !== 'none'
-    ? `stageFadeIn 0.35s ease forwards, ${stage.animation}`
+  const animStr = anim && anim !== 'none'
+    ? `stageFadeIn 0.35s ease forwards, ${anim}`
     : 'stageFadeIn 0.35s ease forwards';
 
   return (
@@ -109,41 +38,6 @@ function StageDisplay({ value, stages }) {
           from { opacity: 0; transform: scale(0.9); }
           to   { opacity: 1; transform: scale(1); }
         }
-      `}</style>
-      {/* key on the wrapper forces React to remount when stage changes → clean fade-in */}
-      <div key={idx} style={{ position: 'absolute', inset: 0 }}>
-        <img
-          src={stage.img}
-          alt=""
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            borderRadius: '50%',
-            border: `3px solid ${stage.color}`,
-            filter: stage.filter,
-            animation: animStr,
-            boxShadow: value > 60 ? `0 0 ${Math.round(value * 0.22)}px ${stage.color}55` : 'none',
-            transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
-            userSelect: 'none',
-            pointerEvents: 'none',
-            display: 'block',
-          }}
-          onError={e => { e.target.style.opacity = 0; }}
-        />
-      </div>
-    </div>
-  );
-}
-
-/* ─── Single animated slider card ─── */
-function MemeSlider({ id, value, onChange, disabled, stages, bottomLeft, bottomRight }) {
-  const idx = getStageIdx(value);
-  const stage = stages[idx];
-
-  return (
-    <div style={{ padding: '2px 0' }}>
-      <style>{`
         @keyframes catCry {
           from { transform: scale(0.95) rotate(-3deg) translateY(2px); }
           to   { transform: scale(0.98) rotate(-1deg) translateY(-1px); }
@@ -160,6 +54,41 @@ function MemeSlider({ id, value, onChange, disabled, stages, bottomLeft, bottomR
           from { transform: scale(1.06) rotate(-4deg) translateX(-2px); }
           to   { transform: scale(1.11) rotate(4deg) translateX(2px); }
         }
+      `}</style>
+      {/* key on wrapper forces React to remount on stage change → clean fade-in, no mixing */}
+      <div key={idx} style={{ position: 'absolute', inset: 0 }}>
+        <img
+          src={stage.img}
+          alt=""
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            borderRadius: '50%',
+            border: `3px solid ${stage.color}`,
+            filter,
+            animation: animStr,
+            boxShadow: value > 60 ? `0 0 ${Math.round(value * 0.22)}px ${stage.color}55` : 'none',
+            transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+            userSelect: 'none',
+            pointerEvents: 'none',
+            display: 'block',
+          }}
+          onError={e => { e.target.style.opacity = 0; }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Single animated slider card ─── */
+function MemeSlider({ id, value, onChange, disabled, stages, anims, filters, bottomLeft, bottomRight }) {
+  const idx = getStageIdx(value);
+  const stage = stages[idx];
+
+  return (
+    <div style={{ padding: '2px 0' }}>
+      <style>{`
         .meme-range {
           -webkit-appearance: none;
           appearance: none;
@@ -193,7 +122,7 @@ function MemeSlider({ id, value, onChange, disabled, stages, bottomLeft, bottomR
 
       {/* Image display */}
       <div style={{ marginBottom: '10px' }}>
-        <StageDisplay value={value} stages={stages} />
+        <StageDisplay value={value} stages={stages} anims={anims} filters={filters} />
       </div>
 
       {/* Meme label */}
@@ -238,6 +167,27 @@ function MemeSlider({ id, value, onChange, disabled, stages, bottomLeft, bottomR
 
 /* ─── Main SessionMeta export ─── */
 export default function SessionMeta({ meta, isSkipped, handleMetaChange }) {
+  // Load config from localStorage (user-customised labels + images)
+  const [moodStages, setMoodStages] = useState(() => {
+    const cfg = loadMoodEnergyConfig();
+    return cfg?.mood || DEFAULT_MOOD_STAGES;
+  });
+  const [energyStages, setEnergyStages] = useState(() => {
+    const cfg = loadMoodEnergyConfig();
+    return cfg?.energy || DEFAULT_ENERGY_STAGES;
+  });
+
+  // Listen for config updates from Settings page
+  useEffect(() => {
+    const refresh = () => {
+      const cfg = loadMoodEnergyConfig();
+      if (cfg?.mood) setMoodStages(cfg.mood);
+      if (cfg?.energy) setEnergyStages(cfg.energy);
+    };
+    window.addEventListener('moodEnergyConfigUpdated', refresh);
+    return () => window.removeEventListener('moodEnergyConfigUpdated', refresh);
+  }, []);
+
   // Support both old emoji mood and new numeric mood
   const MOOD_EMOJI_MAP = { '😴': 5, '😐': 25, '🙂': 55, '🔥': 80, '💪': 100 };
   const rawMood = meta.mood;
@@ -265,7 +215,7 @@ export default function SessionMeta({ meta, isSkipped, handleMetaChange }) {
         </div>
         <div className="meta-group">
           <div className="meta-label">Body Weight (kg)</div>
-          <input type="number" step="0.1" className="meta-input" value={meta.bw || ''} onChange={e => handleMetaChange('bw', e.target.value)} placeholder="e.g. 75.5" disabled={isSkipped} />
+          <input type="number" step="0.1" className="meta-input" value={meta.bw || ''} onChange={e => handleMetaChange('bw', e.target.value)} placeholder="75.5" disabled={isSkipped} />
         </div>
         <div className="meta-group">
           <div className="meta-label">Start Time</div>
@@ -289,18 +239,14 @@ export default function SessionMeta({ meta, isSkipped, handleMetaChange }) {
           pointerEvents: isSkipped ? 'none' : 'auto',
         }}
       >
-        {/* MOOD — Cat slider */}
+        {/* MOOD */}
         <div style={{
           background: 'var(--bg3)',
           border: '1px solid var(--border2)',
           borderRadius: '16px',
           padding: '14px 12px',
         }}>
-          <div style={{
-            fontSize: '11px', color: 'var(--text2)',
-            textTransform: 'uppercase', letterSpacing: '0.1em',
-            textAlign: 'center', marginBottom: '10px',
-          }}>
+          <div style={{ fontSize: '11px', color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'center', marginBottom: '10px' }}>
             Mood
           </div>
           <MemeSlider
@@ -308,24 +254,22 @@ export default function SessionMeta({ meta, isSkipped, handleMetaChange }) {
             value={moodVal}
             onChange={v => handleMetaChange('mood', v)}
             disabled={isSkipped}
-            stages={MOOD_STAGES}
+            stages={moodStages}
+            anims={MOOD_ANIMS}
+            filters={MOOD_FILTERS}
             bottomLeft="💀 Dead"
             bottomRight="🔥 Legend"
           />
         </div>
 
-        {/* ENERGY — One Piece power slider */}
+        {/* ENERGY */}
         <div style={{
           background: 'var(--bg3)',
           border: '1px solid var(--border2)',
           borderRadius: '16px',
           padding: '14px 12px',
         }}>
-          <div style={{
-            fontSize: '11px', color: 'var(--text2)',
-            textTransform: 'uppercase', letterSpacing: '0.1em',
-            textAlign: 'center', marginBottom: '10px',
-          }}>
+          <div style={{ fontSize: '11px', color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'center', marginBottom: '10px' }}>
             Energy
           </div>
           <MemeSlider
@@ -333,7 +277,9 @@ export default function SessionMeta({ meta, isSkipped, handleMetaChange }) {
             value={energyVal}
             onChange={v => handleMetaChange('energy', v)}
             disabled={isSkipped}
-            stages={ENERGY_STAGES}
+            stages={energyStages}
+            anims={ENERGY_ANIMS}
+            filters={ENERGY_FILTERS}
             bottomLeft="💀 Empty"
             bottomRight="⚡ Gear 5"
           />

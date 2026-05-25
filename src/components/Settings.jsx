@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { DEFAULT_PLAN, DAYS_FULL, DAYS_SHORT, DEFAULT_DIET_PLAN, MONTHS, dateKey, EXERCISE_GIFS } from '../data';
-import { Beaker, Calendar, Dumbbell, Utensils, Wallet, BookOpen, Database, Download } from 'lucide-react';
+import { Beaker, Calendar, Dumbbell, Utensils, Wallet, BookOpen, Database, Download, Smile, Zap } from 'lucide-react';
 import { generateSeedData } from '../utils/seeder';
 import Accordion from './shared/Accordion';
 import ProfileSettings from './settings/ProfileSettings';
 import AISettings from './settings/AISettings';
 import DietPlanBuilder from './diet/DietPlanBuilder';
+import MoodEnergySettings from './settings/MoodEnergySettings';
 
 
 export default function Settings({ 
@@ -816,6 +817,16 @@ export default function Settings({
             </button>
           </>
         )}
+      </Accordion>
+
+      {/* ─── MOOD & ENERGY CUSTOMISATION ─── */}
+      <Accordion title={
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Smile size={16} color="#c8f135" />
+          <span>Mood &amp; Energy Slider</span>
+        </span>
+      }>
+        <MoodEnergySettings />
       </Accordion>
 
       {/* LOGOUT */}
