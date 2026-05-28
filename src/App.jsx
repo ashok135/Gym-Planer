@@ -476,7 +476,6 @@ export default function App() {
     return (
       <div className="screen active">
         <div className="auth-box">
-          <div style={{fontSize: '40px', marginBottom: '10px'}}>💪</div>
           <div className="auth-title">LifeTraker Pro</div>
           <div className="auth-sub">Cloud sync your workouts</div>
           <form onSubmit={handleAuth}>

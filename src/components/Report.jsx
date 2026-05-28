@@ -602,7 +602,7 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
 
           <div style={{marginTop: '40px'}}>
             <div className="dash-val" style={{fontSize: '18px', marginBottom: '16px'}}>Workout History</div>
-            <History DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} />
+            <History DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} workoutPlans={workoutPlans} />
           </div>
           <div style={{height:'40px'}}></div>
         </div>

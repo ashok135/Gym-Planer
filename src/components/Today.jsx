@@ -57,6 +57,14 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
   if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) currentPlanId = SCHEDULE.fullTime[dow];
   if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[key] !== undefined) currentPlanId = SCHEDULE.thisWeek[key];
 
+  const fullBodySplit = Array.isArray(workoutPlans) 
+    ? workoutPlans.find(p => p.id === 7) 
+    : workoutPlans?.[7];
+  
+  const fullBodyMuscles = (fullBodySplit && fullBodySplit.muscles && fullBodySplit.muscles.length > 0) 
+    ? fullBodySplit.muscles 
+    : FULL_BODY_MUSCLES;
+
   // Create deep copy of plan
   const plan = JSON.parse(JSON.stringify(workoutPlans[currentPlanId] || workoutPlans[0]));
   plan.muscles.push({
@@ -103,11 +111,11 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
   });
 
   const activeExerciseCount = activeMuscles.reduce((s, m) => {
-    if (m.name === 'FullBody') return s + FULL_BODY_MUSCLES.reduce((a, fm) => a + fm.exercises.length, 0);
+    if (m.name === 'FullBody') return s + fullBodyMuscles.reduce((a, fm) => a + fm.exercises.length, 0);
     return s + m.exercises.length;
   }, 0);
   const activeMuscleCount = activeMuscles.reduce((s, m) => {
-    if (m.name === 'FullBody') return s + FULL_BODY_MUSCLES.length;
+    if (m.name === 'FullBody') return s + fullBodyMuscles.length;
     return s + 1;
   }, 0);
 
@@ -286,7 +294,7 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
                   <button onClick={() => !isSkipped && removeFullBody()} disabled={isSkipped} style={{background:'transparent', border:'none', color:'var(--red)', fontSize:'12px', fontWeight:'bold', cursor: isSkipped ? 'not-allowed' : 'pointer', padding:'4px 8px'}}>REMOVE</button>
                 </div>
               </div>
-              {FULL_BODY_MUSCLES.map(fm => (
+              {fullBodyMuscles.map(fm => (
                 <div className="muscle-block scroll-reveal" key={`fb-${fm.name}`} style={{ opacity: isSkipped ? 0.5 : 1, marginTop: '4px' }}>
                   <div className="muscle-header" style={{display:'flex', alignItems:'center'}}>
                     <div className="muscle-dot"></div>
@@ -296,10 +304,14 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
                     const ek = `FullBodyMuscle_${fm.name}_${i}`;
                     const sv = saved[ek] || {};
                     const prev = getPrevStats(ek) || {};
+                    
+                    const customKey = `7_${fm.name}_${i}`;
+                    const displayName = sv.customName || NAMES[customKey] || ex;
+                    
                     return (
                       <ExerciseCard
                         key={ek}
-                        ex={ex}
+                        ex={displayName}
                         ek={ek}
                         sv={sv}
                         prev={prev}

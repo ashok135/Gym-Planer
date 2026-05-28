@@ -32,7 +32,7 @@ function getEnergyStage(value, config) {
   return stages[idx];
 }
 
-export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
+export default function History({ DB, NAMES, META, FOOD, SCHEDULE, workoutPlans }) {
   const [modalDk, setModalDk] = useState(null);
   const [limit, setLimit] = useState(20);
   const [historyStart, setHistoryStart] = useState('');
@@ -157,14 +157,20 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
     // Override plan display for Full Body days
     if (hasFullBody) {
       plan.label = 'Full Body 💪';
-      plan.muscles = [
-        {name:'Chest',exercises:['Barbell Bench Press','Cable Chest Fly']},
-        {name:'Back',exercises:['Lat Pulldown','Bent Over Barbell Row']},
-        {name:'Legs',exercises:['Barbell Squat','Leg Press']},
-        {name:'Shoulders',exercises:['Overhead Press','Dumbbell Lateral Raise']},
-        {name:'Biceps',exercises:['Barbell Curl','Hammer Curl']},
-        {name:'Triceps',exercises:['Tricep Pushdown','Diamond Push-ups']}
-      ];
+      const fullBodySplit = Array.isArray(workoutPlans) 
+        ? workoutPlans.find(p => p.id === 7) 
+        : workoutPlans?.[7];
+      const fullBodyMuscles = (fullBodySplit && fullBodySplit.muscles && fullBodySplit.muscles.length > 0) 
+        ? fullBodySplit.muscles 
+        : [
+            {name:'Chest',exercises:['Barbell Bench Press','Cable Chest Fly']},
+            {name:'Back',exercises:['Lat Pulldown','Bent Over Barbell Row']},
+            {name:'Legs',exercises:['Barbell Squat','Leg Press']},
+            {name:'Shoulders',exercises:['Overhead Press','Dumbbell Lateral Raise']},
+            {name:'Biceps',exercises:['Barbell Curl','Hammer Curl']},
+            {name:'Triceps',exercises:['Tricep Pushdown','Diamond Push-ups']}
+          ];
+      plan.muscles = JSON.parse(JSON.stringify(fullBodyMuscles));
       // Remap exercise keys to FullBodyMuscle_ prefix for lookup
       plan.muscles.forEach(m => {
         m._prefix = 'FullBodyMuscle_';
@@ -264,7 +270,8 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE }) {
                     if(!hasVol && isDone === undefined) return null;
                     
                     const v = hasVol ? Math.round(sv.s * sv.r * sv.w) : '—';
-                    const nameStr = NAMES[`${currentPlanId}_${m.name}_${i}`] || ex;
+                    const renameKey = `${m._prefix ? '7' : currentPlanId}_${m.name}_${i}`;
+                    const nameStr = sv.customName || NAMES[renameKey] || ex;
                     const isTimeBased = nameStr.toLowerCase().includes('plank') || nameStr.toLowerCase().includes('hold') || nameStr.toLowerCase().includes('cardio');
                     
                     return (
