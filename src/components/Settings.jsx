@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { DEFAULT_PLAN, DAYS_FULL, DAYS_SHORT, DEFAULT_DIET_PLAN, MONTHS, dateKey, EXERCISE_GIFS, THEMES } from '../data';
-import { Beaker, Calendar, Dumbbell, Utensils, Wallet, BookOpen, Database, Download, Smile, Zap } from 'lucide-react';
+import { Beaker, Calendar, Dumbbell, Utensils, Wallet, BookOpen, Database, Download, Smile, Zap, CreditCard } from 'lucide-react';
 import { generateSeedData } from '../utils/seeder';
 import Accordion from './shared/Accordion';
 import ProfileSettings from './settings/ProfileSettings';
@@ -63,6 +63,10 @@ export default function Settings({
   const [newCatLabel, setNewCatLabel] = useState('');
   const [newCatEmoji, setNewCatEmoji] = useState('📦');
   const [catMsg, setCatMsg] = useState(false);
+
+  const DEFAULT_PLATFORMS = ['Amazon Pay', 'Zepto', 'PhonePe', 'Paytm', 'Google Pay', 'Swiggy', 'Zomato', 'HDFC', 'SBI', 'ICICI'];
+  const [localPlatforms, setLocalPlatforms] = useState(BUDGET_SETTINGS?.creditPlatforms?.length ? BUDGET_SETTINGS.creditPlatforms : DEFAULT_PLATFORMS);
+  const [newPlatformLabel, setNewPlatformLabel] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
   const [devMode, setDevMode] = useState(() => localStorage.getItem('dev_mode') === 'true');
 
@@ -81,9 +85,8 @@ export default function Settings({
   useEffect(() => {
     if (BUDGET_SETTINGS) {
       setLocalIncome(BUDGET_SETTINGS.income || 22400);
-      if (BUDGET_SETTINGS.categories?.length) {
-        setLocalCategories(BUDGET_SETTINGS.categories);
-      }
+      if (BUDGET_SETTINGS.categories?.length) setLocalCategories(BUDGET_SETTINGS.categories);
+      if (BUDGET_SETTINGS.creditPlatforms?.length) setLocalPlatforms(BUDGET_SETTINGS.creditPlatforms);
     }
   }, [BUDGET_SETTINGS]);
 
@@ -268,7 +271,7 @@ export default function Settings({
   const removeCategory = (id) => setLocalCategories(prev => prev.filter(c => c.id !== id));
 
   const saveBudgetSettings = () => {
-    const newSettings = { ...BUDGET_SETTINGS, income: Number(localIncome), categories: localCategories };
+    const newSettings = { ...BUDGET_SETTINGS, income: Number(localIncome), categories: localCategories, creditPlatforms: localPlatforms };
     syncBudget(BUDGET, newSettings);
     setBudgetMsg(true); setCatMsg(true);
     setTimeout(() => { setBudgetMsg(false); setCatMsg(false); }, 2000);
@@ -742,6 +745,47 @@ export default function Settings({
           }}>
             {budgetMsg ? 'Saved ✓' : 'Save Budget Settings'}
           </button>
+        </div>
+
+        {/* Credit / UPI Platforms quick-select */}
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border2)' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <CreditCard size={13} style={{ color: 'var(--blue)' }} /> Credit / UPI Platforms (Quick-Select Chips)
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+            {localPlatforms.map(p => (
+              <div key={p} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '20px', background: 'var(--bg3)', border: '1px solid var(--border2)', fontSize: '12px', color: 'var(--text2)' }}>
+                {p}
+                <button onClick={() => setLocalPlatforms(prev => prev.filter(x => x !== p))}
+                  style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: '14px', lineHeight: 1, padding: '0 0 0 2px' }}>×</button>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input
+              type="text"
+              placeholder="e.g. Flipkart, CRED, Navi"
+              value={newPlatformLabel}
+              onChange={e => setNewPlatformLabel(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && newPlatformLabel.trim() && !localPlatforms.includes(newPlatformLabel.trim())) {
+                  setLocalPlatforms(prev => [...prev, newPlatformLabel.trim()]);
+                  setNewPlatformLabel('');
+                }
+              }}
+              style={{ flex: 1, padding: '8px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px' }}
+            />
+            <button
+              onClick={() => {
+                if (newPlatformLabel.trim() && !localPlatforms.includes(newPlatformLabel.trim())) {
+                  setLocalPlatforms(prev => [...prev, newPlatformLabel.trim()]);
+                  setNewPlatformLabel('');
+                }
+              }}
+              style={{ padding: '8px 14px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}
+            >+ Add</button>
+          </div>
+          <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '6px' }}>These chips appear when logging a Credit Card spend. Hit Save Budget Settings above to persist.</div>
         </div>
       </Accordion>
 
