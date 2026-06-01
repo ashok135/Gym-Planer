@@ -143,13 +143,19 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
           }
         }
       });
-      
-      const [ry, rm] = mk.split('-').map(Number);
-      const salaryDate = new Date(ry, rm - 1, 1);
-      if (salaryDate >= startRange && salaryDate <= endRange) {
-        income += (BUDGET_SETTINGS?.income || 22400);
-      }
     });
+
+    // Automatically calculate and add the salary income independent of whether the month is in BUDGET entries
+    for (let y = startRange.getFullYear(); y <= endRange.getFullYear(); y++) {
+      const startM = (y === startRange.getFullYear()) ? startRange.getMonth() : 0;
+      const endM = (y === endRange.getFullYear()) ? endRange.getMonth() : 11;
+      for (let m = startM; m <= endM; m++) {
+        const payoutDate = new Date(y, m, 1);
+        if (payoutDate >= startRange && payoutDate <= endRange) {
+          income += (BUDGET_SETTINGS?.income || 22400);
+        }
+      }
+    }
 
     return { spent, income, catTotals, rangeEntries };
   };
@@ -169,10 +175,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
   const isBetter = totalSpent <= prevData.spent;
 
   // Base salary and bonus for breakdown
-  const baseSalary = Object.entries(BUDGET).reduce((acc, [mk, md]) => {
-    const [ry, rm] = mk.split('-').map(Number);
-    const salaryDate = new Date(ry, rm - 1, 1);
-    
+  const baseSalary = (() => {
     let startR, endR;
     const [selY, selM] = selectedMonth.split('-').map(Number);
     if (activeRange === 'Monthly') {
@@ -183,13 +186,26 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
       endR = new Date(selY, 11, 31, 23, 59, 59);
     } else {
       const days = activeRange === 'Today' ? 1 : activeRange === 'Weekly' ? 7 : 30;
-      startR = new Date(now); startR.setDate(now.getDate() - days);
-      endR = now;
+      startR = new Date(now); 
+      startR.setHours(0,0,0,0);
+      startR.setDate(now.getDate() - days);
+      endR = new Date(now);
+      endR.setHours(23,59,59,999);
     }
     
-    if (salaryDate >= startR && salaryDate <= endR) return acc + (BUDGET_SETTINGS?.income || 22400);
-    return acc;
-  }, 0);
+    let sum = 0;
+    for (let y = startR.getFullYear(); y <= endR.getFullYear(); y++) {
+      const startM = (y === startR.getFullYear()) ? startR.getMonth() : 0;
+      const endM = (y === endR.getFullYear()) ? endR.getMonth() : 11;
+      for (let m = startM; m <= endM; m++) {
+        const payoutDate = new Date(y, m, 1);
+        if (payoutDate >= startR && payoutDate <= endR) {
+          sum += (BUDGET_SETTINGS?.income || 22400);
+        }
+      }
+    }
+    return sum;
+  })();
   const bonusIncome = Math.max(0, totalIncome - baseSalary);
   const extraIncome = (BUDGET[selectedMonth] || {}).extraIncome || [];
 
@@ -205,11 +221,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
   const totalCreditDebt = unpaidDebts.filter(d => d.type === 'credit').reduce((sum, d) => sum + (Number(d.amount) - Number(d.paid || 0)), 0);
   const totalOutstandingDebt = totalBorrowed + totalCreditDebt;
 
-  const earnedIncome = Object.entries(BUDGET).reduce((sum, [mk, md]) => {
-    let monthlyEarned = 0;
-    const [ry, rm] = mk.split('-').map(Number);
-    const salaryDate = new Date(ry, rm - 1, 1);
-    
+  const earnedIncome = (() => {
     let startR, endR;
     const [selY, selM] = selectedMonth.split('-').map(Number);
     if (activeRange === 'Monthly') {
@@ -223,20 +235,21 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
       startR = new Date(now); startR.setDate(now.getDate() - days);
       endR = now;
     }
-    
-    if (salaryDate >= startR && salaryDate <= endR) monthlyEarned += (BUDGET_SETTINGS?.income || 22400);
 
-    (md.extraIncome || []).forEach(i => {
-      const d = new Date(i.date);
-      if (d >= startR && d <= endR) {
-        if (!i.isLoan && !i.label?.toLowerCase().includes('loan')) {
-          monthlyEarned += Number(i.amount);
+    let extraSum = 0;
+    Object.entries(BUDGET).forEach(([mk, md]) => {
+      (md.extraIncome || []).forEach(i => {
+        const d = new Date(i.date);
+        if (d >= startR && d <= endR) {
+          if (!i.isLoan && !i.label?.toLowerCase().includes('loan')) {
+            extraSum += Number(i.amount);
+          }
         }
-      }
+      });
     });
 
-    return sum + monthlyEarned;
-  }, 0);
+    return baseSalary + extraSum;
+  })();
 
   const cashAssets = Math.max(0, earnedIncome + totalBorrowed - (totalSpent - totalCreditDebt));
   const netLiquidity = cashAssets - totalOutstandingDebt;
