@@ -66,6 +66,54 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
 
   const CATEGORIES = BUDGET_SETTINGS?.categories?.length ? BUDGET_SETTINGS.categories : DEFAULT_CATEGORIES;
 
+  const getRolloverBalance = (targetMonthKey) => {
+    let rolloverSum = 0;
+    const [targetY, targetM] = targetMonthKey.split('-').map(Number);
+    
+    Object.entries(BUDGET || {}).forEach(([mk, md]) => {
+      const [y, m] = mk.split('-').map(Number);
+      if (y < targetY || (y === targetY && m < targetM)) {
+        // Calculate Income for this prior month
+        let monthIncome = BUDGET_SETTINGS?.income || 22400;
+        (md.extraIncome || []).forEach(i => {
+          if (!i.isLoan && !i.label?.toLowerCase().includes('loan')) {
+            monthIncome += Number(i.amount);
+          }
+        });
+        
+        // Calculate Spent for this prior month
+        let monthSpent = 0;
+        (md.entries || []).forEach(e => {
+          monthSpent += Number(e.amount);
+        });
+        
+        rolloverSum += (monthIncome - monthSpent);
+      }
+    });
+    
+    // Also count base salaries for empty prior months (not in BUDGET keys)
+    const allKeys = Object.keys(BUDGET || {});
+    if (allKeys.length > 0) {
+      allKeys.sort();
+      const [oldestY, oldestM] = allKeys[0].split('-').map(Number);
+      let currY = oldestY;
+      let currM = oldestM;
+      while (currY < targetY || (currY === targetY && currM < targetM)) {
+        const currKey = `${currY}-${String(currM).padStart(2, '0')}`;
+        if (!BUDGET[currKey]) {
+          rolloverSum += (BUDGET_SETTINGS?.income || 22400);
+        }
+        currM++;
+        if (currM > 12) {
+          currM = 1;
+          currY++;
+        }
+      }
+    }
+    
+    return rolloverSum;
+  };
+
   const [activeRange, setActiveRange] = useState(propRange || 'Monthly');
   
   useEffect(() => {
@@ -157,6 +205,12 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
       }
     }
 
+    // Add rollover balance if evaluating monthly budget
+    if (range === 'Monthly') {
+      const evalMonthKey = monthKey(new Date(selY, selM - 1 - (isPrevious ? 1 : 0), 1));
+      income += getRolloverBalance(evalMonthKey);
+    }
+
     return { spent, income, catTotals, rangeEntries };
   };
 
@@ -206,7 +260,8 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
     }
     return sum;
   })();
-  const bonusIncome = Math.max(0, totalIncome - baseSalary);
+  const rollover = getRolloverBalance(selectedMonth);
+  const bonusIncome = Math.max(0, totalIncome - baseSalary - rollover);
   const extraIncome = (BUDGET[selectedMonth] || {}).extraIncome || [];
 
   const allDebts = [];
@@ -248,7 +303,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
       });
     });
 
-    return baseSalary + extraSum;
+    return baseSalary + extraSum + rollover;
   })();
 
   const cashAssets = Math.max(0, earnedIncome + totalBorrowed - (totalSpent - totalCreditDebt));
@@ -558,8 +613,9 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
           <div>
             <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: '8px', textTransform: 'uppercase' }}>Total Income</div>
             <div style={{ fontSize: '32px', fontWeight: 900, color: 'var(--accent)' }}>₹{totalIncome.toLocaleString()}</div>
-            <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '4px', display: 'flex', gap: '8px' }}>
+            <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '4px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <span>Salary: ₹{baseSalary.toLocaleString()}</span>
+              {getRolloverBalance(selectedMonth) > 0 && <span style={{ color: 'var(--accent)' }}>• Rollover: ₹{getRolloverBalance(selectedMonth).toLocaleString()}</span>}
               {bonusIncome > 0 && <span style={{ color: 'var(--blue)' }}>• Bonus: ₹{bonusIncome.toLocaleString()}</span>}
             </div>
           </div>
