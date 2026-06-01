@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol, DAYS_SHORT, MONTHS } from '../data';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
-import { CheckCircle2, XCircle, Dumbbell, Wallet, GraduationCap, TrendingUp, Trophy, Calendar, Coins, Sparkles, ChevronDown, Users } from 'lucide-react';
+import { CheckCircle2, XCircle, Dumbbell, Wallet, GraduationCap, TrendingUp, TrendingDown, Trophy, Calendar, Coins, Sparkles, ChevronDown, Users, AlertTriangle } from 'lucide-react';
 import History from './History';
 import Budget from './Budget';
 import Study from './Study';
 import { loadMoodEnergyConfig, DEFAULT_MOOD_STAGES, DEFAULT_ENERGY_STAGES } from './settings/MoodEnergySettings';
+import { db } from '../firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
@@ -23,6 +25,39 @@ const CustomTooltip = ({ active, payload }) => {
 };
 
 export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET_SETTINGS, syncBudget, STUDY, STUDY_SETTINGS, syncStudy, workoutPlans, DIET_PLAN }) {
+  const [activeGroupId, setActiveGroupId] = useState(BUDGET_SETTINGS?.activeGroupId || '');
+  const [sharedGroup, setSharedGroup] = useState(null);
+  const [groupLoading, setGroupLoading] = useState(false);
+  const [nickname, setNickname] = useState(localStorage.getItem('gsplit_nickname') || '');
+  const [selectedMonth, setSelectedMonth] = useState(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
+
+  // Sync settings when they update
+  useEffect(() => {
+    setActiveGroupId(BUDGET_SETTINGS?.activeGroupId || '');
+  }, [BUDGET_SETTINGS]);
+
+  // Real-time Firestore sync
+  useEffect(() => {
+    if (!activeGroupId) {
+      setSharedGroup(null);
+      return;
+    }
+    setGroupLoading(true);
+    const docRef = doc(db, "splitGroups", activeGroupId.toLowerCase().trim());
+    const unsub = onSnapshot(docRef, docSnap => {
+      setGroupLoading(false);
+      if (docSnap.exists()) {
+        setSharedGroup(docSnap.data());
+      } else {
+        setSharedGroup(null);
+      }
+    }, err => {
+      console.error(err);
+      setGroupLoading(false);
+    });
+    return () => unsub();
+  }, [activeGroupId]);
+
   const [activeSection, setActiveSection] = useState('gym');
   const [timeRange, setTimeRange] = useState('Today');
   const [budgetRange, setBudgetRange] = useState('Monthly');
@@ -325,166 +360,408 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
           ))}
         </div>
       </div>
-
       {/* BUDGET SECTION IN REPORT */}
       {activeSection === 'budget' && (() => {
-        const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        const selectedMonthData = BUDGET?.[currentMonthKey] || {};
-        const groupMembers = selectedMonthData.groupMembers || ['You', 'Aman', 'Kabir', 'Rohit'];
-        const groupBills = selectedMonthData.groupBills || [];
-        
-        return (
-          <div style={{ padding: '0 10px' }}>
-            {/* 👥 GROUP SPLIT REPORT CARD */}
-            <div className="scroll-reveal" style={{ 
-              marginBottom: '24px', 
-              background: 'linear-gradient(135deg, rgba(200,241,53,0.05), rgba(77,159,255,0.03))', 
-              borderRadius: '24px', 
-              padding: '20px', 
-              border: '1px solid rgba(255,255,255,0.05)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                <Users size={18} color="var(--accent)" />
-                <div style={{ fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Monthly Shared Expenses Report
-                </div>
-              </div>
+        if (activeGroupId && sharedGroup) {
+          const groupMembers = sharedGroup.members || [];
+          const groupBills = sharedGroup.months?.[selectedMonth]?.bills || [];
+          const totalShared = groupBills.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
 
-              {groupBills.length === 0 ? (
-                <div style={{ 
-                  textAlign: 'center', 
-                  color: 'var(--text3)', 
-                  padding: '24px 0', 
-                  fontSize: '12px',
-                  background: 'rgba(0,0,0,0.1)',
-                  borderRadius: '16px',
-                  border: '1px dashed var(--border2)'
-                }}>
-                  No group shared bills logged for {MONTHS[now.getMonth()]} {now.getFullYear()} yet.
-                </div>
-              ) : (() => {
-                const totalShared = groupBills.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+          // Balance calculations
+          const balances = {};
+          groupMembers.forEach(m => { balances[m] = 0; });
+          groupBills.forEach(bill => {
+            const totalAmount = Number(bill.amount) || 0;
+            const payer = bill.paidBy;
+            const splitWith = bill.splitWith || [];
+            if (splitWith.length === 0) return;
+            const share = totalAmount / splitWith.length;
+            if (balances[payer] !== undefined) balances[payer] += totalAmount;
+            splitWith.forEach(member => {
+              if (balances[member] !== undefined) balances[member] -= share;
+            });
+          });
+
+          // suggested Settlements Minimization
+          const creditors = [];
+          const debtors = [];
+          Object.entries(balances).forEach(([name, bal]) => {
+            const val = Math.round(bal * 100) / 100;
+            if (val > 0.01) creditors.push({ name, amount: val });
+            else if (val < -0.01) debtors.push({ name, amount: Math.abs(val) });
+          });
+          creditors.sort((a, b) => b.amount - a.amount);
+          debtors.sort((a, b) => b.amount - a.amount);
+
+          const settlements = [];
+          let cIdx = 0, dIdx = 0;
+          const cTemp = creditors.map(c => ({ ...c }));
+          const dTemp = debtors.map(d => ({ ...d }));
+          while (cIdx < cTemp.length && dIdx < dTemp.length) {
+            const creditor = cTemp[cIdx];
+            const debtor = dTemp[dIdx];
+            const amountToSettle = Math.min(creditor.amount, debtor.amount);
+            if (amountToSettle > 0.01) {
+              settlements.push({
+                from: debtor.name,
+                to: creditor.name,
+                amount: Math.round(amountToSettle * 100) / 100
+              });
+            }
+            creditor.amount -= amountToSettle;
+            debtor.amount -= amountToSettle;
+            if (creditor.amount <= 0.01) cIdx++;
+            if (debtor.amount <= 0.01) dIdx++;
+          }
+
+          // Member total contributions
+          const contributions = {};
+          groupMembers.forEach(m => { contributions[m] = 0; });
+          groupBills.forEach(b => {
+            if (contributions[b.paidBy] !== undefined) {
+              contributions[b.paidBy] += Number(b.amount) || 0;
+            }
+          });
+
+          // Spenders Leaderboard Calculations
+          let majorContributor = null;
+          let maxPaid = -1;
+          Object.entries(contributions).forEach(([member, amt]) => {
+            if (amt > maxPaid) {
+              maxPaid = amt;
+              majorContributor = member;
+            }
+          });
+
+          let owesMost = null;
+          let minBalance = 1;
+          Object.entries(balances).forEach(([member, bal]) => {
+            if (bal < minBalance) {
+              minBalance = bal;
+              owesMost = member;
+            }
+          });
+
+          // Category Progression Bars Calculations
+          const categoriesList = sharedGroup.categories || [
+            { id: 'house', label: 'House', emoji: '🏠', color: '#4D9FFF' },
+            { id: 'groceries', label: 'Groceries', emoji: '🍎', color: '#34D399' },
+            { id: 'zepto', label: 'Zepto', emoji: '⚡', color: '#FBBF24' },
+            { id: 'instamart', label: 'Instamart', emoji: '🛵', color: '#FB923C' },
+            { id: 'other', label: 'Other', emoji: '📦', color: '#94A3B8' }
+          ];
+
+          const categoryTotals = {};
+          categoriesList.forEach(cat => {
+            categoryTotals[cat.id] = 0;
+          });
+
+          groupBills.forEach(bill => {
+            const catId = bill.category || 'other';
+            if (categoryTotals[catId] === undefined) {
+              categoryTotals[catId] = 0;
+            }
+            categoryTotals[catId] += Number(bill.amount) || 0;
+          });
+
+          // Smart Warnings: Zepto + Instamart Delivery Alert (>35%)
+          const zeptoAmt = categoryTotals['zepto'] || 0;
+          const instamartAmt = categoryTotals['instamart'] || 0;
+          const convenienceTotal = zeptoAmt + instamartAmt;
+          const conveniencePct = totalShared > 0 ? Math.round((convenienceTotal / totalShared) * 100) : 0;
+
+          // List of available months for selector
+          const availableMonths = [];
+          const monthTemp = new Date(now);
+          for (let i = 0; i < 6; i++) {
+            const key = `${monthTemp.getFullYear()}-${String(monthTemp.getMonth() + 1).padStart(2, '0')}`;
+            availableMonths.push({
+              key,
+              label: `${MONTHS[monthTemp.getMonth()]} ${monthTemp.getFullYear()}`
+            });
+            monthTemp.setMonth(monthTemp.getMonth() - 1);
+          }
+
+          return (
+            <div style={{ padding: '0 10px' }}>
+              {/* 🏡 Collaborative Group Shared Report Dashboard */}
+              <div className="scroll-reveal" style={{ 
+                marginBottom: '24px', 
+                background: 'linear-gradient(135deg, rgba(200,241,53,0.06), rgba(77,159,255,0.04))', 
+                borderRadius: '24px', 
+                padding: '24px', 
+                border: '1px solid rgba(255,255,255,0.06)',
+                backdropFilter: 'blur(10px)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div className="dash-glow accent" style={{ opacity: 0.08 }}></div>
                 
-                // Balance calculations
-                const balances = {};
-                groupMembers.forEach(m => { balances[m] = 0; });
-                groupBills.forEach(bill => {
-                  const totalAmount = Number(bill.amount) || 0;
-                  const payer = bill.paidBy;
-                  const splitWith = bill.splitWith || [];
-                  if (splitWith.length === 0) return;
-                  const share = totalAmount / splitWith.length;
-                  if (balances[payer] !== undefined) balances[payer] += totalAmount;
-                  splitWith.forEach(member => {
-                    if (balances[member] !== undefined) balances[member] -= share;
-                  });
-                });
+                {/* Header Row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ 
+                      width: '36px', 
+                      height: '36px', 
+                      borderRadius: '10px', 
+                      background: 'rgba(200,241,53,0.1)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      border: '1px solid rgba(200,241,53,0.2)'
+                    }}>
+                      <Users size={18} color="var(--accent)" />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>
+                        {sharedGroup.groupName || 'Shared Ledger'}
+                      </div>
+                      <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>
+                        ID: {sharedGroup.id}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Month Dropdown Selector */}
+                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <select 
+                      value={selectedMonth} 
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                      style={{
+                        appearance: 'none',
+                        background: 'var(--bg3)',
+                        border: '1px solid var(--border2)',
+                        color: 'var(--text)',
+                        padding: '6px 28px 6px 12px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {availableMonths.map(m => (
+                        <option key={m.key} value={m.key}>{m.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text3)' }} />
+                  </div>
+                </div>
 
-                // suggested Settlements Minimization
-                const creditors = [];
-                const debtors = [];
-                Object.entries(balances).forEach(([name, bal]) => {
-                  const val = Math.round(bal * 100) / 100;
-                  if (val > 0.01) creditors.push({ name, amount: val });
-                  else if (val < -0.01) debtors.push({ name, amount: Math.abs(val) });
-                });
-                creditors.sort((a, b) => b.amount - a.amount);
-                debtors.sort((a, b) => b.amount - a.amount);
-
-                const settlements = [];
-                let cIdx = 0, dIdx = 0;
-                const cTemp = creditors.map(c => ({ ...c }));
-                const dTemp = debtors.map(d => ({ ...d }));
-                while (cIdx < cTemp.length && dIdx < dTemp.length) {
-                  const creditor = cTemp[cIdx];
-                  const debtor = dTemp[dIdx];
-                  const amountToSettle = Math.min(creditor.amount, debtor.amount);
-                  if (amountToSettle > 0.01) {
-                    settlements.push({
-                      from: debtor.name,
-                      to: creditor.name,
-                      amount: Math.round(amountToSettle * 100) / 100
-                    });
-                  }
-                  creditor.amount -= amountToSettle;
-                  debtor.amount -= amountToSettle;
-                  if (creditor.amount <= 0.01) cIdx++;
-                  if (debtor.amount <= 0.01) dIdx++;
-                }
-
-                // Member total contributions
-                const contributions = {};
-                groupMembers.forEach(m => { contributions[m] = 0; });
-                groupBills.forEach(b => {
-                  if (contributions[b.paidBy] !== undefined) {
-                    contributions[b.paidBy] += Number(b.amount) || 0;
-                  }
-                });
-
-                return (
+                {groupBills.length === 0 ? (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    color: 'var(--text3)', 
+                    padding: '36px 16px', 
+                    fontSize: '13px',
+                    background: 'rgba(0,0,0,0.15)',
+                    borderRadius: '16px',
+                    border: '1px dashed var(--border2)'
+                  }}>
+                    <Sparkles size={20} color="var(--text3)" style={{ marginBottom: '8px', opacity: 0.6 }} />
+                    <div>No shared bills logged for this month yet.</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>Add split bills in the Budget tab to populate real-time shared reports.</div>
+                  </div>
+                ) : (
                   <div>
-                    {/* Summary row */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                      <div style={{ background: 'var(--bg3)', padding: '14px 12px', borderRadius: '16px', border: '1px solid var(--border2)' }}>
-                        <div style={{ fontSize: '10px', color: 'var(--text3)' }}>Total Shared Spend</div>
-                        <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--accent)', marginTop: '4px' }}>
+                    {/* Key Stats Row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                      <div style={{ background: 'var(--bg3)', padding: '16px 14px', borderRadius: '16px', border: '1px solid var(--border2)' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Shared Monthly Spend</div>
+                        <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--accent)', marginTop: '6px' }}>
                           ₹{totalShared.toLocaleString()}
                         </div>
                       </div>
-                      <div style={{ background: 'var(--bg3)', padding: '14px 12px', borderRadius: '16px', border: '1px solid var(--border2)' }}>
-                        <div style={{ fontSize: '10px', color: 'var(--text3)' }}>Group Members</div>
-                        <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text)', marginTop: '4px' }}>
+                      <div style={{ background: 'var(--bg3)', padding: '16px 14px', borderRadius: '16px', border: '1px solid var(--border2)' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Group Size</div>
+                        <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           {groupMembers.length}
+                          <span style={{ fontSize: '12px', color: 'var(--text2)', fontWeight: 'normal' }}>friends</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Member Contributions bar graph style list */}
-                    <div style={{ background: 'rgba(0,0,0,0.1)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)', marginBottom: '16px' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '12px' }}>
-                        Total Paid by Member
+                    {/* 🏆 SPENDERS LEADERBOARD */}
+                    <div style={{ 
+                      background: 'rgba(255,255,255,0.02)', 
+                      border: '1px solid var(--border2)', 
+                      borderRadius: '18px', 
+                      padding: '16px',
+                      marginBottom: '20px'
+                    }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '12px', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Trophy size={14} color="var(--orange)" /> Room Spenders Leaderboard
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        {groupMembers.map(m => {
-                          const spentAmt = contributions[m] || 0;
-                          const pct = totalShared > 0 ? Math.round((spentAmt / totalShared) * 100) : 0;
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        {/* Major Contributor Card */}
+                        <div style={{ 
+                          background: 'rgba(200,241,53,0.03)', 
+                          border: '1px solid rgba(200,241,53,0.1)', 
+                          borderRadius: '14px', 
+                          padding: '12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '14px' }}>🏆</span>
+                            <span style={{ fontSize: '10px', color: 'var(--accent)', fontWeight: 800, textTransform: 'uppercase' }}>Major Payer</span>
+                          </div>
+                          <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text)' }}>
+                            {majorContributor === nickname ? 'You' : majorContributor || 'None'}
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px' }}>
+                            Paid ₹{(maxPaid > -1 ? maxPaid : 0).toLocaleString()}
+                          </div>
+                        </div>
+
+                        {/* Owes the Most Card */}
+                        <div style={{ 
+                          background: 'rgba(244,63,94,0.03)', 
+                          border: '1px solid rgba(244,63,94,0.1)', 
+                          borderRadius: '14px', 
+                          padding: '12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '14px' }}>💸</span>
+                            <span style={{ fontSize: '10px', color: 'var(--red)', fontWeight: 800, textTransform: 'uppercase' }}>Owes Most</span>
+                          </div>
+                          <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text)' }}>
+                            {owesMost === nickname ? 'You' : owesMost || 'None'}
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px' }}>
+                            Net: {minBalance < 0 ? `-₹${Math.abs(Math.round(minBalance)).toLocaleString()}` : '₹0'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 📊 CATEGORY PROGRESSION BARS */}
+                    <div style={{ 
+                      background: 'rgba(0,0,0,0.12)', 
+                      padding: '18px', 
+                      borderRadius: '18px', 
+                      border: '1px solid var(--border2)', 
+                      marginBottom: '20px' 
+                    }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '14px', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <TrendingUp size={14} color="var(--accent)" /> Shared Spending by Category
+                      </div>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        {categoriesList.map(cat => {
+                          const amt = categoryTotals[cat.id] || 0;
+                          const pct = totalShared > 0 ? Math.round((amt / totalShared) * 100) : 0;
+                          if (amt === 0) return null;
                           
                           return (
-                            <div key={m}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text2)', marginBottom: '4px' }}>
-                                <span>{m === 'You' ? '👥 You' : m}</span>
-                                <span style={{ fontWeight: 'bold' }}>₹{spentAmt.toLocaleString()} ({pct}%)</span>
+                            <div key={cat.id}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text2)', marginBottom: '5px' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span style={{ fontSize: '14px' }}>{cat.emoji || '📦'}</span>
+                                  <strong>{cat.label}</strong>
+                                </span>
+                                <span style={{ fontWeight: 'bold', color: 'var(--text)' }}>
+                                  ₹{amt.toLocaleString()} <span style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 'normal', marginLeft: '2px' }}>({pct}%)</span>
+                                </span>
                               </div>
-                              <div style={{ width: '100%', height: '6px', background: 'var(--bg)', borderRadius: '3px', overflow: 'hidden' }}>
+                              <div style={{ width: '100%', height: '8px', background: 'var(--bg)', borderRadius: '4px', overflow: 'hidden' }}>
                                 <div style={{ 
                                   width: `${pct}%`, 
                                   height: '100%', 
-                                  background: m === 'You' ? 'var(--accent)' : 'var(--blue)', 
-                                  borderRadius: '3px' 
+                                  background: cat.color || '#94A3B8', 
+                                  borderRadius: '4px',
+                                  transition: 'width 0.8s ease-out'
                                 }}></div>
                               </div>
                             </div>
                           );
                         })}
+                        {Object.values(categoryTotals).every(v => v === 0) && (
+                          <div style={{ fontSize: '11px', color: 'var(--text3)', textAlign: 'center', padding: '8px 0' }}>
+                            All logged expenses are uncategorized.
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Net Balances List */}
-                    <div style={{ background: 'rgba(0,0,0,0.1)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)', marginBottom: '16px' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '12px' }}>
-                        Outstanding Net Dues
+                    {/* 🚨 SMART SPENDING ALERT BANNER */}
+                    {convenienceTotal > 0 && (
+                      <div style={{ 
+                        background: conveniencePct > 35 ? 'rgba(244,63,94,0.05)' : 'rgba(52,211,153,0.05)', 
+                        border: conveniencePct > 35 ? '1px solid rgba(244,63,94,0.15)' : '1px solid rgba(52,211,153,0.15)', 
+                        borderRadius: '18px', 
+                        padding: '16px', 
+                        marginBottom: '20px',
+                        display: 'flex',
+                        gap: '12px',
+                        alignItems: 'flex-start'
+                      }}>
+                        <div style={{ 
+                          width: '32px', 
+                          height: '32px', 
+                          borderRadius: '8px', 
+                          background: conveniencePct > 35 ? 'rgba(244,63,94,0.1)' : 'rgba(52,211,153,0.1)', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          {conveniencePct > 35 ? (
+                            <AlertTriangle size={16} color="var(--red)" />
+                          ) : (
+                            <CheckCircle2 size={16} color="var(--accent)" />
+                          )}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '12px', fontWeight: 800, color: conveniencePct > 35 ? 'var(--red)' : 'var(--accent)', marginBottom: '3px' }}>
+                            {conveniencePct > 35 ? 'High Convenience Store Spend Warning' : 'Smart Convenience Control'}
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text2)', lineHeight: 1.4 }}>
+                            {conveniencePct > 35 ? (
+                              <>
+                                Zepto ⚡ & Instamart 🛵 deliveries account for <strong style={{ color: 'var(--red)' }}>{conveniencePct}%</strong> of all group expenses (₹{convenienceTotal.toLocaleString()}). Consolidating grocery orders to reduce checkout markups and delivery fees can save the group significant cash!
+                              </>
+                            ) : (
+                              <>
+                                Shared Zepto ⚡ & Instamart 🛵 convenience delivery orders are well-managed at only <strong>{conveniencePct}%</strong> of total shared spending. Awesome job keeping convenience premiums minimal!
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    )}
+
+                    {/* Member Paid Contributions Detail List */}
+                    <div style={{ background: 'rgba(0,0,0,0.12)', padding: '18px', borderRadius: '18px', border: '1px solid var(--border2)', marginBottom: '20px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '14px', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Coins size={14} color="var(--accent)" /> Contributions & Balances
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {groupMembers.map(m => {
+                          const paidAmt = contributions[m] || 0;
                           const bal = Math.round((balances[m] || 0) * 100) / 100;
                           const isOwed = bal > 0.01;
                           const owes = bal < -0.01;
                           
                           return (
-                            <div key={m} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
-                              <span style={{ color: 'var(--text2)', fontWeight: 500 }}>{m === 'You' ? 'You' : m}</span>
+                            <div key={m} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '10px 14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                              <div>
+                                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>
+                                  {m === nickname ? '👥 You' : m}
+                                </span>
+                                <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '2px' }}>
+                                  Paid: ₹{paidAmt.toLocaleString()}
+                                </div>
+                              </div>
                               <span style={{ 
-                                fontWeight: 800, 
+                                fontSize: '13px',
+                                fontWeight: 900, 
                                 color: isOwed ? 'var(--accent)' : owes ? 'var(--red)' : 'var(--text3)'
                               }}>
                                 {isOwed ? `+₹${bal.toLocaleString()}` : owes ? `-₹${Math.abs(bal).toLocaleString()}` : 'Settled'}
@@ -495,35 +772,272 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
                       </div>
                     </div>
 
-                    {/* Suggested Dues Settlements suggestions */}
+                    {/* Suggested Dues Settlements Plan */}
                     {settlements.length > 0 && (
-                      <div style={{ background: 'rgba(200,241,53,0.03)', padding: '14px', borderRadius: '16px', border: '1px solid rgba(200,241,53,0.1)' }}>
-                        <div style={{ fontSize: '11px', color: 'var(--accent)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '8px' }}>
-                          Suggested Transfers to Settle Group
+                      <div style={{ 
+                        background: 'linear-gradient(145deg, rgba(200,241,53,0.05), rgba(77,159,255,0.03))', 
+                        padding: '18px', 
+                        borderRadius: '18px', 
+                        border: '1px solid rgba(200,241,53,0.12)' 
+                      }}>
+                        <div style={{ fontSize: '11px', color: 'var(--accent)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '10px', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Sparkles size={14} color="var(--accent)" /> Repayment Settlements Plan
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {settlements.map((s, idx) => (
-                            <div key={idx} style={{ fontSize: '12px', color: 'var(--text)' }}>
-                              • <strong>{s.from === 'You' ? 'You need to pay' : `${s.from} needs to pay`}</strong> {s.to === 'You' ? 'You' : s.to} <strong style={{ color: 'var(--accent)' }}>₹{s.amount.toLocaleString()}</strong>
+                            <div key={idx} style={{ 
+                              fontSize: '12px', 
+                              color: 'var(--text)', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '6px',
+                              background: 'rgba(0,0,0,0.1)',
+                              padding: '8px 12px',
+                              borderRadius: '10px',
+                              border: '1px solid var(--border2)'
+                            }}>
+                              <span style={{ fontSize: '14px' }}>👉</span>
+                              <span>
+                                <strong>{s.from === nickname ? 'You need to transfer' : `${s.from} pays`}</strong> {s.to === nickname ? 'You' : s.to} <strong style={{ color: 'var(--accent)' }}>₹{s.amount.toLocaleString()}</strong>
+                              </span>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
                   </div>
-                );
-              })()}
+                )}
+              </div>
 
-              <div style={{ height: '20px' }}></div>
+              {/* 📑 Detailed Ledger Section Header */}
+              <div style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Coins size={14} /> Shared Ledger Breakdown
+              </div>
+              
+              <Budget BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} isReport={true} activeRange={budgetRange} />
             </div>
+          );
+        } else {
+          // Render original/local single user budget report (the existing code) with a Collaborative CTA Callout
+          const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+          const selectedMonthData = BUDGET?.[currentMonthKey] || {};
+          const groupMembers = selectedMonthData.groupMembers || ['You', 'Aman', 'Kabir', 'Rohit'];
+          const groupBills = selectedMonthData.groupBills || [];
+          
+          return (
+            <div style={{ padding: '0 10px' }}>
+              {/* 🚀 GPAY COLLABORATIVE CTA CALLOUT */}
+              <div className="scroll-reveal" style={{ 
+                background: 'linear-gradient(135deg, rgba(200,241,53,0.08), rgba(77,159,255,0.04))', 
+                border: '1px solid rgba(200,241,53,0.15)', 
+                borderRadius: '20px', 
+                padding: '16px', 
+                marginBottom: '20px',
+                display: 'flex',
+                gap: '12px',
+                alignItems: 'center'
+              }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(200,241,53,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Sparkles size={20} color="var(--accent)" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--accent)' }}>Go Collaborative!</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px', lineHeight: 1.3 }}>
+                    Connect a real-time collaborative GPay-style group split in the <strong>Budget</strong> section to sync bills with friends and unlock detailed shared spender reports, net dues transfer plans, and high-convenience app alerts!
+                  </div>
+                </div>
+              </div>
 
-            <div style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Detailed Monthly Breakdown
+              {/* 👥 GROUP SPLIT REPORT CARD */}
+              <div className="scroll-reveal" style={{ 
+                marginBottom: '24px', 
+                background: 'linear-gradient(135deg, rgba(200,241,53,0.05), rgba(77,159,255,0.03))', 
+                borderRadius: '24px', 
+                padding: '20px', 
+                border: '1px solid rgba(255,255,255,0.05)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                  <Users size={18} color="var(--accent)" />
+                  <div style={{ fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Monthly Shared Expenses Report (Local Preview)
+                  </div>
+                </div>
+
+                {groupBills.length === 0 ? (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    color: 'var(--text3)', 
+                    padding: '24px 0', 
+                    fontSize: '12px',
+                    background: 'rgba(0,0,0,0.1)',
+                    borderRadius: '16px',
+                    border: '1px dashed var(--border2)'
+                  }}>
+                    No group shared bills logged for {MONTHS[now.getMonth()]} {now.getFullYear()} yet.
+                  </div>
+                ) : (() => {
+                  const totalShared = groupBills.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+                  
+                  // Balance calculations
+                  const balances = {};
+                  groupMembers.forEach(m => { balances[m] = 0; });
+                  groupBills.forEach(bill => {
+                    const totalAmount = Number(bill.amount) || 0;
+                    const payer = bill.paidBy;
+                    const splitWith = bill.splitWith || [];
+                    if (splitWith.length === 0) return;
+                    const share = totalAmount / splitWith.length;
+                    if (balances[payer] !== undefined) balances[payer] += totalAmount;
+                    splitWith.forEach(member => {
+                      if (balances[member] !== undefined) balances[member] -= share;
+                    });
+                  });
+
+                  // suggested Settlements Minimization
+                  const creditors = [];
+                  const debtors = [];
+                  Object.entries(balances).forEach(([name, bal]) => {
+                    const val = Math.round(bal * 100) / 100;
+                    if (val > 0.01) creditors.push({ name, amount: val });
+                    else if (val < -0.01) debtors.push({ name, amount: Math.abs(val) });
+                  });
+                  creditors.sort((a, b) => b.amount - a.amount);
+                  debtors.sort((a, b) => b.amount - a.amount);
+
+                  const settlements = [];
+                  let cIdx = 0, dIdx = 0;
+                  const cTemp = creditors.map(c => ({ ...c }));
+                  const dTemp = debtors.map(d => ({ ...d }));
+                  while (cIdx < cTemp.length && dIdx < dTemp.length) {
+                    const creditor = cTemp[cIdx];
+                    const debtor = dTemp[dIdx];
+                    const amountToSettle = Math.min(creditor.amount, debtor.amount);
+                    if (amountToSettle > 0.01) {
+                      settlements.push({
+                        from: debtor.name,
+                        to: creditor.name,
+                        amount: Math.round(amountToSettle * 100) / 100
+                      });
+                    }
+                    creditor.amount -= amountToSettle;
+                    debtor.amount -= amountToSettle;
+                    if (creditor.amount <= 0.01) cIdx++;
+                    if (debtor.amount <= 0.01) dIdx++;
+                  }
+
+                  // Member total contributions
+                  const contributions = {};
+                  groupMembers.forEach(m => { contributions[m] = 0; });
+                  groupBills.forEach(b => {
+                    if (contributions[b.paidBy] !== undefined) {
+                      contributions[b.paidBy] += Number(b.amount) || 0;
+                    }
+                  });
+
+                  return (
+                    <div>
+                      {/* Summary row */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                        <div style={{ background: 'var(--bg3)', padding: '14px 12px', borderRadius: '16px', border: '1px solid var(--border2)' }}>
+                          <div style={{ fontSize: '10px', color: 'var(--text3)' }}>Total Shared Spend</div>
+                          <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--accent)', marginTop: '4px' }}>
+                            ₹{totalShared.toLocaleString()}
+                          </div>
+                        </div>
+                        <div style={{ background: 'var(--bg3)', padding: '14px 12px', borderRadius: '16px', border: '1px solid var(--border2)' }}>
+                          <div style={{ fontSize: '10px', color: 'var(--text3)' }}>Group Members</div>
+                          <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text)', marginTop: '4px' }}>
+                            {groupMembers.length}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Member Contributions bar graph style list */}
+                      <div style={{ background: 'rgba(0,0,0,0.1)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)', marginBottom: '16px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '12px' }}>
+                          Total Paid by Member
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {groupMembers.map(m => {
+                            const spentAmt = contributions[m] || 0;
+                            const pct = totalShared > 0 ? Math.round((spentAmt / totalShared) * 100) : 0;
+                            
+                            return (
+                              <div key={m}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text2)', marginBottom: '4px' }}>
+                                  <span>{m === 'You' ? '👥 You' : m}</span>
+                                  <span style={{ fontWeight: 'bold' }}>₹{spentAmt.toLocaleString()} ({pct}%)</span>
+                                </div>
+                                <div style={{ width: '100%', height: '6px', background: 'var(--bg)', borderRadius: '3px', overflow: 'hidden' }}>
+                                  <div style={{ 
+                                    width: `${pct}%`, 
+                                    height: '100%', 
+                                    background: m === 'You' ? 'var(--accent)' : 'var(--blue)', 
+                                    borderRadius: '3px' 
+                                  }}></div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Net Balances List */}
+                      <div style={{ background: 'rgba(0,0,0,0.1)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)', marginBottom: '16px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '12px' }}>
+                          Outstanding Net Dues
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {groupMembers.map(m => {
+                            const bal = Math.round((balances[m] || 0) * 100) / 100;
+                            const isOwed = bal > 0.01;
+                            const owes = bal < -0.01;
+                            
+                            return (
+                              <div key={m} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                                <span style={{ color: 'var(--text2)', fontWeight: 500 }}>{m === 'You' ? 'You' : m}</span>
+                                <span style={{ 
+                                  fontWeight: 800, 
+                                  color: isOwed ? 'var(--accent)' : owes ? 'var(--red)' : 'var(--text3)'
+                                }}>
+                                  {isOwed ? `+₹${bal.toLocaleString()}` : owes ? `-₹${Math.abs(bal).toLocaleString()}` : 'Settled'}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Suggested Dues Settlements suggestions */}
+                      {settlements.length > 0 && (
+                        <div style={{ background: 'rgba(200,241,53,0.03)', padding: '14px', borderRadius: '16px', border: '1px solid rgba(200,241,53,0.1)' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--accent)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '8px' }}>
+                            Suggested Transfers to Settle Group
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {settlements.map((s, idx) => (
+                              <div key={idx} style={{ fontSize: '12px', color: 'var(--text)' }}>
+                                • <strong>{s.from === 'You' ? 'You need to pay' : `${s.from} needs to pay`}</strong> {s.to === 'You' ? 'You' : s.to} <strong style={{ color: 'var(--accent)' }}>₹{s.amount.toLocaleString()}</strong>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                <div style={{ height: '20px' }}></div>
+              </div>
+
+              <div style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Detailed Monthly Breakdown
+              </div>
+              
+              <Budget BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} isReport={true} activeRange={budgetRange} />
             </div>
-            
-            <Budget BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} isReport={true} activeRange={budgetRange} />
-          </div>
-        );
+          );
+        }
       })()}
 
       {/* STUDY SECTION IN REPORT */}

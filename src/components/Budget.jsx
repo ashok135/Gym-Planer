@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { db } from '../firebase';
+import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { 
   PlusCircle, 
   Trash2, 
@@ -145,25 +147,76 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
   const [debtForm, setDebtForm] = useState({ type: 'loan', provider: '', amount: '', dueDate: '', note: '' });
   const [repayForm, setRepayForm] = useState({ debtId: null, amount: '' });
 
-  // Group Split States
-  const selectedMonthData = BUDGET[selectedMonth] || {};
-  const groupMembers = selectedMonthData.groupMembers || ['You', 'Aman', 'Kabir', 'Rohit'];
-  const groupBills = selectedMonthData.groupBills || [];
+  // Collaborative Group Split States
+  const [activeGroupId, setActiveGroupId] = useState(BUDGET_SETTINGS?.activeGroupId || '');
+  const [sharedGroup, setSharedGroup] = useState(null);
+  const [groupLoading, setGroupLoading] = useState(false);
+  const [nickname, setNickname] = useState(localStorage.getItem('gsplit_nickname') || '');
   
+  // Create / Join UI forms
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showJoinForm, setShowJoinForm] = useState(false);
+  const [createFields, setCreateFields] = useState({ groupId: '', passcode: '', nickname: '' });
+  const [joinFields, setJoinFields] = useState({ groupId: '', passcode: '', nickname: '' });
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Bill & Custom Category forms
   const [showAddBill, setShowAddBill] = useState(false);
-  const [showEditMembers, setShowEditMembers] = useState(false);
-  const [billForm, setBillForm] = useState({ title: '', amount: '', paidBy: 'You', splitWith: [] });
-  const [editNames, setEditNames] = useState(['Aman', 'Kabir', 'Rohit']);
+  const [billForm, setBillForm] = useState({ title: '', amount: '', category: 'groceries', note: '', paidBy: '', splitWith: [] });
+  const [showAddCustomCat, setShowAddCustomCat] = useState(false);
+  const [customCatForm, setCustomCatForm] = useState({ label: '', emoji: '🏷️' });
 
+  // Sync settings when they update
   useEffect(() => {
-    setBillForm(f => ({
-      ...f,
-      paidBy: groupMembers[0] || 'You',
-      splitWith: [...groupMembers]
-    }));
-  }, [selectedMonth, BUDGET]);
+    setActiveGroupId(BUDGET_SETTINGS?.activeGroupId || '');
+  }, [BUDGET_SETTINGS]);
 
-  // Balance Math
+  // Real-time Firestore sync
+  useEffect(() => {
+    if (!activeGroupId) {
+      setSharedGroup(null);
+      return;
+    }
+    setGroupLoading(true);
+    const docRef = doc(db, "splitGroups", activeGroupId.toLowerCase().trim());
+    const unsub = onSnapshot(docRef, docSnap => {
+      setGroupLoading(false);
+      if (docSnap.exists()) {
+        setSharedGroup(docSnap.data());
+      } else {
+        setSharedGroup(null);
+      }
+    }, err => {
+      console.error(err);
+      setGroupLoading(false);
+    });
+    return () => unsub();
+  }, [activeGroupId]);
+
+  const groupMembers = sharedGroup?.members || [];
+  const groupBills = sharedGroup?.months?.[selectedMonth]?.bills || [];
+  const groupCategories = sharedGroup?.categories || [
+    { id: 'house', label: 'House', emoji: '🏠', color: '#4D9FFF' },
+    { id: 'groceries', label: 'Groceries', emoji: '🍎', color: '#34D399' },
+    { id: 'zepto', label: 'Zepto', emoji: '⚡', color: '#FBBF24' },
+    { id: 'instamart', label: 'Instamart', emoji: '🛵', color: '#FB923C' },
+    { id: 'other', label: 'Other', emoji: '📦', color: '#94A3B8' }
+  ];
+
+  // Default payer & participants selection
+  useEffect(() => {
+    if (groupMembers.length > 0) {
+      const activeUser = groupMembers.includes(nickname) ? nickname : (groupMembers[0] || 'You');
+      setBillForm(f => ({
+        ...f,
+        paidBy: activeUser,
+        category: groupCategories[0]?.id || 'groceries',
+        splitWith: [...groupMembers]
+      }));
+    }
+  }, [selectedMonth, sharedGroup, nickname]);
+
+  // Dynamic balance calculations
   const balances = {};
   groupMembers.forEach(m => { balances[m] = 0; });
   groupBills.forEach(bill => {
@@ -178,7 +231,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
     });
   });
 
-  // suggested Settlements Minimization
+  // Suggested settlements minimization
   const creditors = [];
   const debtors = [];
   Object.entries(balances).forEach(([name, bal]) => {
@@ -210,70 +263,213 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
     if (debtor.amount <= 0.01) dIdx++;
   }
 
-  // Action Helpers
-  const addSharedBill = () => {
+  // Group split functions
+  const handleCreateGroup = async () => {
+    setErrorMsg('');
+    const { groupId, passcode, nickname: nName } = createFields;
+    if (!groupId.trim() || !passcode.trim() || !nName.trim()) {
+      setErrorMsg('All fields are required.');
+      return;
+    }
+    const finalId = groupId.toLowerCase().trim().replace(/\s+/g, '-');
+    try {
+      const docRef = doc(db, "splitGroups", finalId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setErrorMsg('Group ID already taken! Try another name.');
+        return;
+      }
+      const newGroup = {
+        id: finalId,
+        groupName: groupId.trim(),
+        passcode: passcode.trim(),
+        members: [nName.trim()],
+        categories: [
+          { id: 'house', label: 'House', emoji: '🏠', color: '#4D9FFF' },
+          { id: 'groceries', label: 'Groceries', emoji: '🍎', color: '#34D399' },
+          { id: 'zepto', label: 'Zepto', emoji: '⚡', color: '#FBBF24' },
+          { id: 'instamart', label: 'Instamart', emoji: '🛵', color: '#FB923C' },
+          { id: 'other', label: 'Other', emoji: '📦', color: '#94A3B8' }
+        ],
+        months: {}
+      };
+      await setDoc(docRef, newGroup);
+      localStorage.setItem('gsplit_nickname', nName.trim());
+      setNickname(nName.trim());
+      const updatedSettings = { ...BUDGET_SETTINGS, activeGroupId: finalId };
+      syncBudget(BUDGET, updatedSettings);
+      setShowCreateForm(false);
+      setCreateFields({ groupId: '', passcode: '', nickname: '' });
+    } catch (e) {
+      console.error(e);
+      setErrorMsg('Error creating group.');
+    }
+  };
+
+  const handleJoinGroup = async () => {
+    setErrorMsg('');
+    const { groupId, passcode, nickname: nName } = joinFields;
+    if (!groupId.trim() || !passcode.trim() || !nName.trim()) {
+      setErrorMsg('All fields are required.');
+      return;
+    }
+    const finalId = groupId.toLowerCase().trim().replace(/\s+/g, '-');
+    try {
+      const docRef = doc(db, "splitGroups", finalId);
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) {
+        setErrorMsg('Group not found!');
+        return;
+      }
+      const data = docSnap.data();
+      if (data.passcode !== passcode.trim()) {
+        setErrorMsg('Incorrect passcode!');
+        return;
+      }
+      if (data.members.includes(nName.trim())) {
+        setErrorMsg('Nickname already in use in this group!');
+        return;
+      }
+      const updatedMembers = [...data.members, nName.trim()];
+      await updateDoc(docRef, { members: updatedMembers });
+      localStorage.setItem('gsplit_nickname', nName.trim());
+      setNickname(nName.trim());
+      const updatedSettings = { ...BUDGET_SETTINGS, activeGroupId: finalId };
+      syncBudget(BUDGET, updatedSettings);
+      setShowJoinForm(false);
+      setJoinFields({ groupId: '', passcode: '', nickname: '' });
+    } catch (e) {
+      console.error(e);
+      setErrorMsg('Error joining group.');
+    }
+  };
+
+  const leaveGroup = async () => {
+    if (!window.confirm('Are you sure you want to leave this shared group?')) return;
+    try {
+      const finalId = activeGroupId.toLowerCase().trim();
+      const docRef = doc(db, "splitGroups", finalId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const updatedMembers = (data.members || []).filter(m => m !== nickname);
+        await updateDoc(docRef, { members: updatedMembers });
+      }
+    } catch(err) {
+      console.error(err);
+    }
+    const updatedSettings = { ...BUDGET_SETTINGS, activeGroupId: '' };
+    syncBudget(BUDGET, updatedSettings);
+  };
+
+  const addSharedBill = async () => {
     if (!billForm.title.trim() || !billForm.amount || isNaN(billForm.amount) || Number(billForm.amount) <= 0) return;
     if (!billForm.splitWith || billForm.splitWith.length === 0) return;
-    const targetMonth = BUDGET[selectedMonth] || {};
-    const bills = targetMonth.groupBills || [];
+    
     const d = new Date();
     const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const ts = d.getTime();
+    
     const newBill = {
       id: ts.toString(),
       title: billForm.title.trim(),
       amount: Number(billForm.amount),
       paidBy: billForm.paidBy,
+      category: billForm.category,
+      note: billForm.note.trim(),
       splitWith: [...billForm.splitWith],
+      approvals: [billForm.paidBy],
       date: dk,
       timestamp: ts
     };
-    syncBudget({ ...BUDGET, [selectedMonth]: { ...targetMonth, groupBills: [...bills, newBill] } });
-    setBillForm(f => ({ ...f, title: '', amount: '' }));
+
+    const docRef = doc(db, "splitGroups", activeGroupId.toLowerCase().trim());
+    const currentMonths = { ...sharedGroup.months } || {};
+    const monthData = currentMonths[selectedMonth] || { bills: [] };
+    
+    currentMonths[selectedMonth] = {
+      ...monthData,
+      bills: [...(monthData.bills || []), newBill]
+    };
+    
+    await updateDoc(docRef, { months: currentMonths });
+    setBillForm(f => ({ ...f, title: '', amount: '', note: '' }));
     setShowAddBill(false);
   };
 
-  const deleteBill = (billId) => {
-    const targetMonth = BUDGET[selectedMonth];
-    if (!targetMonth) return;
-    const updatedBills = (targetMonth.groupBills || []).filter(b => b.id !== billId);
-    syncBudget({ ...BUDGET, [selectedMonth]: { ...targetMonth, groupBills: updatedBills } });
+  const deleteBill = async (billId) => {
+    const docRef = doc(db, "splitGroups", activeGroupId.toLowerCase().trim());
+    const currentMonths = { ...sharedGroup.months } || {};
+    const monthData = currentMonths[selectedMonth] || { bills: [] };
+    const updatedBills = (monthData.bills || []).filter(b => b.id !== billId);
+    
+    currentMonths[selectedMonth] = {
+      ...monthData,
+      bills: updatedBills
+    };
+    await updateDoc(docRef, { months: currentMonths });
   };
 
-  const quickSettle = (from, to, amount) => {
-    const targetMonth = BUDGET[selectedMonth] || {};
-    const bills = targetMonth.groupBills || [];
+  const confirmSplitShare = async (billId) => {
+    const docRef = doc(db, "splitGroups", activeGroupId.toLowerCase().trim());
+    const currentMonths = { ...sharedGroup.months } || {};
+    const monthData = currentMonths[selectedMonth] || { bills: [] };
+    const updatedBills = (monthData.bills || []).map(b => {
+      if (b.id === billId) {
+        const curApprovals = b.approvals || [b.paidBy];
+        if (!curApprovals.includes(nickname)) {
+          return { ...b, approvals: [...curApprovals, nickname] };
+        }
+      }
+      return b;
+    });
+    currentMonths[selectedMonth] = { ...monthData, bills: updatedBills };
+    await updateDoc(docRef, { months: currentMonths });
+  };
+
+  const quickSettle = async (from, to, amount) => {
     const d = new Date();
     const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const ts = d.getTime();
+    
     const settleBill = {
       id: ts.toString(),
       title: `Settle: ${from} to ${to}`,
       amount: Number(amount),
       paidBy: from,
+      category: 'other',
+      note: `Direct repayment settlement`,
       splitWith: [to],
+      approvals: [from, to],
       date: dk,
       timestamp: ts
     };
-    syncBudget({ ...BUDGET, [selectedMonth]: { ...targetMonth, groupBills: [...bills, settleBill] } });
+
+    const docRef = doc(db, "splitGroups", activeGroupId.toLowerCase().trim());
+    const currentMonths = { ...sharedGroup.months } || {};
+    const monthData = currentMonths[selectedMonth] || { bills: [] };
+    
+    currentMonths[selectedMonth] = {
+      ...monthData,
+      bills: [...(monthData.bills || []), settleBill]
+    };
+    await updateDoc(docRef, { months: currentMonths });
   };
 
-  const saveGroupMembers = (newNames) => {
-    const targetMonth = BUDGET[selectedMonth] || {};
-    const oldMembers = targetMonth.groupMembers || ['You', 'Aman', 'Kabir', 'Rohit'];
-    const newMembers = ['You', ...newNames];
-    const updatedBills = (targetMonth.groupBills || []).map(bill => {
-      let updatedPayer = bill.paidBy;
-      const idx = oldMembers.indexOf(bill.paidBy);
-      if (idx !== -1 && newMembers[idx]) updatedPayer = newMembers[idx];
-      const updatedSplitWith = (bill.splitWith || []).map(member => {
-        const sIdx = oldMembers.indexOf(member);
-        return (sIdx !== -1 && newMembers[sIdx]) ? newMembers[sIdx] : member;
-      });
-      return { ...bill, paidBy: updatedPayer, splitWith: updatedSplitWith };
-    });
-    syncBudget({ ...BUDGET, [selectedMonth]: { ...targetMonth, groupMembers: newMembers, groupBills: updatedBills } });
-    setShowEditMembers(false);
+  const createCustomCategory = async () => {
+    if (!customCatForm.label.trim()) return;
+    const docRef = doc(db, "splitGroups", activeGroupId.toLowerCase().trim());
+    const newCat = {
+      id: customCatForm.label.toLowerCase().trim().replace(/\s+/g, '-'),
+      label: customCatForm.label.trim(),
+      emoji: customCatForm.emoji.trim() || '🏷️',
+      color: `hsl(${Math.floor(Math.random() * 360)}, 75%, 60%)`
+    };
+    const updatedCats = [...groupCategories, newCat];
+    await updateDoc(docRef, { categories: updatedCats });
+    setShowAddCustomCat(false);
+    setCustomCatForm({ label: '', emoji: '🏷️' });
+    setBillForm(f => ({ ...f, category: newCat.id }));
   };
 
   const potentialRollover = getRolloverBalance(selectedMonth);
@@ -1605,7 +1801,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
         )}
         {renderModal()}
         {renderAddBillModal()}
-        {renderEditMembersModal()}
+        {renderAddCustomCatModal()}
       </div>
     </div>
   );
