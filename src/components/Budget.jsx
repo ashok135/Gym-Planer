@@ -168,6 +168,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (totalOutstandingDebt <= 0) return;
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
     const lastNotified = localStorage.getItem('repay_notif_date');
     const todayStr = dayKey(new Date());
     if (lastNotified === todayStr) return;
