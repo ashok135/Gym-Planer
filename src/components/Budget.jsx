@@ -67,6 +67,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
   const CATEGORIES = BUDGET_SETTINGS?.categories?.length ? BUDGET_SETTINGS.categories : DEFAULT_CATEGORIES;
 
   const getRolloverBalance = (targetMonthKey) => {
+    if (!BUDGET) return 0;
     let rolloverSum = 0;
     const [targetY, targetM] = targetMonthKey.split('-').map(Number);
     
@@ -603,76 +604,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
         </div>
       </div>
 
-      {/* Dynamic Rollover Ask Prompt Banner */}
-      {potentialRollover > 0 && BUDGET[selectedMonth]?.rolloverClaimed === undefined && (
-        <div className="scroll-reveal" style={{
-          margin: '0 20px 20px',
-          padding: '16px 20px',
-          background: 'linear-gradient(135deg, rgba(200, 241, 53, 0.12), rgba(77, 159, 255, 0.05))',
-          borderRadius: '20px',
-          border: '1px solid rgba(200, 241, 53, 0.25)',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
-        }}>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-            <Sparkles size={20} color="var(--accent)" style={{ marginTop: '2px', flexShrink: 0 }} />
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>
-                Roll Over Prior Month Savings?
-              </div>
-              <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px', lineHeight: 1.4 }}>
-                You accumulated **₹{potentialRollover.toLocaleString()}** in savings last month. Would you like to roll it over into your starting cash balance for **{MONTHS[Number(selectedMonth.split('-')[1]) - 1]}**?
-              </div>
-              <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
-                <button 
-                  onClick={() => {
-                    const targetMonthData = BUDGET[selectedMonth] || {};
-                    syncBudget({
-                      ...BUDGET,
-                      [selectedMonth]: { ...targetMonthData, rolloverClaimed: true }
-                    });
-                  }}
-                  style={{ 
-                    padding: '8px 16px', 
-                    background: 'var(--accent)', 
-                    color: '#000', 
-                    border: 'none', 
-                    borderRadius: '10px', 
-                    fontSize: '11px', 
-                    fontWeight: 800, 
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  Yes, Roll Over
-                </button>
-                <button 
-                  onClick={() => {
-                    const targetMonthData = BUDGET[selectedMonth] || {};
-                    syncBudget({
-                      ...BUDGET,
-                      [selectedMonth]: { ...targetMonthData, rolloverClaimed: false }
-                    });
-                  }}
-                  style={{ 
-                    padding: '8px 16px', 
-                    background: 'transparent', 
-                    color: 'var(--text3)', 
-                    border: '1px solid var(--border2)', 
-                    borderRadius: '10px', 
-                    fontSize: '11px', 
-                    fontWeight: 700, 
-                    cursor: 'pointer' 
-                  }}
-                >
-                  No, Keep Separate
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {isReport && (
         <div style={{ padding: '0 20px', marginBottom: '20px' }}>
@@ -691,7 +623,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
             <div style={{ fontSize: '32px', fontWeight: 900, color: 'var(--accent)' }}>₹{totalIncome.toLocaleString()}</div>
             <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '4px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <span>Salary: ₹{baseSalary.toLocaleString()}</span>
-              {BUDGET[selectedMonth]?.rolloverClaimed === true && rollover > 0 && (
+              {BUDGET?.[selectedMonth]?.rolloverClaimed === true && rollover > 0 && (
                 <span style={{ color: 'var(--accent)' }}>• Rollover: ₹{rollover.toLocaleString()}</span>
               )}
               {bonusIncome > 0 && <span style={{ color: 'var(--blue)' }}>• Bonus: ₹{bonusIncome.toLocaleString()}</span>}
@@ -711,6 +643,71 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
           <span>Budget ₹{totalIncome.toLocaleString()}</span>
         </div>
       </div>
+
+      {/* Mini Rollover prompt row tucked beautifully below the main card */}
+      {potentialRollover > 0 && BUDGET?.[selectedMonth]?.rolloverClaimed === undefined && (
+        <div style={{
+          margin: '-16px 20px 24px',
+          padding: '10px 16px',
+          background: 'var(--bg3)',
+          borderRadius: '16px',
+          border: '1px solid var(--border2)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '12px',
+          fontSize: '11px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text2)' }}>
+            <Sparkles size={13} color="var(--accent)" />
+            <span>Found prior savings of <strong>₹{potentialRollover.toLocaleString()}</strong>. Roll over?</span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+            <button 
+              onClick={() => {
+                const targetMonthData = BUDGET?.[selectedMonth] || {};
+                syncBudget({
+                  ...BUDGET,
+                  [selectedMonth]: { ...targetMonthData, rolloverClaimed: true }
+                });
+              }}
+              style={{ 
+                padding: '4px 10px', 
+                background: 'var(--accent)', 
+                color: '#000', 
+                border: 'none', 
+                borderRadius: '8px', 
+                fontSize: '10px', 
+                fontWeight: 800, 
+                cursor: 'pointer' 
+              }}
+            >
+              Yes
+            </button>
+            <button 
+              onClick={() => {
+                const targetMonthData = BUDGET?.[selectedMonth] || {};
+                syncBudget({
+                  ...BUDGET,
+                  [selectedMonth]: { ...targetMonthData, rolloverClaimed: false }
+                });
+              }}
+              style={{ 
+                padding: '4px 8px', 
+                background: 'transparent', 
+                color: 'var(--text3)', 
+                border: '1px solid var(--border2)', 
+                borderRadius: '8px', 
+                fontSize: '10px', 
+                fontWeight: 700, 
+                cursor: 'pointer' 
+              }}
+            >
+              No
+            </button>
+          </div>
+        </div>
+      )}
 
       {!isReport && (
         <>
