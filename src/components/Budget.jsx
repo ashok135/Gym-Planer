@@ -115,8 +115,6 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
     return rolloverSum;
   };
 
-  const potentialRollover = getRolloverBalance(selectedMonth);
-
   const [activeRange, setActiveRange] = useState(propRange || 'Monthly');
   
   useEffect(() => {
@@ -145,6 +143,8 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
   const [showAddDebt, setShowAddDebt] = useState(false);
   const [debtForm, setDebtForm] = useState({ type: 'loan', provider: '', amount: '', dueDate: '', note: '' });
   const [repayForm, setRepayForm] = useState({ debtId: null, amount: '' });
+
+  const potentialRollover = getRolloverBalance(selectedMonth);
 
   // Unified filter logic for stats and categories
   const getFilteredData = (range, isPrevious = false) => {
