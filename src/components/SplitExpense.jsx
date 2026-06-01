@@ -13,7 +13,7 @@ import {
   Info,
   AlertTriangle
 } from 'lucide-react';
-import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -156,15 +156,44 @@ export default function SplitExpense() {
     const myName = joinForm.memberName.trim();
 
     try {
-      let matchedGroup = joinedGroups.find(g => g.name.toLowerCase() === searchName.toLowerCase() || g.id === searchName);
+      let matchedGroup = joinedGroups.find(g => g.name.toLowerCase() === searchName.toLowerCase() || g.id.toLowerCase() === searchName.toLowerCase());
       
       if (!matchedGroup) {
         setGroupSyncing(true);
+        // 1. Try finding by exact document ID first
         const groupRef = doc(db, 'splitGroups', searchName);
         const docSnap = await getDoc(groupRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
           matchedGroup = { id: docSnap.id, ...data };
+        }
+        
+        // 2. Try querying by the 'name' field in Firestore
+        if (!matchedGroup) {
+          try {
+            const q = query(collection(db, 'splitGroups'), where('name', '==', searchName));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+              const docDoc = querySnapshot.docs[0];
+              matchedGroup = { id: docDoc.id, ...docDoc.data() };
+            }
+          } catch (err) {
+            console.warn("Firestore exact query failed:", err);
+          }
+        }
+
+        // 3. Try lowercased check
+        if (!matchedGroup) {
+          try {
+            const q = query(collection(db, 'splitGroups'), where('name', '==', searchName.toLowerCase()));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+              const docDoc = querySnapshot.docs[0];
+              matchedGroup = { id: docDoc.id, ...docDoc.data() };
+            }
+          } catch (err) {
+            console.warn("Firestore lowercase query failed:", err);
+          }
         }
       }
 

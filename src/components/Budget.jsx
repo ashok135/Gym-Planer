@@ -153,6 +153,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
   
   const handleTouchStart = (e) => {
     touchStartX.current = e.targetTouches[0].clientX;
+    touchEndX.current = e.targetTouches[0].clientX; // Initialize to starting point to prevent tap/click trigger
   };
   
   const handleTouchMove = (e) => {
