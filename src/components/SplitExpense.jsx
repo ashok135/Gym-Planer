@@ -14,7 +14,8 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { doc, setDoc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, db } from '../firebase';
 
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const formatTime = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -55,6 +56,63 @@ export default function SplitExpense() {
   const [splitType, setSplitType] = useState('everyone'); // 'everyone' or 'custom'
   const [groupExpenseForm, setGroupExpenseForm] = useState({ description: '', amount: '', paidBy: '', splitWith: [] });
 
+  const saveUserSplitStateToCloud = async (groups, active, member) => {
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await setDoc(userRef, {
+        splitGroupsJoined: groups || [],
+        splitGroupActive: active || null,
+        splitGroupActiveMember: member || ''
+      }, { merge: true });
+    } catch (err) {
+      console.warn("Failed to sync user split states to cloud", err);
+    }
+  };
+
+  // Real-time Cloud User document Sync Effect (retrieves joined groups/active group across devices)
+  useEffect(() => {
+    let unsubscribeUser = () => {};
+    
+    const unsubscribeAuth = onAuthStateChanged(auth, (u) => {
+      // Clean up previous user listener
+      unsubscribeUser();
+      
+      if (u) {
+        const userRef = doc(db, 'users', u.uid);
+        unsubscribeUser = onSnapshot(userRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.splitGroupsJoined) {
+              setJoinedGroups(data.splitGroupsJoined);
+              localStorage.setItem('g_split_joined_groups', JSON.stringify(data.splitGroupsJoined));
+            }
+            if (data.splitGroupActive !== undefined) {
+              setActiveGroup(data.splitGroupActive);
+              if (data.splitGroupActive === null) {
+                localStorage.removeItem('g_split_active_group');
+              } else {
+                localStorage.setItem('g_split_active_group', JSON.stringify(data.splitGroupActive));
+              }
+            }
+            if (data.splitGroupActiveMember !== undefined) {
+              setActiveMember(data.splitGroupActiveMember);
+              localStorage.setItem('g_split_active_member', data.splitGroupActiveMember);
+            }
+          }
+        }, (err) => {
+          console.warn("User document cloud sync error:", err);
+        });
+      }
+    });
+    
+    return () => {
+      unsubscribeAuth();
+      unsubscribeUser();
+    };
+  }, []);
+
   // Firestore Sync Effect
   useEffect(() => {
     if (!activeGroup?.id) return;
@@ -93,11 +151,15 @@ export default function SplitExpense() {
     setActiveGroup(updatedGroup);
     localStorage.setItem('g_split_active_group', JSON.stringify(updatedGroup));
     
+    let nextJoined = [];
     setJoinedGroups(prev => {
       const exists = prev.some(g => g.id === updatedGroup.id);
-      const next = exists ? prev.map(g => g.id === updatedGroup.id ? updatedGroup : g) : [...prev, updatedGroup];
-      localStorage.setItem('g_split_joined_groups', JSON.stringify(next));
-      return next;
+      nextJoined = exists ? prev.map(g => g.id === updatedGroup.id ? updatedGroup : g) : [...prev, updatedGroup];
+      localStorage.setItem('g_split_joined_groups', JSON.stringify(nextJoined));
+      
+      // Save updated joined groups list and active group details to cloud
+      saveUserSplitStateToCloud(nextJoined, updatedGroup, activeMember);
+      return nextJoined;
     });
 
     try {
@@ -302,6 +364,7 @@ export default function SplitExpense() {
     localStorage.removeItem('g_split_active_group');
     setActiveMember('');
     localStorage.removeItem('g_split_active_member');
+    saveUserSplitStateToCloud(joinedGroups, null, '');
   };
 
   // GREEDY SPLITTING LEDGER CALCULATOR
@@ -582,11 +645,10 @@ export default function SplitExpense() {
                   onClick={() => {
                     setActiveGroup(g);
                     localStorage.setItem('g_split_active_group', JSON.stringify(g));
-                    if (g.members?.length > 0) {
-                      const m = localStorage.getItem('g_split_active_member') || g.members[0];
-                      setActiveMember(m);
-                      localStorage.setItem('g_split_active_member', m);
-                    }
+                    const m = (g.members?.length > 0) ? (localStorage.getItem('g_split_active_member') || g.members[0]) : '';
+                    setActiveMember(m);
+                    localStorage.setItem('g_split_active_member', m);
+                    saveUserSplitStateToCloud(joinedGroups, g, m);
                   }}
                   style={{ 
                     background: 'var(--bg2)', 
@@ -705,8 +767,10 @@ export default function SplitExpense() {
           <select 
             value={activeMember} 
             onChange={(e) => {
-              setActiveMember(e.target.value);
-              localStorage.setItem('g_split_active_member', e.target.value);
+              const val = e.target.value;
+              setActiveMember(val);
+              localStorage.setItem('g_split_active_member', val);
+              saveUserSplitStateToCloud(joinedGroups, activeGroup, val);
             }}
             style={{ 
               background: 'var(--bg)', 
