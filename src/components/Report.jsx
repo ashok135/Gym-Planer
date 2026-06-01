@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol, DAYS_SHORT, MONTHS } from '../data';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
-import { CheckCircle2, XCircle, Dumbbell, Wallet, GraduationCap, TrendingUp, Trophy, Calendar, Coins, Sparkles } from 'lucide-react';
+import { CheckCircle2, XCircle, Dumbbell, Wallet, GraduationCap, TrendingUp, Trophy, Calendar, Coins, Sparkles, ChevronDown } from 'lucide-react';
 import History from './History';
 import Budget from './Budget';
 import Study from './Study';
@@ -28,6 +28,14 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
   const [budgetRange, setBudgetRange] = useState('Monthly');
   const [studyRange, setStudyRange] = useState('Weekly');
   const [selectedProgressionExercise, setSelectedProgressionExercise] = useState('Barbell Bench Press');
+  const [expandedMonths, setExpandedMonths] = useState({});
+
+  const toggleMonth = (mk, idx) => {
+    setExpandedMonths(prev => ({
+      ...prev,
+      [mk]: prev[mk] !== undefined ? !prev[mk] : !(idx === 0)
+    }));
+  };
 
   // ResizeObserver-based chart width — avoids ResponsiveContainer infinite loop
   const chartAreaRef = useRef(null);
@@ -428,21 +436,48 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
                 Month-by-Month Financial Progression
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {monthlyFinancials.map(m => {
+                {monthlyFinancials.map((m, idx) => {
                   const hasSaved = m.savings >= 0;
+                  const isExpanded = expandedMonths[m.mk] !== undefined ? expandedMonths[m.mk] : (idx === 0);
+                  
                   return (
                     <div key={m.mk} style={{ 
                       display: 'flex', 
                       flexDirection: 'column', 
                       background: 'var(--bg3)', 
-                      padding: '16px', 
                       borderRadius: '16px', 
-                      border: '1px solid var(--border2)'
+                      border: '1px solid var(--border2)',
+                      overflow: 'hidden',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
-                          {m.label}
-                        </span>
+                      <div 
+                        onClick={() => toggleMonth(m.mk, idx)}
+                        style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center', 
+                          padding: '14px 16px', 
+                          cursor: 'pointer',
+                          background: 'rgba(255, 255, 255, 0.01)',
+                          transition: 'background 0.2s',
+                          userSelect: 'none'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.01)'}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <ChevronDown 
+                            size={16} 
+                            style={{ 
+                              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
+                              transition: 'transform 0.3s ease',
+                              color: isExpanded ? 'var(--accent)' : 'var(--text3)'
+                            }} 
+                          />
+                          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
+                            {m.label}
+                          </span>
+                        </div>
                         <span style={{ 
                           fontSize: '13px', 
                           fontWeight: 800, 
@@ -456,18 +491,33 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
                         </span>
                       </div>
                       
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '10px' }}>
-                        <div>
-                          <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase' }}>Earned</div>
-                          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>₹{m.income.toLocaleString()}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase' }}>Spent</div>
-                          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)' }}>₹{m.spent.toLocaleString()}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase' }}>Cumulative</div>
-                          <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text)' }}>₹{m.cumulative.toLocaleString()}</div>
+                      {/* Collapsible details content */}
+                      <div style={{
+                        maxHeight: isExpanded ? '150px' : '0px',
+                        overflow: 'hidden',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        opacity: isExpanded ? 1 : 0
+                      }}>
+                        <div style={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: '1fr 1fr 1fr', 
+                          gap: '8px', 
+                          borderTop: '1px solid rgba(255,255,255,0.03)', 
+                          padding: '12px 16px 16px',
+                          background: 'rgba(0, 0, 0, 0.1)'
+                        }}>
+                          <div>
+                            <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '2px' }}>Earned</div>
+                            <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>₹{m.income.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '2px' }}>Spent</div>
+                            <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)' }}>₹{m.spent.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '2px' }}>Cumulative</div>
+                            <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text)' }}>₹{m.cumulative.toLocaleString()}</div>
+                          </div>
                         </div>
                       </div>
                     </div>
