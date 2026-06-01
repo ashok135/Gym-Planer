@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trash2, TrendingUp, TrendingDown, Calendar, Clock, ChevronLeft, ChevronRight, BarChart as BarChartIcon, X, Users, CreditCard, Landmark, FileText, Info, Banknote, CheckCircle2, Send, ArrowDownLeft } from 'lucide-react';
+import { PlusCircle, Trash2, TrendingUp, TrendingDown, Calendar, Clock, ChevronLeft, ChevronRight, BarChart as BarChartIcon, X, Users, CreditCard, FileText, Info, ArrowDownLeft } from 'lucide-react';
 import { MONTHS, DAYS_SHORT } from '../data';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, Cell, PieChart, Pie, ReferenceLine } from 'recharts';
 
@@ -53,7 +53,6 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
   const [showAddDebt, setShowAddDebt] = useState(false);
   const [debtForm, setDebtForm] = useState({ type: 'loan', provider: '', amount: '', dueDate: '', note: '' });
   const [repayForm, setRepayForm] = useState({ debtId: null, amount: '' });
-  const [payModal, setPayModal] = useState(null); // { debtId, provider, amount }
 
   // Unified filter logic for stats and categories
   const getFilteredData = (range, isPrevious = false) => {
@@ -866,12 +865,6 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
                             <ArrowDownLeft size={13} /> Repay
                           </button>
                           <button 
-                            onClick={() => setPayModal({ debtId: d.id, provider: d.provider, amount: remainingAmount })}
-                            style={{ padding: '6px 12px', background: 'linear-gradient(135deg,#1a73e8,#4285f4)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                          >
-                            <Landmark size={13} /> Pay Now
-                          </button>
-                          <button 
                             onClick={() => { if(window.confirm('Delete this debt entry?')) deleteDebt(d.id, d.mk); }}
                             style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--red)', opacity: 0.5, cursor: 'pointer', padding: '4px' }}
                           >
@@ -887,78 +880,6 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
           </div>
         )}
       </div>
-
-      {/* 🏦 UPI Payment Modal */}
-      {payModal && (() => {
-        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-        const upiString = `upi://pay?am=${payModal.amount}&cu=INR&tn=Repayment+to+${encodeURIComponent(payModal.provider)}`;
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiString)}&bgcolor=1a1a1e&color=c8f135&margin=10`;
-        return (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setPayModal(null); }}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-        >
-          <div style={{ background: 'var(--bg2)', borderRadius: '24px 24px 0 0', padding: '28px 24px 40px', width: '100%', maxWidth: '480px', border: '1px solid var(--border2)', borderBottom: 'none', animation: 'slideUp 0.25s ease' }}>
-            <div style={{ width: '40px', height: '4px', borderRadius: '2px', background: 'var(--border)', margin: '0 auto 20px' }} />
-            <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px' }}>{isMobile ? 'Pay via UPI App' : 'Scan QR to Pay'}</div>
-            <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '20px' }}>
-              Paying <strong style={{ color: 'var(--text)' }}>₹{payModal.amount.toLocaleString()}</strong> to <strong style={{ color: 'var(--text)' }}>{payModal.provider}</strong>
-            </div>
-
-            {isMobile ? (
-              /* ── MOBILE: show app deep-link buttons ── */
-              [
-                { name: 'Google Pay',  icon: <Send size={16} color="#fff" />,          color: '#1a73e8', upi: `gpay://upi/pay?am=${payModal.amount}&cu=INR&tn=Repayment+to+${encodeURIComponent(payModal.provider)}` },
-                { name: 'PhonePe',     icon: <Landmark size={16} color="#fff" />,       color: '#5f259f', upi: `phonepe://pay?am=${payModal.amount}&cu=INR&tn=Repayment+to+${encodeURIComponent(payModal.provider)}` },
-                { name: 'Paytm',       icon: <Banknote size={16} color="#fff" />,       color: '#00B9F1', upi: `paytm://pay?am=${payModal.amount}&cu=INR&tn=Repayment+to+${encodeURIComponent(payModal.provider)}` },
-                { name: 'Any UPI App', icon: <CheckCircle2 size={16} color="#000" />,   color: '#c8f135', upi: upiString },
-              ].map(app => (
-                <a key={app.name} href={app.upi}
-                  style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', background: 'var(--bg3)', borderRadius: '14px', marginBottom: '10px', textDecoration: 'none', color: 'var(--text)', border: '1px solid var(--border2)', cursor: 'pointer' }}
-                >
-                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: app.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{app.icon}</div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '13px' }}>{app.name}</div>
-                    <div style={{ fontSize: '10px', color: 'var(--text3)' }}>Opens {app.name} app</div>
-                  </div>
-                  <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text3)' }} />
-                </a>
-              ))
-            ) : (
-              /* ── DESKTOP: show QR code + copy UPI string ── */
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                <div style={{ padding: '12px', background: 'var(--bg3)', borderRadius: '16px', border: '1px solid var(--border2)' }}>
-                  <img
-                    src={qrUrl}
-                    alt="UPI QR Code"
-                    width={180} height={180}
-                    style={{ display: 'block', borderRadius: '8px' }}
-                    onError={e => { e.target.style.display='none'; }}
-                  />
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--text3)', textAlign: 'center', maxWidth: '260px', lineHeight: 1.5 }}>
-                  Scan this QR with <strong style={{ color: 'var(--text)' }}>Google Pay, PhonePe, Paytm</strong> or any UPI app on your phone
-                </div>
-                <button
-                  onClick={() => { navigator.clipboard.writeText(upiString); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '10px', color: 'var(--text2)', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}
-                >
-                  <FileText size={13} /> Copy UPI String
-                </button>
-              </div>
-            )}
-
-            <button
-              onClick={() => setPayModal(null)}
-              style={{ width: '100%', padding: '13px', marginTop: '6px', background: 'transparent', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text3)', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-        );
-      })()}
-
 
       <div style={{ padding: '0 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
