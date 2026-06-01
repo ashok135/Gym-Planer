@@ -28,14 +28,6 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
   const [budgetRange, setBudgetRange] = useState('Monthly');
   const [studyRange, setStudyRange] = useState('Weekly');
   const [selectedProgressionExercise, setSelectedProgressionExercise] = useState('Barbell Bench Press');
-  const [expandedMonths, setExpandedMonths] = useState({});
-
-  const toggleMonth = (mk, idx) => {
-    setExpandedMonths(prev => ({
-      ...prev,
-      [mk]: prev[mk] !== undefined ? !prev[mk] : !(idx === 0)
-    }));
-  };
 
   // ResizeObserver-based chart width — avoids ResponsiveContainer infinite loop
   const chartAreaRef = useRef(null);
@@ -308,64 +300,7 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
   const pct = totalPossibleDays ? Math.round((totalDaysAttended / totalPossibleDays) * 100) : 0;
   const pctColor = (timeRange === 'Today') ? (totalDaysAttended > 0 ? 'var(--accent)' : 'var(--red)') : (pct >= 50 ? 'var(--accent)' : 'var(--red)');
 
-  const getMonthlyFinancials = () => {
-    const monthsList = [];
-    const uniqueMonthKeys = new Set(Object.keys(BUDGET || {}));
-    const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    uniqueMonthKeys.add(nowKey);
-    
-    Array.from(uniqueMonthKeys).forEach(mk => {
-      const md = BUDGET[mk] || {};
-      const [y, m] = mk.split('-').map(Number);
-      
-      // Calculate Income
-      let income = BUDGET_SETTINGS?.income || 22400;
-      (md.extraIncome || []).forEach(i => {
-        if (!i.isLoan && !i.label?.toLowerCase().includes('loan')) {
-          income += Number(i.amount);
-        }
-      });
-      
-      // Calculate Spent
-      let spent = 0;
-      (md.entries || []).forEach(e => {
-        spent += Number(e.amount);
-      });
-      
-      // Savings
-      const savings = income - spent;
-      
-      // Unpaid debts
-      const unpaidDebts = (md.debts || []).filter(d => d.status !== 'paid');
-      const totalBorrowed = unpaidDebts.filter(d => d.type === 'loan').reduce((sum, d) => sum + (Number(d.amount) - Number(d.paid || 0)), 0);
-      const totalCreditDebt = unpaidDebts.filter(d => d.type === 'credit').reduce((sum, d) => sum + (Number(d.amount) - Number(d.paid || 0)), 0);
-      const liabilities = totalBorrowed + totalCreditDebt;
-      
-      monthsList.push({
-        mk,
-        label: `${MONTHS[m - 1]} ${y}`,
-        y,
-        m,
-        income,
-        spent,
-        savings,
-        liabilities
-      });
-    });
-    
-    // Sort chronologically (oldest first for cumulative running sum)
-    monthsList.sort((a, b) => (a.y - b.y) || (a.m - b.m));
-    
-    // Compute running cumulative savings
-    let cumulative = 0;
-    monthsList.forEach(m => {
-      cumulative += m.savings;
-      m.cumulative = cumulative;
-    });
-    
-    // Return sorted newest first for display
-    return monthsList.reverse();
-  };
+
 
   return (
     <div id="report-content" style={{padding:'0 0 20px'}}>
@@ -392,148 +327,15 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
       </div>
 
       {/* BUDGET SECTION IN REPORT */}
-      {activeSection === 'budget' && (() => {
-        const monthlyFinancials = getMonthlyFinancials();
-        const latestSavings = monthlyFinancials[0]?.cumulative || 0;
-        
-        return (
-          <div style={{ padding: '0 10px' }}>
-            {/* Savings Ledger Roll-over Card */}
-            <div className="scroll-reveal" style={{ 
-              marginBottom: '24px', 
-              background: 'linear-gradient(135deg, rgba(200,241,53,0.08), rgba(77,159,255,0.03))', 
-              borderRadius: '24px', 
-              padding: '24px', 
-              border: '1px solid rgba(255,255,255,0.05)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              <div className="dash-glow accent" style={{ opacity: 0.1, top: 0, right: 0 }}></div>
-              <div style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
-                Cumulative Savings Ledger
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px' }}>
-                <div>
-                  <div style={{ fontSize: '32px', fontWeight: 900, color: 'var(--text)' }}>
-                    ₹{latestSavings.toLocaleString()}
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text3)', marginTop: '4px' }}>
-                    Total accumulated balance rolled over from all active months.
-                  </div>
-                </div>
-                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 16px', borderRadius: '14px', border: '1px solid var(--border2)' }}>
-                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>Active Months</div>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--accent)', textAlign: 'right' }}>
-                    {monthlyFinancials.length}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Month-by-Month Savings Progression Table */}
-            <div style={{ margin: '0 0 24px', background: 'var(--bg2)', borderRadius: '24px', padding: '20px', border: '1px solid var(--border2)' }}>
-              <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '16px', color: 'var(--text)' }}>
-                Month-by-Month Financial Progression
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {monthlyFinancials.map((m, idx) => {
-                  const hasSaved = m.savings >= 0;
-                  const isExpanded = expandedMonths[m.mk] !== undefined ? expandedMonths[m.mk] : (idx === 0);
-                  
-                  return (
-                    <div key={m.mk} style={{ 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      background: 'var(--bg3)', 
-                      borderRadius: '16px', 
-                      border: '1px solid var(--border2)',
-                      overflow: 'hidden',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                    }}>
-                      <div 
-                        onClick={() => toggleMonth(m.mk, idx)}
-                        style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center', 
-                          padding: '14px 16px', 
-                          cursor: 'pointer',
-                          background: 'rgba(255, 255, 255, 0.01)',
-                          transition: 'background 0.2s',
-                          userSelect: 'none'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.01)'}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <ChevronDown 
-                            size={16} 
-                            style={{ 
-                              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
-                              transition: 'transform 0.3s ease',
-                              color: isExpanded ? 'var(--accent)' : 'var(--text3)'
-                            }} 
-                          />
-                          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
-                            {m.label}
-                          </span>
-                        </div>
-                        <span style={{ 
-                          fontSize: '13px', 
-                          fontWeight: 800, 
-                          color: hasSaved ? 'var(--accent)' : 'var(--red)',
-                          background: hasSaved ? 'rgba(200,241,53,0.06)' : 'rgba(244,63,94,0.06)',
-                          padding: '4px 10px',
-                          borderRadius: '10px',
-                          border: `1px solid ${hasSaved ? 'rgba(200,241,53,0.1)' : 'rgba(244,63,94,0.1)'}`
-                        }}>
-                          {hasSaved ? '+' : ''}₹{m.savings.toLocaleString()} Savings
-                        </span>
-                      </div>
-                      
-                      {/* Collapsible details content */}
-                      <div style={{
-                        maxHeight: isExpanded ? '150px' : '0px',
-                        overflow: 'hidden',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        opacity: isExpanded ? 1 : 0
-                      }}>
-                        <div style={{ 
-                          display: 'grid', 
-                          gridTemplateColumns: '1fr 1fr 1fr', 
-                          gap: '8px', 
-                          borderTop: '1px solid rgba(255,255,255,0.03)', 
-                          padding: '12px 16px 16px',
-                          background: 'rgba(0, 0, 0, 0.1)'
-                        }}>
-                          <div>
-                            <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '2px' }}>Earned</div>
-                            <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>₹{m.income.toLocaleString()}</div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '2px' }}>Spent</div>
-                            <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text2)' }}>₹{m.spent.toLocaleString()}</div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '2px' }}>Cumulative</div>
-                            <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text)' }}>₹{m.cumulative.toLocaleString()}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Detailed Monthly Breakdown
-            </div>
-            
-            <Budget BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} isReport={true} activeRange={budgetRange} />
+      {activeSection === 'budget' && (
+        <div style={{ padding: '0 10px' }}>
+          <div style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Detailed Monthly Breakdown
           </div>
-        );
-      })()}
+          
+          <Budget BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} isReport={true} activeRange={budgetRange} />
+        </div>
+      )}
 
       {/* STUDY SECTION IN REPORT */}
       {activeSection === 'study' && (
