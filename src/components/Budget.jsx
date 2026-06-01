@@ -895,6 +895,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
 
   const renderAddBillModal = () => {
     if (!showAddBill) return null;
+    const cats = sharedGroup?.categories || groupCategories;
     return (
       <div className="modal-overlay open" onClick={(e) => { if(e.target.className.includes('modal-overlay')) setShowAddBill(false); }}>
         <div className="modal" style={{ maxWidth: '400px', background: 'var(--bg2)', border: '1px solid var(--border)' }}>
@@ -905,6 +906,52 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
           </div>
           
           <div style={{ marginTop: '20px' }}>
+            <label style={{ fontSize: '11px', color: 'var(--text3)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Category</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
+              {cats.map(c => (
+                <div 
+                  key={c.id} 
+                  onClick={() => setBillForm(f => ({ ...f, category: c.id }))} 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px', 
+                    padding: '6px 12px', 
+                    borderRadius: '20px', 
+                    fontSize: '11px', 
+                    cursor: 'pointer', 
+                    background: billForm.category === c.id ? (c.color || 'var(--accent)') : 'var(--bg)', 
+                    color: billForm.category === c.id ? '#000' : 'var(--text2)', 
+                    fontWeight: 700, 
+                    border: `1px solid ${billForm.category === c.id ? (c.color || 'var(--accent)') : 'var(--border2)'}`, 
+                    transition: 'all 0.2s' 
+                  }}
+                >
+                  <span style={{ fontSize: '12px' }}>{c.emoji || '📦'}</span>
+                  <span>{c.label}</span>
+                </div>
+              ))}
+              <div 
+                onClick={() => setShowAddCustomCat(true)} 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '4px', 
+                  padding: '6px 12px', 
+                  borderRadius: '20px', 
+                  fontSize: '11px', 
+                  cursor: 'pointer', 
+                  background: 'rgba(255,255,255,0.04)', 
+                  color: 'var(--accent)', 
+                  fontWeight: 700, 
+                  border: '1px dashed var(--accent)', 
+                  transition: 'all 0.2s' 
+                }}
+              >
+                <span>➕ Custom Category</span>
+              </div>
+            </div>
+
             <label style={{ fontSize: '11px', color: 'var(--text3)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Bill Title / Expense</label>
             <input 
               type="text" 
@@ -920,6 +967,15 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
               placeholder="0.00" 
               value={billForm.amount} 
               onChange={e => setBillForm(f => ({ ...f, amount: e.target.value }))} 
+              style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box', marginBottom: '12px' }} 
+            />
+
+            <label style={{ fontSize: '11px', color: 'var(--text3)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Note / Description</label>
+            <input 
+              type="text" 
+              placeholder="Add transaction details..." 
+              value={billForm.note} 
+              onChange={e => setBillForm(f => ({ ...f, note: e.target.value }))} 
               style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box', marginBottom: '12px' }} 
             />
 
@@ -1018,6 +1074,63 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
               </button>
               <button 
                 onClick={() => setShowEditMembers(false)} 
+                style={{ flex: 1, padding: '12px', background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border2)', borderRadius: '12px', cursor: 'pointer', fontSize: '13px' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAddCustomCatModal = () => {
+    if (!showAddCustomCat) return null;
+    return (
+      <div className="modal-overlay open" onClick={(e) => { if(e.target.className.includes('modal-overlay')) setShowAddCustomCat(false); }}>
+        <div className="modal" style={{ maxWidth: '360px', background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+          <button className="modal-close" onClick={() => setShowAddCustomCat(false)}>×</button>
+          <div className="modal-title" style={{ color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Sparkles size={20} />
+            <span>Create Custom Category</span>
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px', marginBottom: '16px' }}>
+            Add a new category that will be synchronized instantly for all group members in real-time.
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
+            <div>
+              <label style={{ fontSize: '10px', color: 'var(--text3)', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Category Name</label>
+              <input 
+                type="text" 
+                placeholder="e.g. Shoes, Rent, Gifts"
+                value={customCatForm.label} 
+                onChange={e => setCustomCatForm(f => ({ ...f, label: e.target.value }))}
+                style={{ width: '100%', padding: '10px 12px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '10px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' }} 
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '10px', color: 'var(--text3)', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Emoji Icon</label>
+              <input 
+                type="text" 
+                placeholder="e.g. 👟, 🏠, 🎁"
+                value={customCatForm.emoji} 
+                onChange={e => setCustomCatForm(f => ({ ...f, emoji: e.target.value }))}
+                style={{ width: '100%', padding: '10px 12px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '10px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' }} 
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+              <button 
+                onClick={createCustomCategory} 
+                style={{ flex: 1, padding: '12px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}
+              >
+                Create Category
+              </button>
+              <button 
+                onClick={() => setShowAddCustomCat(false)} 
                 style={{ flex: 1, padding: '12px', background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border2)', borderRadius: '12px', cursor: 'pointer', fontSize: '13px' }}
               >
                 Cancel
