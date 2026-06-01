@@ -1,18 +1,59 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trash2, TrendingUp, TrendingDown, Calendar, Clock, ChevronLeft, ChevronRight, BarChart as BarChartIcon, X } from 'lucide-react';
+import { 
+  PlusCircle, 
+  Trash2, 
+  TrendingUp, 
+  TrendingDown, 
+  Calendar, 
+  Clock, 
+  ChevronLeft, 
+  ChevronRight, 
+  BarChart as BarChartIcon, 
+  X,
+  Pizza, 
+  Pill, 
+  Car, 
+  Gamepad2, 
+  Utensils, 
+  Dumbbell, 
+  Coins, 
+  Package,
+  Handshake,
+  CreditCard,
+  Lightbulb,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  CalendarDays,
+  FileText,
+  Sparkles,
+  HelpCircle
+} from 'lucide-react';
 import { MONTHS, DAYS_SHORT } from '../data';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, Cell, PieChart, Pie, ReferenceLine } from 'recharts';
 
 const DEFAULT_CATEGORIES = [
-  { id: 'food',      label: 'Food',          emoji: '🍕', color: '#FF6B6B' },
-  { id: 'supps',     label: 'Supplements',   emoji: '💊', color: '#C8F135' },
-  { id: 'transport', label: 'Transport',     emoji: '🚗', color: '#4D9FFF' },
-  { id: 'entertain', label: 'Entertainment', emoji: '🎮', color: '#A78BFA' },
-  { id: 'outside',   label: 'Eating Out',    emoji: '🍽️', color: '#FB923C' },
-  { id: 'gym',       label: 'Gym',           emoji: '🏋️', color: '#34D399' },
-  { id: 'repayment', label: 'Repayments',    emoji: '💸', color: '#F43F5E' },
-  { id: 'others',    label: 'Others',        emoji: '📦', color: '#94A3B8' },
+  { id: 'food',      label: 'Food',          Icon: Pizza,        emoji: '🍕', color: '#FF6B6B' },
+  { id: 'supps',     label: 'Supplements',   Icon: Pill,         emoji: '💊', color: '#C8F135' },
+  { id: 'transport', label: 'Transport',     Icon: Car,          emoji: '🚗', color: '#4D9FFF' },
+  { id: 'entertain', label: 'Entertainment', Icon: Gamepad2,     emoji: '🎮', color: '#A78BFA' },
+  { id: 'outside',   label: 'Eating Out',    Icon: Utensils,     emoji: '🍽️', color: '#FB923C' },
+  { id: 'gym',       label: 'Gym',           Icon: Dumbbell,     emoji: '🏋️', color: '#34D399' },
+  { id: 'repayment', label: 'Repayments',    Icon: Coins,        emoji: '💸', color: '#F43F5E' },
+  { id: 'others',    label: 'Others',        Icon: Package,      emoji: '📦', color: '#94A3B8' },
 ];
+
+const CategoryIcon = ({ cat, size = 16, style = {} }) => {
+  if (!cat) return <HelpCircle size={size} style={style} />;
+  if (cat.Icon) {
+    const IconComponent = cat.Icon;
+    return <IconComponent size={size} style={style} />;
+  }
+  if (cat.emoji) {
+    return <span style={{ fontSize: `${size}px`, lineHeight: 1, ...style }}>{cat.emoji}</span>;
+  }
+  return <HelpCircle size={size} style={style} />;
+};
 
 const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 const dayKey   = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -409,17 +450,19 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
               const isCredit = e.type === 'credit';
               
               const cat = isIncome 
-                ? { emoji: '💰', label: 'Income', color: 'var(--accent)' } 
+                ? { Icon: Coins, emoji: '💰', label: 'Income', color: 'var(--accent)' } 
                 : isLoan 
-                  ? { emoji: '🤝', label: 'Borrowed Loan', color: 'var(--blue)' } 
+                  ? { Icon: Handshake, emoji: '🤝', label: 'Borrowed Loan', color: 'var(--blue)' } 
                   : isCredit 
-                    ? { emoji: '💳', label: 'Credit Spend', color: 'var(--red)' }
+                    ? { Icon: CreditCard, emoji: '💳', label: 'Credit Spend', color: 'var(--red)' }
                     : (CATEGORIES.find(c => c.id === e.category) || CATEGORIES[CATEGORIES.length - 1]);
               
               return (
                 <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg3)', borderRadius: '12px', marginBottom: '10px', border: `1px solid ${isIncome ? 'rgba(200,241,53,0.1)' : isLoan ? 'rgba(77,159,255,0.1)' : 'var(--border2)'}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ fontSize: '20px' }}>{cat.emoji}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '10px', background: 'var(--bg)', color: cat.color || 'var(--text)', flexShrink: 0 }}>
+                      <CategoryIcon cat={cat} size={18} />
+                    </div>
                     <div>
                       <div style={{ fontSize: '13px', fontWeight: 600 }}>{isIncome ? e.label : isLoan ? e.label : cat.label}</div>
                       <div style={{ fontSize: '11px', color: 'var(--text3)' }}>
@@ -532,7 +575,31 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
           {showAdd && (
             <div style={{ margin: '0 20px 24px', background: 'var(--bg3)', borderRadius: '20px', padding: '20px', border: '1px solid var(--border2)' }}>
               <div style={{ fontWeight: 700, marginBottom: '16px', fontSize: '15px' }}>New Expense</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>{CATEGORIES.map(c => (<div key={c.id} onClick={() => setForm(f => ({ ...f, category: c.id }))} style={{ padding: '8px 16px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer', background: form.category === c.id ? c.color : 'var(--bg)', color: form.category === c.id ? '#000' : 'var(--text2)', fontWeight: 700, border: `1px solid ${form.category === c.id ? c.color : 'var(--border2)'}`, transition: 'all 0.2s' }}>{c.emoji} {c.label}</div>))}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+                {CATEGORIES.map(c => (
+                  <div 
+                    key={c.id} 
+                    onClick={() => setForm(f => ({ ...f, category: c.id }))} 
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '6px', 
+                      padding: '8px 16px', 
+                      borderRadius: '20px', 
+                      fontSize: '12px', 
+                      cursor: 'pointer', 
+                      background: form.category === c.id ? c.color : 'var(--bg)', 
+                      color: form.category === c.id ? '#000' : 'var(--text2)', 
+                      fontWeight: 700, 
+                      border: `1px solid ${form.category === c.id ? c.color : 'var(--border2)'}`, 
+                      transition: 'all 0.2s' 
+                    }}
+                  >
+                    <CategoryIcon cat={c} size={14} />
+                    <span>{c.label}</span>
+                  </div>
+                ))}
+              </div>
               <input type="number" placeholder="Amount (₹)" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '15px', marginBottom: '12px', boxSizing: 'border-box' }} />
               <input type="text" placeholder="Add a note..." value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '15px', marginBottom: '20px', boxSizing: 'border-box' }} />
               <div style={{ display: 'flex', gap: '10px' }}>
@@ -561,15 +628,17 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button 
                     onClick={() => setDebtForm(f => ({ ...f, type: 'loan' }))}
-                    style={{ flex: 1, padding: '10px', borderRadius: '10px', background: debtForm.type === 'loan' ? 'var(--blue)' : 'var(--bg)', color: debtForm.type === 'loan' ? '#000' : 'var(--text2)', border: '1px solid var(--border2)', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', background: debtForm.type === 'loan' ? 'var(--blue)' : 'var(--bg)', color: debtForm.type === 'loan' ? '#000' : 'var(--text2)', border: '1px solid var(--border2)', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}
                   >
-                    🤝 Friend Loan
+                    <Handshake size={14} />
+                    <span>Friend Loan</span>
                   </button>
                   <button 
                     onClick={() => setDebtForm(f => ({ ...f, type: 'credit' }))}
-                    style={{ flex: 1, padding: '10px', borderRadius: '10px', background: debtForm.type === 'credit' ? 'var(--blue)' : 'var(--bg)', color: debtForm.type === 'credit' ? '#000' : 'var(--text2)', border: '1px solid var(--border2)', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', background: debtForm.type === 'credit' ? 'var(--blue)' : 'var(--bg)', color: debtForm.type === 'credit' ? '#000' : 'var(--text2)', border: '1px solid var(--border2)', fontWeight: 700, cursor: 'pointer', fontSize: '12px' }}
                   >
-                    💳 Credit Card
+                    <CreditCard size={14} />
+                    <span>Credit Card</span>
                   </button>
                 </div>
               </div>
@@ -596,8 +665,9 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
                   onChange={e => setDebtForm(f => ({ ...f, amount: e.target.value }))} 
                   style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' }} 
                 />
-                <span style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '4px', display: 'block', fontStyle: 'italic' }}>
-                  💡 {debtForm.type === 'loan' ? 'Adds to cash balance (Income).' : 'Logs purchase transaction in expense history.'}
+                <span style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontStyle: 'italic' }}>
+                  <Lightbulb size={12} color="var(--accent)" />
+                  <span>{debtForm.type === 'loan' ? 'Adds to cash balance (Income).' : 'Logs purchase transaction in expense history.'}</span>
                 </span>
               </div>
 
@@ -671,11 +741,20 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
               : 'var(--blue)'
         }}>
           {netLiquidity < 0 ? (
-            <span>⚠️ **Financial Health: Budget Deficit.** You have overspent your available cash by ₹{Math.abs(netLiquidity).toLocaleString()}! Avoid new expenses and balance your budget.</span>
+            <span style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+              <AlertTriangle size={14} style={{ marginTop: '2px', flexShrink: 0 }} />
+              <span>**Financial Health: Budget Deficit.** You have overspent your available cash by ₹{Math.abs(netLiquidity).toLocaleString()}! Avoid new expenses and balance your budget.</span>
+            </span>
           ) : totalOutstandingDebt === 0 ? (
-            <span>🟢 **Financial Health: Excellent.** You have zero outstanding liabilities! All your cash is fully liquid and debt-free.</span>
+            <span style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+              <CheckCircle2 size={14} style={{ marginTop: '2px', flexShrink: 0 }} />
+              <span>**Financial Health: Excellent.** You have zero outstanding liabilities! All your cash is fully liquid and debt-free.</span>
+            </span>
           ) : (
-            <span>🔵 **Financial Health: Healthy Coverage.** Your remaining cash covers your outstanding dues (₹{totalOutstandingDebt.toLocaleString()}). Settle them whenever you wish.</span>
+            <span style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+              <Info size={14} style={{ marginTop: '2px', flexShrink: 0 }} />
+              <span>**Financial Health: Healthy Coverage.** Your remaining cash covers your outstanding dues (₹{totalOutstandingDebt.toLocaleString()}). Settle them whenever you wish.</span>
+            </span>
           )}
         </div>
 
@@ -688,8 +767,11 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
             borderRadius: '16px', 
             border: '1px solid rgba(255,255,255,0.06)' 
           }}>
-            <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--red)', marginBottom: '10px', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', letterSpacing: '0.03em' }}>
-              <span>📅 {MONTHS[now.getMonth()]} Repayment Plan</span>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--red)', marginBottom: '10px', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', letterSpacing: '0.03em', alignItems: 'center' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <CalendarDays size={12} />
+                <span>{MONTHS[now.getMonth()]} Repayment Plan</span>
+              </span>
               <span>₹{totalOutstandingDebt.toLocaleString()}</span>
             </div>
             
@@ -702,7 +784,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
                       <div style={{ fontWeight: 700, color: 'var(--text)' }}>
                         {d.type === 'loan' ? '🤝 Friend:' : '💳 Card:'} {d.provider}
                       </div>
-                      {d.note && <div style={{ color: 'var(--text3)', fontSize: '10px', marginTop: '2px' }}>📝 {d.note}</div>}
+                      {d.note && <div style={{ color: 'var(--text3)', fontSize: '10px', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}><FileText size={10} /> <span>{d.note}</span></div>}
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontWeight: 800, color: 'var(--red)' }}>₹{unpaidAmt.toLocaleString()}</div>
@@ -724,7 +806,12 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
             return (
               <div key={d.name}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: 500 }}><span>{cat?.emoji}</span><div>{d.name}</div></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: 500 }}>
+                    <span style={{ color: d.color, display: 'flex', alignItems: 'center' }}>
+                      <CategoryIcon cat={cat} size={16} />
+                    </span>
+                    <div>{d.name}</div>
+                  </div>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: d.color }}>₹{d.value.toLocaleString()} <span style={{ color: 'var(--text3)', fontSize: '11px', fontWeight: 400 }}>({pct}%)</span></div>
                 </div>
                 <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}><div style={{ width: `${pct}%`, height: '100%', background: d.color, borderRadius: 3 }} /></div>
@@ -737,15 +824,17 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
       {/* 💳 LIABILITIES & REPAYMENTS TRACKER */}
       <div style={{ padding: '0 20px', marginBottom: '24px' }}>
         <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span>💳 Liabilities & Outstanding Dues</span>
+          <CreditCard size={16} color="var(--red)" />
+          <span>Liabilities & Outstanding Dues</span>
           <span style={{ fontSize: '11px', color: 'var(--red)', fontWeight: 'normal', marginLeft: 'auto' }}>
             Unpaid: ₹{totalOutstandingDebt.toLocaleString()}
           </span>
         </div>
         
         {allDebts.length === 0 ? (
-          <div style={{ background: 'var(--bg3)', borderRadius: '16px', padding: '20px', textAlign: 'center', color: 'var(--text3)', fontSize: '12px', border: '1px dashed var(--border2)' }}>
-            🎉 No borrowed loans or credit card spend logged yet.
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', background: 'var(--bg3)', borderRadius: '16px', padding: '20px', textAlign: 'center', color: 'var(--text3)', fontSize: '12px', border: '1px dashed var(--border2)' }}>
+            <Sparkles size={20} color="var(--accent)" />
+            <span>No borrowed loans or credit card spend logged yet.</span>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -759,20 +848,23 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '10px', background: d.type === 'loan' ? 'rgba(77,159,255,0.15)' : 'rgba(244,63,94,0.15)', color: d.type === 'loan' ? 'var(--blue)' : 'var(--red)', fontWeight: 700 }}>
-                          {d.type === 'loan' ? '🤝 Friend Loan' : '💳 Credit Due'}
+                        <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '10px', background: d.type === 'loan' ? 'rgba(77,159,255,0.15)' : 'rgba(244,63,94,0.15)', color: d.type === 'loan' ? 'var(--blue)' : 'var(--red)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          {d.type === 'loan' ? <Handshake size={10} /> : <CreditCard size={10} />}
+                          <span>{d.type === 'loan' ? 'Friend Loan' : 'Credit Due'}</span>
                         </span>
                         {isPaid && (
-                          <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', background: 'rgba(52,211,153,0.15)', color: '#34D399', fontWeight: 600 }}>
-                            Paid ✓
+                          <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', background: 'rgba(52,211,153,0.15)', color: '#34D399', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            <CheckCircle2 size={10} />
+                            <span>Paid</span>
                           </span>
                         )}
                       </div>
                       <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginTop: '6px' }}>{d.provider}</div>
                       <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '2px' }}>Logged on {d.date}</div>
                       {d.note && (
-                        <div style={{ fontSize: '11px', color: 'var(--text2)', background: 'rgba(255,255,255,0.03)', padding: '4px 8px', borderRadius: '6px', marginTop: '6px', borderLeft: '3px solid var(--border)' }}>
-                          📝 <strong>Note:</strong> {d.note}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '11px', color: 'var(--text2)', background: 'rgba(255,255,255,0.03)', padding: '4px 8px', borderRadius: '6px', marginTop: '6px', borderLeft: '3px solid var(--border)' }}>
+                          <FileText size={12} style={{ marginTop: '2px', flexShrink: 0 }} />
+                          <span><strong>Note:</strong> {d.note}</span>
                         </div>
                       )}
                     </div>
@@ -826,7 +918,8 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
                             onClick={() => setRepayForm({ debtId: d.id, amount: String(remainingAmount) })}
                             style={{ padding: '6px 12px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', borderRadius: '8px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                           >
-                            💸 Repay / Payback
+                            <Coins size={12} />
+                            <span>Repay / Payback</span>
                           </button>
                           <button 
                             onClick={() => { if(window.confirm('Delete this debt entry?')) deleteDebt(d.id, d.mk); }}
@@ -859,41 +952,54 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
             <input type="date" value={historyEnd} onChange={e => setHistoryEnd(e.target.value)} style={{ flex: 1, background: 'var(--bg)', border: '1px solid var(--border2)', color: 'var(--text)', fontSize: '12px', padding: '6px', borderRadius: '8px' }} />
           </div>
         )}
-        {sortedHistory.map(month => (
-          <div key={`${month.yr}-${month.mo}`} style={{ marginBottom: '24px' }}>
-            <div style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--accent)', textTransform: 'uppercase' }}>{MONTHS[month.mo]} {month.yr}</div>
-            {month.dayList.map(day => (
-              <div key={day.dk} className="history-day has-data" onClick={() => setModalDay(day)} style={{ marginBottom: '12px' }}>
-                <div className="hday-top">
-                  <div style={{ fontSize: '13px', fontWeight: 700 }}>{day.dk === todayKey ? 'Today' : DAYS_SHORT[new Date(day.dk).getDay()]}, {new Date(day.dk).getDate()}</div>
-                  <div style={{ textAlign: 'right' }}>
-                    {day.totalSpent > 0 && <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--red)' }}>-₹{day.totalSpent.toLocaleString()}</div>}
-                    {day.totalIncome > 0 && <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent)' }}>+₹{day.totalIncome.toLocaleString()}</div>}
-                  </div>
-                </div>
-                <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--text3)', fontSize: '11px' }}>{day.items.filter(x => x.type === 'expense' || x.type === 'credit').length} Exp</span>
-                  {day.totalIncome > 0 && <span style={{ color: 'var(--accent)', fontSize: '11px' }}>• {day.items.filter(x => x.type === 'income').length} Inc</span>}
-                  {day.items.some(x => x.type === 'loan') && <span style={{ color: 'var(--blue)', fontSize: '11px' }}>• {day.items.filter(x => x.type === 'loan').length} Loan</span>}
-                  <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
-                    {day.items.map((e, idx) => {
-                      if (idx > 4) return null;
-                      const cat = e.type === 'income' 
-                        ? { emoji: '💰' } 
-                        : e.type === 'loan'
-                          ? { emoji: '🤝' }
-                          : e.type === 'credit'
-                            ? { emoji: '💳' }
-                            : (CATEGORIES.find(c => c.id === e.category) || { emoji: '❓' });
-                      return <span key={e.id} style={{ fontSize: '12px' }}>{cat.emoji}</span>;
-                    })}
-                    {day.items.length > 5 && <span style={{ fontSize: '10px', color: 'var(--text3)' }}>+</span>}
-                  </div>
-                </div>
-              </div>
-            ))}
+        {sortedHistory.length === 0 ? (
+          <div style={{ background: 'var(--bg3)', borderRadius: '16px', padding: '24px 20px', textAlign: 'center', color: 'var(--text3)', fontSize: '13px', border: '1px dashed var(--border2)', marginTop: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <Calendar size={24} style={{ color: 'var(--text3)', opacity: 0.5 }} />
+            <div>No history this month</div>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', opacity: 0.8 }}>Start logging expenses or income to build your ledger.</div>
           </div>
-        ))}
+        ) : (
+          sortedHistory.map(month => (
+            <div key={`${month.yr}-${month.mo}`} style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--accent)', textTransform: 'uppercase' }}>{MONTHS[month.mo]} {month.yr}</div>
+              {month.dayList.map(day => (
+                <div key={day.dk} className="history-day has-data" onClick={() => setModalDay(day)} style={{ marginBottom: '12px' }}>
+                  <div className="hday-top">
+                    <div style={{ fontSize: '13px', fontWeight: 700 }}>{day.dk === todayKey ? 'Today' : DAYS_SHORT[new Date(day.dk).getDay()]}, {new Date(day.dk).getDate()}</div>
+                    <div style={{ textAlign: 'right' }}>
+                      {day.totalSpent > 0 && <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--red)' }}>-₹{day.totalSpent.toLocaleString()}</div>}
+                      {day.totalIncome > 0 && <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent)' }}>+₹{day.totalIncome.toLocaleString()}</div>}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text3)', fontSize: '11px' }}>{day.items.filter(x => x.type === 'expense' || x.type === 'credit').length} Exp</span>
+                    {day.totalIncome > 0 && <span style={{ color: 'var(--accent)', fontSize: '11px' }}>• {day.items.filter(x => x.type === 'income').length} Inc</span>}
+                    {day.items.some(x => x.type === 'loan') && <span style={{ color: 'var(--blue)', fontSize: '11px' }}>• {day.items.filter(x => x.type === 'loan').length} Loan</span>}
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      {day.items.map((e, idx) => {
+                        if (idx > 4) return null;
+                        const cat = e.type === 'income' 
+                          ? { Icon: Coins, color: 'var(--accent)' } 
+                          : e.type === 'loan'
+                            ? { Icon: Handshake, color: 'var(--blue)' }
+                            : e.type === 'credit'
+                              ? { Icon: CreditCard, color: 'var(--red)' }
+                              : (CATEGORIES.find(c => c.id === e.category) || { Icon: HelpCircle, color: 'var(--text3)' });
+                        
+                        return (
+                          <span key={e.id} style={{ color: cat.color || 'var(--text2)', display: 'inline-flex', alignItems: 'center' }}>
+                            <CategoryIcon cat={cat} size={12} />
+                          </span>
+                        );
+                      })}
+                      {day.items.length > 5 && <span style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: 700 }}>+</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))
+        )}
         {renderModal()}
       </div>
     </div>
