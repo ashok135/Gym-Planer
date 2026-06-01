@@ -281,11 +281,11 @@ select.meta-input { appearance: none; }
 
 @keyframes slideUp {
   from {
-    transform: translateY(60px);
+    transform: translate(-50%, 50px);
     opacity: 0;
   }
   to {
-    transform: translateY(0);
+    transform: translate(-50%, 0);
     opacity: 1;
   }
 }
