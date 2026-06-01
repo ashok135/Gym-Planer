@@ -271,9 +271,10 @@ export default function SplitExpense() {
         return;
       }
 
-      const updatedMembers = matchedGroup.members.includes(myName)
-        ? matchedGroup.members
-        : [...matchedGroup.members, myName];
+      const currentMembers = matchedGroup.members || [];
+      const updatedMembers = currentMembers.includes(myName)
+        ? currentMembers
+        : [...currentMembers, myName];
 
       const updatedGroup = { ...matchedGroup, members: updatedMembers };
       
@@ -286,7 +287,7 @@ export default function SplitExpense() {
       setShowJoinGroup(false);
     } catch (err) {
       console.error(err);
-      setGroupError('Failed to join. Verify connection.');
+      setGroupError(`Failed to join: ${err.message || 'Verify connection.'}`);
     }
     setGroupSyncing(false);
   };
