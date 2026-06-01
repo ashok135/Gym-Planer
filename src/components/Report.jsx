@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol, DAYS_SHORT, MONTHS } from '../data';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
-import { CheckCircle2, XCircle, Dumbbell, Wallet, GraduationCap, TrendingUp, Trophy, Calendar, Coins, Sparkles, ChevronDown } from 'lucide-react';
+import { CheckCircle2, XCircle, Dumbbell, Wallet, GraduationCap, TrendingUp, Trophy, Calendar, Coins, Sparkles, ChevronDown, Users } from 'lucide-react';
 import History from './History';
 import Budget from './Budget';
 import Study from './Study';
@@ -327,15 +327,204 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
       </div>
 
       {/* BUDGET SECTION IN REPORT */}
-      {activeSection === 'budget' && (
-        <div style={{ padding: '0 10px' }}>
-          <div style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Detailed Monthly Breakdown
+      {activeSection === 'budget' && (() => {
+        const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const selectedMonthData = BUDGET?.[currentMonthKey] || {};
+        const groupMembers = selectedMonthData.groupMembers || ['You', 'Aman', 'Kabir', 'Rohit'];
+        const groupBills = selectedMonthData.groupBills || [];
+        
+        return (
+          <div style={{ padding: '0 10px' }}>
+            {/* 👥 GROUP SPLIT REPORT CARD */}
+            <div className="scroll-reveal" style={{ 
+              marginBottom: '24px', 
+              background: 'linear-gradient(135deg, rgba(200,241,53,0.05), rgba(77,159,255,0.03))', 
+              borderRadius: '24px', 
+              padding: '20px', 
+              border: '1px solid rgba(255,255,255,0.05)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <Users size={18} color="var(--accent)" />
+                <div style={{ fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Monthly Shared Expenses Report
+                </div>
+              </div>
+
+              {groupBills.length === 0 ? (
+                <div style={{ 
+                  textAlign: 'center', 
+                  color: 'var(--text3)', 
+                  padding: '24px 0', 
+                  fontSize: '12px',
+                  background: 'rgba(0,0,0,0.1)',
+                  borderRadius: '16px',
+                  border: '1px dashed var(--border2)'
+                }}>
+                  No group shared bills logged for {MONTHS[now.getMonth()]} {now.getFullYear()} yet.
+                </div>
+              ) : (() => {
+                const totalShared = groupBills.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+                
+                // Balance calculations
+                const balances = {};
+                groupMembers.forEach(m => { balances[m] = 0; });
+                groupBills.forEach(bill => {
+                  const totalAmount = Number(bill.amount) || 0;
+                  const payer = bill.paidBy;
+                  const splitWith = bill.splitWith || [];
+                  if (splitWith.length === 0) return;
+                  const share = totalAmount / splitWith.length;
+                  if (balances[payer] !== undefined) balances[payer] += totalAmount;
+                  splitWith.forEach(member => {
+                    if (balances[member] !== undefined) balances[member] -= share;
+                  });
+                });
+
+                // suggested Settlements Minimization
+                const creditors = [];
+                const debtors = [];
+                Object.entries(balances).forEach(([name, bal]) => {
+                  const val = Math.round(bal * 100) / 100;
+                  if (val > 0.01) creditors.push({ name, amount: val });
+                  else if (val < -0.01) debtors.push({ name, amount: Math.abs(val) });
+                });
+                creditors.sort((a, b) => b.amount - a.amount);
+                debtors.sort((a, b) => b.amount - a.amount);
+
+                const settlements = [];
+                let cIdx = 0, dIdx = 0;
+                const cTemp = creditors.map(c => ({ ...c }));
+                const dTemp = debtors.map(d => ({ ...d }));
+                while (cIdx < cTemp.length && dIdx < dTemp.length) {
+                  const creditor = cTemp[cIdx];
+                  const debtor = dTemp[dIdx];
+                  const amountToSettle = Math.min(creditor.amount, debtor.amount);
+                  if (amountToSettle > 0.01) {
+                    settlements.push({
+                      from: debtor.name,
+                      to: creditor.name,
+                      amount: Math.round(amountToSettle * 100) / 100
+                    });
+                  }
+                  creditor.amount -= amountToSettle;
+                  debtor.amount -= amountToSettle;
+                  if (creditor.amount <= 0.01) cIdx++;
+                  if (debtor.amount <= 0.01) dIdx++;
+                }
+
+                // Member total contributions
+                const contributions = {};
+                groupMembers.forEach(m => { contributions[m] = 0; });
+                groupBills.forEach(b => {
+                  if (contributions[b.paidBy] !== undefined) {
+                    contributions[b.paidBy] += Number(b.amount) || 0;
+                  }
+                });
+
+                return (
+                  <div>
+                    {/* Summary row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                      <div style={{ background: 'var(--bg3)', padding: '14px 12px', borderRadius: '16px', border: '1px solid var(--border2)' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text3)' }}>Total Shared Spend</div>
+                        <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--accent)', marginTop: '4px' }}>
+                          ₹{totalShared.toLocaleString()}
+                        </div>
+                      </div>
+                      <div style={{ background: 'var(--bg3)', padding: '14px 12px', borderRadius: '16px', border: '1px solid var(--border2)' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text3)' }}>Group Members</div>
+                        <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text)', marginTop: '4px' }}>
+                          {groupMembers.length}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Member Contributions bar graph style list */}
+                    <div style={{ background: 'rgba(0,0,0,0.1)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)', marginBottom: '16px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '12px' }}>
+                        Total Paid by Member
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {groupMembers.map(m => {
+                          const spentAmt = contributions[m] || 0;
+                          const pct = totalShared > 0 ? Math.round((spentAmt / totalShared) * 100) : 0;
+                          
+                          return (
+                            <div key={m}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text2)', marginBottom: '4px' }}>
+                                <span>{m === 'You' ? '👥 You' : m}</span>
+                                <span style={{ fontWeight: 'bold' }}>₹{spentAmt.toLocaleString()} ({pct}%)</span>
+                              </div>
+                              <div style={{ width: '100%', height: '6px', background: 'var(--bg)', borderRadius: '3px', overflow: 'hidden' }}>
+                                <div style={{ 
+                                  width: `${pct}%`, 
+                                  height: '100%', 
+                                  background: m === 'You' ? 'var(--accent)' : 'var(--blue)', 
+                                  borderRadius: '3px' 
+                                }}></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Net Balances List */}
+                    <div style={{ background: 'rgba(0,0,0,0.1)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border2)', marginBottom: '16px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '12px' }}>
+                        Outstanding Net Dues
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {groupMembers.map(m => {
+                          const bal = Math.round((balances[m] || 0) * 100) / 100;
+                          const isOwed = bal > 0.01;
+                          const owes = bal < -0.01;
+                          
+                          return (
+                            <div key={m} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                              <span style={{ color: 'var(--text2)', fontWeight: 500 }}>{m === 'You' ? 'You' : m}</span>
+                              <span style={{ 
+                                fontWeight: 800, 
+                                color: isOwed ? 'var(--accent)' : owes ? 'var(--red)' : 'var(--text3)'
+                              }}>
+                                {isOwed ? `+₹${bal.toLocaleString()}` : owes ? `-₹${Math.abs(bal).toLocaleString()}` : 'Settled'}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Suggested Dues Settlements suggestions */}
+                    {settlements.length > 0 && (
+                      <div style={{ background: 'rgba(200,241,53,0.03)', padding: '14px', borderRadius: '16px', border: '1px solid rgba(200,241,53,0.1)' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--accent)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '8px' }}>
+                          Suggested Transfers to Settle Group
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {settlements.map((s, idx) => (
+                            <div key={idx} style={{ fontSize: '12px', color: 'var(--text)' }}>
+                              • <strong>{s.from === 'You' ? 'You need to pay' : `${s.from} needs to pay`}</strong> {s.to === 'You' ? 'You' : s.to} <strong style={{ color: 'var(--accent)' }}>₹{s.amount.toLocaleString()}</strong>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <div style={{ height: '20px' }}></div>
+            </div>
+
+            <div style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Detailed Monthly Breakdown
+            </div>
+            
+            <Budget BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} isReport={true} activeRange={budgetRange} />
           </div>
-          
-          <Budget BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} isReport={true} activeRange={budgetRange} />
-        </div>
-      )}
+        );
+      })()}
 
       {/* STUDY SECTION IN REPORT */}
       {activeSection === 'study' && (

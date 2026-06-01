@@ -27,7 +27,8 @@ import {
   CalendarDays,
   FileText,
   Sparkles,
-  HelpCircle
+  HelpCircle,
+  Users
 } from 'lucide-react';
 import { MONTHS, DAYS_SHORT } from '../data';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, Cell, PieChart, Pie, ReferenceLine } from 'recharts';
@@ -143,6 +144,137 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
   const [showAddDebt, setShowAddDebt] = useState(false);
   const [debtForm, setDebtForm] = useState({ type: 'loan', provider: '', amount: '', dueDate: '', note: '' });
   const [repayForm, setRepayForm] = useState({ debtId: null, amount: '' });
+
+  // Group Split States
+  const selectedMonthData = BUDGET[selectedMonth] || {};
+  const groupMembers = selectedMonthData.groupMembers || ['You', 'Aman', 'Kabir', 'Rohit'];
+  const groupBills = selectedMonthData.groupBills || [];
+  
+  const [showAddBill, setShowAddBill] = useState(false);
+  const [showEditMembers, setShowEditMembers] = useState(false);
+  const [billForm, setBillForm] = useState({ title: '', amount: '', paidBy: 'You', splitWith: [] });
+  const [editNames, setEditNames] = useState(['Aman', 'Kabir', 'Rohit']);
+
+  useEffect(() => {
+    setBillForm(f => ({
+      ...f,
+      paidBy: groupMembers[0] || 'You',
+      splitWith: [...groupMembers]
+    }));
+  }, [selectedMonth, BUDGET]);
+
+  // Balance Math
+  const balances = {};
+  groupMembers.forEach(m => { balances[m] = 0; });
+  groupBills.forEach(bill => {
+    const totalAmount = Number(bill.amount) || 0;
+    const payer = bill.paidBy;
+    const splitWith = bill.splitWith || [];
+    if (splitWith.length === 0) return;
+    const share = totalAmount / splitWith.length;
+    if (balances[payer] !== undefined) balances[payer] += totalAmount;
+    splitWith.forEach(member => {
+      if (balances[member] !== undefined) balances[member] -= share;
+    });
+  });
+
+  // suggested Settlements Minimization
+  const creditors = [];
+  const debtors = [];
+  Object.entries(balances).forEach(([name, bal]) => {
+    const val = Math.round(bal * 100) / 100;
+    if (val > 0.01) creditors.push({ name, amount: val });
+    else if (val < -0.01) debtors.push({ name, amount: Math.abs(val) });
+  });
+  creditors.sort((a, b) => b.amount - a.amount);
+  debtors.sort((a, b) => b.amount - a.amount);
+
+  const settlements = [];
+  let cIdx = 0, dIdx = 0;
+  const cTemp = creditors.map(c => ({ ...c }));
+  const dTemp = debtors.map(d => ({ ...d }));
+  while (cIdx < cTemp.length && dIdx < dTemp.length) {
+    const creditor = cTemp[cIdx];
+    const debtor = dTemp[dIdx];
+    const amountToSettle = Math.min(creditor.amount, debtor.amount);
+    if (amountToSettle > 0.01) {
+      settlements.push({
+        from: debtor.name,
+        to: creditor.name,
+        amount: Math.round(amountToSettle * 100) / 100
+      });
+    }
+    creditor.amount -= amountToSettle;
+    debtor.amount -= amountToSettle;
+    if (creditor.amount <= 0.01) cIdx++;
+    if (debtor.amount <= 0.01) dIdx++;
+  }
+
+  // Action Helpers
+  const addSharedBill = () => {
+    if (!billForm.title.trim() || !billForm.amount || isNaN(billForm.amount) || Number(billForm.amount) <= 0) return;
+    if (!billForm.splitWith || billForm.splitWith.length === 0) return;
+    const targetMonth = BUDGET[selectedMonth] || {};
+    const bills = targetMonth.groupBills || [];
+    const d = new Date();
+    const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const ts = d.getTime();
+    const newBill = {
+      id: ts.toString(),
+      title: billForm.title.trim(),
+      amount: Number(billForm.amount),
+      paidBy: billForm.paidBy,
+      splitWith: [...billForm.splitWith],
+      date: dk,
+      timestamp: ts
+    };
+    syncBudget({ ...BUDGET, [selectedMonth]: { ...targetMonth, groupBills: [...bills, newBill] } });
+    setBillForm(f => ({ ...f, title: '', amount: '' }));
+    setShowAddBill(false);
+  };
+
+  const deleteBill = (billId) => {
+    const targetMonth = BUDGET[selectedMonth];
+    if (!targetMonth) return;
+    const updatedBills = (targetMonth.groupBills || []).filter(b => b.id !== billId);
+    syncBudget({ ...BUDGET, [selectedMonth]: { ...targetMonth, groupBills: updatedBills } });
+  };
+
+  const quickSettle = (from, to, amount) => {
+    const targetMonth = BUDGET[selectedMonth] || {};
+    const bills = targetMonth.groupBills || [];
+    const d = new Date();
+    const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const ts = d.getTime();
+    const settleBill = {
+      id: ts.toString(),
+      title: `Settle: ${from} to ${to}`,
+      amount: Number(amount),
+      paidBy: from,
+      splitWith: [to],
+      date: dk,
+      timestamp: ts
+    };
+    syncBudget({ ...BUDGET, [selectedMonth]: { ...targetMonth, groupBills: [...bills, settleBill] } });
+  };
+
+  const saveGroupMembers = (newNames) => {
+    const targetMonth = BUDGET[selectedMonth] || {};
+    const oldMembers = targetMonth.groupMembers || ['You', 'Aman', 'Kabir', 'Rohit'];
+    const newMembers = ['You', ...newNames];
+    const updatedBills = (targetMonth.groupBills || []).map(bill => {
+      let updatedPayer = bill.paidBy;
+      const idx = oldMembers.indexOf(bill.paidBy);
+      if (idx !== -1 && newMembers[idx]) updatedPayer = newMembers[idx];
+      const updatedSplitWith = (bill.splitWith || []).map(member => {
+        const sIdx = oldMembers.indexOf(member);
+        return (sIdx !== -1 && newMembers[sIdx]) ? newMembers[sIdx] : member;
+      });
+      return { ...bill, paidBy: updatedPayer, splitWith: updatedSplitWith };
+    });
+    syncBudget({ ...BUDGET, [selectedMonth]: { ...targetMonth, groupMembers: newMembers, groupBills: updatedBills } });
+    setShowEditMembers(false);
+  };
 
   const potentialRollover = getRolloverBalance(selectedMonth);
 
@@ -565,6 +697,142 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
     );
   };
 
+  const renderAddBillModal = () => {
+    if (!showAddBill) return null;
+    return (
+      <div className="modal-overlay open" onClick={(e) => { if(e.target.className.includes('modal-overlay')) setShowAddBill(false); }}>
+        <div className="modal" style={{ maxWidth: '400px', background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+          <button className="modal-close" onClick={() => setShowAddBill(false)}>×</button>
+          <div className="modal-title" style={{ color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Users size={20} />
+            <span>Add Shared Bill</span>
+          </div>
+          
+          <div style={{ marginTop: '20px' }}>
+            <label style={{ fontSize: '11px', color: 'var(--text3)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Bill Title / Expense</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Electricity, Groceries, Dinner" 
+              value={billForm.title} 
+              onChange={e => setBillForm(f => ({ ...f, title: e.target.value }))} 
+              style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box', marginBottom: '12px' }} 
+            />
+
+            <label style={{ fontSize: '11px', color: 'var(--text3)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Amount (₹)</label>
+            <input 
+              type="number" 
+              placeholder="0.00" 
+              value={billForm.amount} 
+              onChange={e => setBillForm(f => ({ ...f, amount: e.target.value }))} 
+              style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box', marginBottom: '12px' }} 
+            />
+
+            <label style={{ fontSize: '11px', color: 'var(--text3)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Who Paid?</label>
+            <select 
+              value={billForm.paidBy} 
+              onChange={e => setBillForm(f => ({ ...f, paidBy: e.target.value }))}
+              style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box', marginBottom: '12px', outline: 'none' }}
+            >
+              {groupMembers.map(m => (
+                <option key={m} value={m}>{m === 'You' ? 'You' : m}</option>
+              ))}
+            </select>
+
+            <label style={{ fontSize: '11px', color: 'var(--text3)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Split With Whom?</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(0,0,0,0.15)', padding: '12px', borderRadius: '12px', marginBottom: '20px', border: '1px solid var(--border2)' }}>
+              {groupMembers.map(m => {
+                const isSelected = billForm.splitWith?.includes(m);
+                return (
+                  <label key={m} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={isSelected} 
+                      onChange={() => {
+                        const newSplitWith = isSelected 
+                          ? billForm.splitWith.filter(x => x !== m)
+                          : [...billForm.splitWith, m];
+                        setBillForm(f => ({ ...f, splitWith: newSplitWith }));
+                      }}
+                      style={{ cursor: 'pointer', accentColor: 'var(--accent)' }}
+                    />
+                    <span>{m === 'You' ? 'You' : m}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={addSharedBill} 
+                style={{ flex: 1, padding: '12px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}
+              >
+                Log Shared Bill
+              </button>
+              <button 
+                onClick={() => setShowAddBill(false)} 
+                style={{ flex: 1, padding: '12px', background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border2)', borderRadius: '12px', cursor: 'pointer', fontSize: '13px' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderEditMembersModal = () => {
+    if (!showEditMembers) return null;
+    return (
+      <div className="modal-overlay open" onClick={(e) => { if(e.target.className.includes('modal-overlay')) setShowEditMembers(false); }}>
+        <div className="modal" style={{ maxWidth: '360px', background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+          <button className="modal-close" onClick={() => setShowEditMembers(false)}>×</button>
+          <div className="modal-title" style={{ color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Users size={20} />
+            <span>Customize Friends</span>
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px', marginBottom: '16px' }}>
+            Define the names of your 3 friends in the group. You can edit them at any time.
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
+            {editNames.map((name, idx) => (
+              <div key={idx}>
+                <label style={{ fontSize: '10px', color: 'var(--text3)', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Friend {idx + 1} Name</label>
+                <input 
+                  type="text" 
+                  value={name} 
+                  placeholder={`Friend ${idx + 1}`}
+                  onChange={e => {
+                    const copy = [...editNames];
+                    copy[idx] = e.target.value;
+                    setEditNames(copy);
+                  }} 
+                  style={{ width: '100%', padding: '10px 12px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '10px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' }} 
+                />
+              </div>
+            ))}
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+              <button 
+                onClick={() => saveGroupMembers(editNames)} 
+                style={{ flex: 1, padding: '12px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}
+              >
+                Save Changes
+              </button>
+              <button 
+                onClick={() => setShowEditMembers(false)} 
+                style={{ flex: 1, padding: '12px', background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border2)', borderRadius: '12px', cursor: 'pointer', fontSize: '13px' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div id="budget-content" style={{ padding: '0 0 20px' }}>
       {/* Dynamic Wealth Banner with futuristic network/financial lines overlay background */}
@@ -942,6 +1210,197 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
         )}
       </div>
 
+      {/* 👥 GROUP SPLIT LEDGER CARD */}
+      <div className="scroll-reveal" style={{ 
+        margin: '0 20px 24px', 
+        background: 'linear-gradient(135deg, rgba(200,241,53,0.04), rgba(167,139,250,0.04))', 
+        borderRadius: '24px', 
+        padding: '20px', 
+        border: '1px solid rgba(255,255,255,0.05)' 
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Users size={18} color="var(--accent)" />
+            <div style={{ fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Group Split Ledger
+            </div>
+          </div>
+          <button 
+            onClick={() => {
+              setEditNames(groupMembers.slice(1));
+              setShowEditMembers(true);
+            }}
+            style={{ 
+              background: 'transparent', 
+              border: 'none', 
+              color: 'var(--text3)', 
+              fontSize: '11px', 
+              fontWeight: 600, 
+              cursor: 'pointer',
+              textDecoration: 'underline' 
+            }}
+          >
+            Manage Friends
+          </button>
+        </div>
+
+        {/* Balance Sheet Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px', marginBottom: '16px' }}>
+          {groupMembers.map(m => {
+            const bal = Math.round((balances[m] || 0) * 100) / 100;
+            const isOwed = bal > 0.01;
+            const owes = bal < -0.01;
+            
+            return (
+              <div key={m} style={{ 
+                background: 'var(--bg3)', 
+                padding: '12px 10px', 
+                borderRadius: '14px', 
+                border: '1px solid var(--border2)',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  {m === 'You' ? '👥 You' : m}
+                </div>
+                <div style={{ 
+                  fontSize: '13px', 
+                  fontWeight: 900, 
+                  marginTop: '4px',
+                  color: isOwed ? 'var(--accent)' : owes ? 'var(--red)' : 'var(--text3)' 
+                }}>
+                  {isOwed ? `+₹${bal.toLocaleString()}` : owes ? `-₹${Math.abs(bal).toLocaleString()}` : 'Settled'}
+                </div>
+                <div style={{ fontSize: '9px', color: 'var(--text3)', marginTop: '2px' }}>
+                  {isOwed ? 'Owed' : owes ? 'Owes' : 'Clear'}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Suggestions & Transfers */}
+        {settlements.length > 0 && (
+          <div style={{ 
+            background: 'rgba(0,0,0,0.15)', 
+            padding: '12px', 
+            borderRadius: '16px', 
+            marginBottom: '16px', 
+            border: '1px solid var(--border2)' 
+          }}>
+            <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px', fontWeight: 700 }}>
+              Suggested Settlements
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {settlements.map((s, idx) => (
+                <div key={idx} style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  fontSize: '11px',
+                  background: 'rgba(255,255,255,0.02)',
+                  padding: '8px 10px',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(255,255,255,0.03)'
+                }}>
+                  <span style={{ color: 'var(--text2)' }}>
+                    <strong>{s.from === 'You' ? 'You owe' : `${s.from} owes`}</strong> {s.to === 'You' ? 'You' : s.to} <strong style={{ color: 'var(--accent)' }}>₹{s.amount.toLocaleString()}</strong>
+                  </span>
+                  <button 
+                    onClick={() => {
+                      if (window.confirm(`Mark ₹${s.amount} settlement between ${s.from} and ${s.to}?`)) {
+                        quickSettle(s.from, s.to, s.amount);
+                      }
+                    }}
+                    style={{ 
+                      padding: '4px 8px', 
+                      background: 'var(--accent)', 
+                      color: '#000', 
+                      border: 'none', 
+                      borderRadius: '6px', 
+                      fontSize: '9px', 
+                      fontWeight: 800, 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    ⚡ Settle
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Group Bills List */}
+        {groupBills.length > 0 && (
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 700 }}>
+              Group Shared Bills ({groupBills.length})
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '160px', overflowY: 'auto', paddingRight: '4px' }} className="hide-scroll">
+              {groupBills.slice().reverse().map(b => (
+                <div key={b.id} style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  background: 'rgba(0,0,0,0.1)', 
+                  padding: '8px 12px', 
+                  borderRadius: '10px',
+                  fontSize: '11px',
+                  border: '1px solid rgba(255,255,255,0.02)'
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: 'var(--text)' }}>{b.title}</div>
+                    <div style={{ fontSize: '9px', color: 'var(--text3)', marginTop: '2px' }}>
+                      Paid by {b.paidBy === 'You' ? 'You' : b.paidBy} • split with {b.splitWith?.length || 0}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: 800, color: 'var(--text2)' }}>₹{b.amount.toLocaleString()}</span>
+                    <Trash2 
+                      size={12} 
+                      onClick={() => { if(window.confirm('Delete this bill?')) deleteBill(b.id); }} 
+                      style={{ color: 'var(--red)', cursor: 'pointer', opacity: 0.6 }} 
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Main Action Buttons */}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            onClick={() => {
+              setBillForm({
+                title: '',
+                amount: '',
+                paidBy: 'You',
+                splitWith: [...groupMembers]
+              });
+              setShowAddBill(true);
+            }}
+            style={{ 
+              flex: 1, 
+              padding: '10px', 
+              background: 'var(--accent)', 
+              color: '#000', 
+              border: 'none', 
+              borderRadius: '12px', 
+              fontWeight: 800, 
+              fontSize: '12px', 
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
+          >
+            <PlusCircle size={14} /> Add Shared Bill
+          </button>
+        </div>
+      </div>
+
       <div style={{ padding: '0 20px', marginBottom: '24px' }}>
         <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px' }}>Spending by Category</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -1145,6 +1604,8 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
           ))
         )}
         {renderModal()}
+        {renderAddBillModal()}
+        {renderEditMembersModal()}
       </div>
     </div>
   );
