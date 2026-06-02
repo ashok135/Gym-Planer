@@ -203,8 +203,9 @@ export default function SplitExpense() {
 
     filteredExpenses.forEach(e => {
       const amt = Number(e.amount);
-      const isEveryoneSplit = e.splitAll === true;
-      const participants = isEveryoneSplit ? members : (e.splitWith && e.splitWith.length > 0 ? e.splitWith : members);
+      // If the expense has a specific splitWith array, use it (even if it was "everyone" at the time, we should use the snapshot)
+      // We only fallback to the current members if splitWith is totally empty (for legacy data)
+      const participants = (e.splitWith && e.splitWith.length > 0) ? e.splitWith : members;
       if (participants.length === 0) return;
       
       const exactShare = amt / participants.length;
@@ -502,63 +503,61 @@ export default function SplitExpense() {
       </div>
 
       {/* Action Buttons (Compact UI) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px', gap: '8px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px', gap: '8px', marginBottom: '24px', position: 'relative' }}>
         <button onClick={() => setShowAddExpense(true)}
           style={{ padding: '16px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '14px', fontWeight: 900, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
           <Plus size={20} /><span>Add Expense</span>
         </button>
-        <button onClick={() => setShowMoreMenu(true)}
-          style={{ padding: '16px 0', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', borderRadius: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button onClick={() => setShowMoreMenu(!showMoreMenu)}
+          style={{ padding: '16px 0', background: showMoreMenu ? 'var(--bg2)' : 'var(--bg3)', color: showMoreMenu ? '#fff' : 'var(--text)', border: '1px solid var(--border2)', borderRadius: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <MoreHorizontal size={24} />
         </button>
-      </div>
 
-      {/* MORE MENU MODAL */}
-      {showMoreMenu && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div className="reveal-slide-up" style={{ background: 'var(--bg)', width: '100%', maxWidth: '400px', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', padding: '24px', border: '1px solid var(--border2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', margin: 0, fontWeight: 900, color: '#fff' }}>More Options</h3>
-              <X size={24} color="var(--text3)" cursor="pointer" onClick={() => setShowMoreMenu(false)} />
+        {/* MORE MENU DROPDOWN */}
+        {showMoreMenu && (
+          <>
+            <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowMoreMenu(false)} />
+            <div className="reveal-scale-in" style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: '280px', background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '16px', padding: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', zIndex: 100 }}>
+              
+              <button onClick={() => { setShowMoreMenu(false); setShowReport(true); }} 
+                style={{ width: '100%', padding: '16px', background: 'transparent', border: 'none', borderRadius: '12px', display: 'flex', gap: '14px', alignItems: 'center', cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.background='var(--bg3)'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                <BarChart size={20} color="var(--blue)"/>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 900, color: '#fff' }}>Analytics & Reports</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: 600 }}>Detailed breakdown</div>
+                </div>
+              </button>
+
+              <button onClick={() => {
+                  setShowMoreMenu(false);
+                  const mName = prompt("Enter friend's unique lowercase username:");
+                  if (mName && mName.trim()) {
+                    const trimmed = cleanName(mName);
+                    if (activeGroup.members.includes(trimmed)) alert("Member already exists!");
+                    else syncGroupData({ ...activeGroup, members: [...activeGroup.members, trimmed] });
+                  }
+                }} 
+                style={{ width: '100%', padding: '16px', background: 'transparent', border: 'none', borderRadius: '12px', display: 'flex', gap: '14px', alignItems: 'center', cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.background='var(--bg3)'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                <UserCheck size={20} color="var(--accent)"/>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 900, color: '#fff' }}>Add a Friend</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: 600 }}>Invite user to group</div>
+                </div>
+              </button>
+
+              <button onClick={() => { setShowMoreMenu(false); handleLeaveOrDeleteGroup(); }} 
+                style={{ width: '100%', padding: '16px', background: 'transparent', border: 'none', borderRadius: '12px', display: 'flex', gap: '14px', alignItems: 'center', cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.background='rgba(239, 68, 68, 0.1)'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                <Trash2 size={20} color="var(--red)"/>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 900, color: 'var(--red)' }}>{activeGroup.members?.[0] === myName ? 'Delete Group' : 'Leave Group'}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: 600 }}>This is permanent</div>
+                </div>
+              </button>
+
             </div>
-
-            <button onClick={() => { setShowMoreMenu(false); setShowReport(true); }} 
-              style={{ width: '100%', padding: '18px', background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '16px', display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '12px', cursor: 'pointer' }}>
-              <BarChart size={22} color="var(--blue)"/>
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '15px', fontWeight: 900, color: '#fff' }}>Analytics & Reports</div>
-                <div style={{ fontSize: '12px', color: 'var(--text3)', fontWeight: 600 }}>Detailed breakdown for {selectedMonth}</div>
-              </div>
-            </button>
-
-            <button onClick={() => {
-                setShowMoreMenu(false);
-                const mName = prompt("Enter friend's unique lowercase username:");
-                if (mName && mName.trim()) {
-                  const trimmed = cleanName(mName);
-                  if (activeGroup.members.includes(trimmed)) alert("Member already exists!");
-                  else syncGroupData({ ...activeGroup, members: [...activeGroup.members, trimmed] });
-                }
-              }} 
-              style={{ width: '100%', padding: '18px', background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '16px', display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '12px', cursor: 'pointer' }}>
-              <UserCheck size={22} color="var(--accent)"/>
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '15px', fontWeight: 900, color: '#fff' }}>Add a Friend</div>
-                <div style={{ fontSize: '12px', color: 'var(--text3)', fontWeight: 600 }}>Invite a user to {activeGroup.name}</div>
-              </div>
-            </button>
-
-            <button onClick={() => { setShowMoreMenu(false); handleLeaveOrDeleteGroup(); }} 
-              style={{ width: '100%', padding: '18px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', display: 'flex', gap: '14px', alignItems: 'center', cursor: 'pointer' }}>
-              <Trash2 size={22} color="var(--red)"/>
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '15px', fontWeight: 900, color: 'var(--red)' }}>{activeGroup.members?.[0] === myName ? 'Delete Group' : 'Leave Group'}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text3)', fontWeight: 600 }}>Warning: This action is permanent</div>
-              </div>
-            </button>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
 
       {/* COMPACT MODAL: ADD EXPENSE */}
       {showAddExpense && (
