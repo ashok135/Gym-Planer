@@ -67,6 +67,22 @@ export default function SplitExpense() {
     return () => unsubscribe();
   }, []);
 
+  // 1b. Cloud Sync Joined Groups for New Devices
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const userRef = doc(db, 'users', currentUser.uid);
+    const unsubscribe = onSnapshot(userRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.splitGroupsJoinedV2) {
+          setJoinedGroups(data.splitGroupsJoinedV2);
+          localStorage.setItem('g_split_joined_groups_v2', JSON.stringify(data.splitGroupsJoinedV2));
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [currentUser?.uid]);
+
   // 2. Real-time Firebase Sync (Active Group)
   useEffect(() => {
     if (!activeGroup?.id) return;
