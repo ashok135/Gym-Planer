@@ -350,14 +350,16 @@ export default function SplitExpense() {
     const topSpender = Object.entries(spenderTotals).sort((a,b)=>b[1]-a[1])[0] || null;
 
     return (
-      <div className="reveal-slide-up" style={{ position: 'fixed', inset: 0, background: 'var(--bg)', zIndex: 200, overflowY: 'auto' }}>
-        <div style={{ padding: '20px', background: 'var(--bg2)', borderBottom: '1px solid var(--border2)', position: 'sticky', top: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button onClick={() => setShowReport(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: 0 }}><ChevronLeft size={24}/></button>
-          <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 900, color: '#fff' }}>Monthly Analytics</h2>
-          <div style={{width: 24}}></div>
-        </div>
+      <div className="reveal-slide-up" style={{ position: 'fixed', inset: 0, background: 'var(--bg)', zIndex: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto', background: 'var(--bg)', minHeight: '100vh', position: 'relative' }}>
+          
+          <div style={{ padding: '20px', background: 'var(--bg2)', borderBottom: '1px solid var(--border2)', position: 'sticky', top: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button onClick={() => setShowReport(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: 0 }}><ChevronLeft size={24}/></button>
+            <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 900, color: '#fff' }}>Monthly Analytics</h2>
+            <div style={{width: 24}}></div>
+          </div>
 
-        <div style={{ padding: '24px 20px', paddingBottom: '100px' }}>
+          <div style={{ padding: '24px 20px', paddingBottom: '100px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
             <h3 style={{ fontSize: '24px', fontWeight: 900, color: 'var(--accent)', margin: 0 }}>{selectedMonth}</h3>
             <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
@@ -431,6 +433,7 @@ export default function SplitExpense() {
               ))}
             </div>
           )}
+        </div>
         </div>
       </div>
     );
