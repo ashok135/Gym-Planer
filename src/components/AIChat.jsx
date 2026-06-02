@@ -525,6 +525,7 @@ Guidelines for Lucy:
 
 --- RAW APP DATA ---
 (Use this raw JSON data to answer any specific historical queries about dates, past workouts, diet logs, or expenses that aren't covered in the summaries above)
+- Exercise ID to Name Mapping: ${JSON.stringify(NAMES)}
 - All Workouts: ${JSON.stringify(DB)}
 - All Food/Diet Logs: ${JSON.stringify(FOOD)}
 - All Budget/Expense Logs: ${JSON.stringify(BUDGET)}
