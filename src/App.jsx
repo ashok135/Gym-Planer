@@ -590,7 +590,7 @@ export default function App() {
     settings: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop'
   };
 
-  const displayName = profileInfo?.name?.trim() || (user?.email ? user.email.split('@')[0] : 'Athlete');
+  const displayName = user?.email ? user.email.split('@')[0] : 'Athlete';
 
   return (
     <div className="app">
