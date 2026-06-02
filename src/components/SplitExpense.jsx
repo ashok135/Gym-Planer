@@ -100,10 +100,26 @@ export default function SplitExpense() {
               setActiveMember(data.splitGroupActiveMember);
               localStorage.setItem('g_split_active_member', data.splitGroupActiveMember);
             }
+          } else {
+            // Clean up state if new user has no cloud doc yet
+            setJoinedGroups([]);
+            setActiveGroup(null);
+            setActiveMember('');
+            localStorage.removeItem('g_split_joined_groups');
+            localStorage.removeItem('g_split_active_group');
+            localStorage.removeItem('g_split_active_member');
           }
         }, (err) => {
           console.warn("User document cloud sync error:", err);
         });
+      } else {
+        // Clean up state if logged out
+        setJoinedGroups([]);
+        setActiveGroup(null);
+        setActiveMember('');
+        localStorage.removeItem('g_split_joined_groups');
+        localStorage.removeItem('g_split_active_group');
+        localStorage.removeItem('g_split_active_member');
       }
     });
     

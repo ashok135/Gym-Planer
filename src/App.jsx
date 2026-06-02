@@ -276,8 +276,40 @@ export default function App() {
               setProfileInfo(info);
               localStorage.setItem('gprofileInfo', JSON.stringify(info));
             }
-
-
+          } else {
+            // Document does not exist in cloud - reset to default states so we don't inherit old session data
+            setDB({});
+            setNAMES({});
+            setMETA({});
+            setFOOD({});
+            setSCHEDULE({ fullTime: {}, thisWeek: {} });
+            setBUDGET({});
+            setBUDGET_SETTINGS(DEFAULT_BUDGET_SETTINGS);
+            setSTUDY({});
+            setSTUDY_SETTINGS(DEFAULT_STUDY_SETTINGS);
+            setDIET_PLAN(DEFAULT_DIET_PLAN);
+            setWorkoutPlans(DEFAULT_PLAN);
+            setProfileInfo({
+              name: '',
+              resume: '',
+              customLifeNotes: '',
+              targetRoles: ['React Developer', 'WordPress Developer', 'Frontend Developer'],
+              preferredLocations: ['Bangalore', 'Chennai', 'Remote'],
+              workTypes: ['Remote', 'Hybrid'],
+              experienceLevel: 'Fresher',
+              dailyProteinTarget: 100,
+              dailyWaterTarget: 4,
+              dailySleepTarget: 8
+            });
+            
+            // Clear local storage keys to ensure clean slate
+            const keysToRemove = [
+              'gdb', 'gnames', 'gmeta', 'gfood', 'gschedule', 'gbudget', 
+              'gbudgetSettings', 'gstudy', 'gstudySettings', 'gdietPlan', 
+              'gworkoutPlans', 'gprofileInfo', 'g_split_active_group', 
+              'g_split_active_member', 'g_split_joined_groups'
+            ];
+            keysToRemove.forEach(k => localStorage.removeItem(k));
           }
         } catch(e) {
           console.error("Cloud fetch failed, using local", e);
@@ -455,7 +487,42 @@ export default function App() {
     }
   };
 
-  const handleLogout = async () => { await signOut(auth); };
+  const handleLogout = async () => {
+    await signOut(auth);
+    // Reset React state values to clean default values
+    setDB({});
+    setNAMES({});
+    setMETA({});
+    setFOOD({});
+    setSCHEDULE({ fullTime: {}, thisWeek: {} });
+    setBUDGET({});
+    setBUDGET_SETTINGS(DEFAULT_BUDGET_SETTINGS);
+    setSTUDY({});
+    setSTUDY_SETTINGS(DEFAULT_STUDY_SETTINGS);
+    setDIET_PLAN(DEFAULT_DIET_PLAN);
+    setWorkoutPlans(DEFAULT_PLAN);
+    setProfileInfo({
+      name: '',
+      resume: '',
+      customLifeNotes: '',
+      targetRoles: ['React Developer', 'WordPress Developer', 'Frontend Developer'],
+      preferredLocations: ['Bangalore', 'Chennai', 'Remote'],
+      workTypes: ['Remote', 'Hybrid'],
+      experienceLevel: 'Fresher',
+      dailyProteinTarget: 100,
+      dailyWaterTarget: 4,
+      dailySleepTarget: 8
+    });
+    
+    // Clear localStorage values to ensure no leakage between accounts
+    const keysToRemove = [
+      'gdb', 'gnames', 'gmeta', 'gfood', 'gschedule', 'gbudget', 
+      'gbudgetSettings', 'gstudy', 'gstudySettings', 'gdietPlan', 
+      'gworkoutPlans', 'gprofileInfo', 'g_split_active_group', 
+      'g_split_active_member', 'g_split_joined_groups'
+    ];
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+  };
 
   if(loading) {
     return (
