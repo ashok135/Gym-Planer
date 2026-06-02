@@ -71,6 +71,16 @@ export default function SplitExpense() {
           setJoinedGroups(data.splitGroupsJoinedV2);
           localStorage.setItem('g_split_joined_groups_v2', JSON.stringify(data.splitGroupsJoinedV2));
         }
+        
+        // Full Real-time Sync across devices:
+        // If active group is cleared on one device (e.g. they left the group or hit back), clear it everywhere.
+        if (data.splitGroupActiveV2 === null) {
+          setActiveGroup(null);
+          localStorage.removeItem('g_split_active_group_v2');
+        } else if (data.splitGroupActiveV2) {
+          setActiveGroup(data.splitGroupActiveV2);
+          localStorage.setItem('g_split_active_group_v2', JSON.stringify(data.splitGroupActiveV2));
+        }
       }
     });
     return () => unsubscribe();
