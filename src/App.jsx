@@ -2,13 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import BottomNav from './components/BottomNav';
-import Today from './components/Today';
-import Diet from './components/Diet';
-import Report from './components/Report';
-import Settings from './components/Settings';
-import Budget from './components/Budget';
-import Study from './components/Study';
+import Auth from './components/layout/Auth';
+import AppHeader from './components/layout/AppHeader';
+import AppBackground from './components/layout/AppBackground';
+import BottomNav from './components/layout/BottomNav';
+import Today from './components/today';
+import Diet from './components/diet';
+import Report from './components/report';
+import Settings from './components/settings';
+import Budget from './components/budget';
+import Study from './components/study';
 import AIChat from './components/AIChat';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, THEMES } from './data';
@@ -541,33 +544,17 @@ export default function App() {
 
   if(!user) {
     return (
-      <div className="screen active">
-        <div className="auth-box">
-          <div className="auth-title">LifeTraker Pro</div>
-          <div className="auth-sub">Cloud sync your workouts</div>
-          <form onSubmit={handleAuth}>
-            <input id="auth-email-input" type="email" name="email" className="auth-input" placeholder="Email address" required />
-            <input type="password" name="password" className="auth-input" placeholder="Password" required />
-            <button type="submit" className="auth-btn">{isLoginMode ? 'Login' : 'Sign Up'}</button>
-          </form>
-          {isLoginMode && (
-            <div style={{textAlign:'center', marginTop:'10px'}}>
-              <span
-                onClick={handleReset}
-                style={{fontSize:'12px', color:'var(--accent)', cursor:'pointer', textDecoration:'underline', fontWeight:600}}
-              >
-                Forgot Password?
-              </span>
-              {resetSent && <div style={{fontSize:'11px', color:'#34D399', marginTop:'6px'}}>✅ Reset email sent! Check your inbox.</div>}
-              {resetError && <div style={{fontSize:'11px', color:'var(--red)', marginTop:'6px'}}>{resetError}</div>}
-            </div>
-          )}
-          <div className="auth-error">{authError}</div>
-          <div className="auth-toggle" onClick={() => { setIsLoginMode(!isLoginMode); setResetSent(false); setResetError(''); }}>
-            {isLoginMode ? 'Need an account? Sign up' : 'Have an account? Login'}
-          </div>
-        </div>
-      </div>
+      <Auth 
+        isLoginMode={isLoginMode} 
+        setIsLoginMode={setIsLoginMode} 
+        handleAuth={handleAuth} 
+        handleReset={handleReset} 
+        authError={authError} 
+        resetSent={resetSent} 
+        setResetSent={setResetSent} 
+        resetError={resetError} 
+        setResetError={setResetError} 
+      />
     );
   }
 
@@ -594,36 +581,8 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* Premium Ambient Background Video & Glassmorphism Overlay */}
-      <div 
-        className="ambient-bg-container"
-        style={{
-          backgroundImage: `url(${tabBackgrounds[activeTab] || tabBackgrounds.today})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          transition: 'background-image 0.5s ease-in-out'
-        }}
-      >
-        <video 
-          className="ambient-video" 
-          src="https://cdn.pixabay.com/video/2021/04/12/70860-536965158_large.mp4" 
-          loop 
-          muted 
-          playsInline 
-          autoPlay 
-        />
-        <div className="ambient-overlay"></div>
-      </div>
-
-      <div className="header">
-        <div className="header-left">
-          <div className="greeting">Welcome back</div>
-          <div className="title" style={{textTransform:'capitalize'}}>{displayName}</div>
-        </div>
-        <div className="header-right">
-          <div className="date-chip">{dateStr}</div>
-        </div>
-      </div>
+      <AppBackground activeTab={activeTab} />
+      <AppHeader displayName={displayName} dateStr={dateStr} />
       <div className="screen active" onScroll={handleScroll} style={{paddingBottom:'90px', flex:1, overflowY:'auto'}}>
         {activeTab === 'today'    && <Today    DB={DB} NAMES={NAMES} META={META} syncData={syncData} FOOD={FOOD} SCHEDULE={SCHEDULE} workoutPlans={workoutPlans} />}
         {activeTab === 'diet'     && <Diet     FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} profileInfo={profileInfo} DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} syncProfileInfo={syncProfileInfo} />}

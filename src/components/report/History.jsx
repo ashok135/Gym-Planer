@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { MONTHS, DAYS_SHORT, DAYS_FULL, DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol } from '../data';
+import { MONTHS, DAYS_SHORT, DAYS_FULL, DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol } from '../../data';
 import { CheckCircle2, XCircle, Calendar } from 'lucide-react';
-import { loadMoodEnergyConfig, DEFAULT_MOOD_STAGES, DEFAULT_ENERGY_STAGES } from './settings/MoodEnergySettings';
+import { loadMoodEnergyConfig, DEFAULT_MOOD_STAGES, DEFAULT_ENERGY_STAGES } from '../settings/MoodEnergySettings';
 
 function getStageIdx(value) {
   if (typeof value !== 'number') return 2; // middle default

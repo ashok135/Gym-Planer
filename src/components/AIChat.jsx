@@ -521,7 +521,15 @@ Guidelines for Lucy:
    - If they ask about study topics to cover, identify which subjects have "Never" been studied, have 0 hours, or have the oldest 'Last studied' date and push them to study those!
    - If they ask "when did I eat high protein" or query their diet or protein history, inspect the 'Recent Protein & Meal Logs' listed above. List the exact dates where they ate high protein (>= 70g) or what they ate, celebrate their discipline, and push them to keep hit their macros!
 3. Style: Keep responses motivating, friendly, and highly engaging.
-4. Formatting: When presenting lists, comparisons, exercise splits, study stats, numbers, addresses, contact details, or any structured comparative data, ALWAYS format it inside a clean Markdown table (using '| Header 1 | Header 2 |' style). This renders as a beautiful interactive table for the user!`;
+4. Formatting: When presenting lists, comparisons, exercise splits, study stats, numbers, addresses, contact details, or any structured comparative data, ALWAYS format it inside a clean Markdown table (using '| Header 1 | Header 2 |' style). This renders as a beautiful interactive table for the user!
+
+--- RAW APP DATA ---
+(Use this raw JSON data to answer any specific historical queries about dates, past workouts, diet logs, or expenses that aren't covered in the summaries above)
+- All Workouts: ${JSON.stringify(DB)}
+- All Food/Diet Logs: ${JSON.stringify(FOOD)}
+- All Budget/Expense Logs: ${JSON.stringify(BUDGET)}
+- All Study Sessions: ${JSON.stringify(STUDY)}
+--------------------`;
   };
 
   const [tempKey, setTempKey] = useState('');

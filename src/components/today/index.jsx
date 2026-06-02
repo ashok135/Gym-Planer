@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { DEFAULT_PLAN, dateKey, DAYS_SHORT, DAYS_FULL, MONTHS, EXERCISE_GIFS } from '../data';
+import { DEFAULT_PLAN, dateKey, DAYS_SHORT, DAYS_FULL, MONTHS, EXERCISE_GIFS } from '../../data';
 import { CheckCircle2, XCircle, Plus, Flame, Zap, Dumbbell, ChevronDown, ChevronUp } from 'lucide-react';
-import ExerciseCard from './today/ExerciseCard';
-import SessionMeta from './today/SessionMeta';
+import ExerciseCard from './ExerciseCard';
+import SessionMeta from './SessionMeta';
 
 const FULL_BODY_MUSCLES = [
   {name:'Chest',exercises:['Barbell Bench Press','Cable Chest Fly']},

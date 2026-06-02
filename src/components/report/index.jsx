@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol, DAYS_SHORT, MONTHS } from '../data';
+import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, dateKey, formatFull, getDayVol, DAYS_SHORT, MONTHS } from '../../data';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { CheckCircle2, XCircle, Dumbbell, Wallet, GraduationCap, TrendingUp, Trophy, Calendar, Coins, Sparkles, ChevronDown } from 'lucide-react';
 import History from './History';
-import Budget from './Budget';
-import Study from './Study';
-import { loadMoodEnergyConfig, DEFAULT_MOOD_STAGES, DEFAULT_ENERGY_STAGES } from './settings/MoodEnergySettings';
+import Budget from '../budget';
+import Study from '../study';
+import { loadMoodEnergyConfig, DEFAULT_MOOD_STAGES, DEFAULT_ENERGY_STAGES } from '../settings/MoodEnergySettings';
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {

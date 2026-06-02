@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { ClipboardList, Calculator, Apple } from 'lucide-react';
-import { DAYS_FULL, MONTHS } from '../data';
-import DietLog from './diet/DietLog';
-import HealthCalc from './diet/HealthCalc';
+import { DAYS_FULL, MONTHS } from '../../data';
+import DietLog from './DietLog';
+import HealthCalc from './HealthCalc';
 
 const TABS = [
   { id: 'log',     label: "Today's Log",   icon: ClipboardList },
