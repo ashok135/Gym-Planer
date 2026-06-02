@@ -309,28 +309,44 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
     const lastWorkouts = { legs: null, chest: null, back: null, shoulders: null, arms: null };
     const sortedDbEntries = Object.entries(DB).sort((a,b) => b[0].localeCompare(a[0])); // latest first
 
+    const allExercises = {};
+    Object.values(DEFAULT_PLAN).forEach(plan => {
+      if (plan.muscles) {
+        plan.muscles.forEach(m => {
+          m.exercises.forEach((ex, idx) => {
+            allExercises[`${m.name}_${idx}`] = ex;
+          });
+        });
+      }
+    });
+    ['Back Squat (Heavy)', 'Deadlift (Heavy)', 'Overhead Press (Heavy)', 'Weighted Pull-ups', 'Barbell Row (Heavy)'].forEach((ex, idx) => {
+      allExercises[`Progressive_${idx}`] = ex;
+    });
+
     for (const [date, exercises] of sortedDbEntries) {
       for (const exKey of Object.keys(exercises)) {
-        const exName = (NAMES[exKey] || exKey).toLowerCase();
+        const defaultName = allExercises[exKey] || exKey;
+        const resolvedName = NAMES[exKey] || defaultName;
+        const exName = resolvedName.toLowerCase();
         
         if (!lastWorkouts.legs && (exName.includes('leg') || exName.includes('quad') || exName.includes('squat') || exName.includes('calf') || exName.includes('hamstring') || exName.includes('press'))) {
-          lastWorkouts.legs = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k]||k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
+          lastWorkouts.legs = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k] || allExercises[k] || k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
         }
         if (!lastWorkouts.chest && (exName.includes('chest') || exName.includes('bench') || exName.includes('press') || exName.includes('pec') || exName.includes('fly'))) {
           if (!exName.includes('leg press')) {
-            lastWorkouts.chest = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k]||k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
+            lastWorkouts.chest = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k] || allExercises[k] || k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
           }
         }
         if (!lastWorkouts.back && (exName.includes('back') || exName.includes('row') || exName.includes('lat') || exName.includes('pull') || exName.includes('deadlift'))) {
-          lastWorkouts.back = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k]||k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
+          lastWorkouts.back = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k] || allExercises[k] || k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
         }
         if (!lastWorkouts.shoulders && (exName.includes('shoulder') || exName.includes('press') || exName.includes('delt') || exName.includes('lateral'))) {
           if (!exName.includes('leg') && !exName.includes('chest') && !exName.includes('bench')) {
-            lastWorkouts.shoulders = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k]||k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
+            lastWorkouts.shoulders = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k] || allExercises[k] || k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
           }
         }
         if (!lastWorkouts.arms && (exName.includes('arm') || exName.includes('bicep') || exName.includes('tricep') || exName.includes('curl') || exName.includes('extension'))) {
-          lastWorkouts.arms = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k]||k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
+          lastWorkouts.arms = { date, details: Object.entries(exercises).map(([k,v]) => `${NAMES[k] || allExercises[k] || k}: ${v.s}x${v.r}@${v.w}kg`).join(', ') };
         }
       }
     }
@@ -465,7 +481,7 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
     const yesterdayLogged = DB[yesterdayKey] || {};
     const yesterdayDetails = Object.keys(yesterdayLogged).filter(k => k !== 'meta' && k !== 'customName').length > 0 
       ? Object.entries(yesterdayLogged).filter(([k]) => k !== 'meta' && k !== 'customName').map(([k,v]) => {
-          const name = NAMES[k] || k;
+          const name = NAMES[k] || allExercises[k] || k;
           return `${name}: ${v.s || 0} sets x ${v.r || 0} reps @ ${v.w || 0}kg (${v.done === true ? 'Completed' : (v.done === false ? 'Skipped' : 'Logged')})`;
         }).join(', ')
       : `Rest Day or No workout was logged yet (Scheduled split was: ${yesterdayPlan.label})`;
@@ -525,7 +541,7 @@ Guidelines for Lucy:
 
 --- RAW APP DATA ---
 (Use this raw JSON data to answer any specific historical queries about dates, past workouts, diet logs, or expenses that aren't covered in the summaries above)
-- Exercise ID to Name Mapping: ${JSON.stringify(NAMES)}
+- Default Exercise Names: ${JSON.stringify(allExercises)}
 - All Workouts: ${JSON.stringify(DB)}
 - All Food/Diet Logs: ${JSON.stringify(FOOD)}
 - All Budget/Expense Logs: ${JSON.stringify(BUDGET)}
