@@ -345,6 +345,7 @@ export default function SplitExpense() {
       amount: Number(groupExpenseForm.amount),
       paidBy: groupExpenseForm.paidBy || activeMember || activeGroup.members[0],
       splitWith: finalSplitWith,
+      splitAll: splitType === 'everyone', // Save split-all type flag
       date: dayKey(new Date()),
       time: formatTime(new Date()),
       timestamp: Date.now(),
@@ -462,7 +463,10 @@ export default function SplitExpense() {
     expenses.forEach(e => {
       const amt = Number(e.amount);
       const paidBy = e.paidBy;
-      const splitWith = e.splitWith || [];
+      
+      // Determine split participants dynamically
+      const isEveryoneSplit = e.splitAll === true || (e.splitAll !== false && e.type !== 'settlement' && (!e.splitWith || e.splitWith.length >= 2));
+      const splitWith = isEveryoneSplit ? [...members] : (e.splitWith || []);
       
       if (splitWith.length === 0) return;
       const share = amt / splitWith.length;
@@ -1277,7 +1281,7 @@ export default function SplitExpense() {
                       <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>{e.description}</div>
                       <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '2px', lineHeight: 1.4 }}>
                         Paid by <strong style={{ color: 'var(--text2)' }}>{e.paidBy}</strong> 
-                        {!isSettle && ` • Split with ${splitNames.join(', ')}`}
+                        {!isSettle && ` • Split with ${(e.splitAll || (e.splitAll !== false && splitNames.length >= 2)) ? activeGroup.members.join(', ') : splitNames.join(', ')}`}
                       </div>
                       <div style={{ fontSize: '9px', color: 'var(--text3)', marginTop: '1px' }}>{e.date} {e.time}</div>
                     </div>
