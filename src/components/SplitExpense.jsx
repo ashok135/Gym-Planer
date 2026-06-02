@@ -471,6 +471,10 @@ export default function SplitExpense() {
               <span>ID: <strong style={{ color: 'var(--text)' }}>{activeGroup.id}</strong></span>
               <span>Pass: <strong style={{ color: 'var(--text)' }}>{activeGroup.password}</strong></span>
             </div>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <UserCheck size={12} color="var(--accent)" />
+              <span>{activeGroup.members?.length || 0} Members: <strong style={{ color: 'var(--text)' }}>{(activeGroup.members || []).join(', ')}</strong></span>
+            </div>
           </div>
         </div>
       </div>
