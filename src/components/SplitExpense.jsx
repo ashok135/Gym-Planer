@@ -71,7 +71,7 @@ export default function SplitExpense() {
   useEffect(() => {
     if (!activeGroup?.id) return;
     setGroupSyncing(true);
-    const groupRef = doc(db, 'splitGroupsV2', activeGroup.id);
+    const groupRef = doc(db, 'splitGroups', activeGroup.id);
     
     const unsubscribe = onSnapshot(groupRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -144,7 +144,7 @@ export default function SplitExpense() {
 
     // 4. Persist Group Data
     try {
-      await setDoc(doc(db, 'splitGroupsV2', sanitized.id), {
+      await setDoc(doc(db, 'splitGroups', sanitized.id), {
         name: sanitized.name,
         password: sanitized.password,
         members: sanitized.members,
@@ -188,12 +188,12 @@ export default function SplitExpense() {
       const searchName = joinForm.name.trim();
       let matchedGroup = null;
 
-      const groupRef = doc(db, 'splitGroupsV2', searchName);
+      const groupRef = doc(db, 'splitGroups', searchName);
       const docSnap = await getDoc(groupRef);
       if (docSnap.exists()) {
         matchedGroup = { id: docSnap.id, ...docSnap.data() };
       } else {
-        const lowerRef = doc(db, 'splitGroupsV2', searchName.toLowerCase());
+        const lowerRef = doc(db, 'splitGroups', searchName.toLowerCase());
         const lowerDocSnap = await getDoc(lowerRef);
         if (lowerDocSnap.exists()) {
           matchedGroup = { id: lowerDocSnap.id, ...lowerDocSnap.data() };
@@ -252,10 +252,10 @@ export default function SplitExpense() {
       }
 
       if (isOwner) {
-        await deleteDoc(doc(db, 'splitGroupsV2', groupId));
+        await deleteDoc(doc(db, 'splitGroups', groupId));
       } else {
         const updatedMembers = activeGroup.members.filter(m => m !== myName);
-        await updateDoc(doc(db, 'splitGroupsV2', groupId), { members: updatedMembers });
+        await updateDoc(doc(db, 'splitGroups', groupId), { members: updatedMembers });
       }
     } catch (err) {
       console.error(err);
