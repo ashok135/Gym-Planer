@@ -13,7 +13,7 @@ import {
   Info,
   AlertTriangle
 } from 'lucide-react';
-import { doc, setDoc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot, collection, query, where, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../firebase';
 
@@ -382,6 +382,55 @@ export default function SplitExpense() {
     setActiveMember('');
     localStorage.removeItem('g_split_active_member');
     saveUserSplitStateToCloud(joinedGroups, null, '');
+  };
+
+  const handleDeleteOrLeaveGroup = async () => {
+    const isOwner = activeGroup.members?.[0] === currentActiveMember;
+    const confirmMsg = isOwner 
+      ? `Are you sure you want to DELETE the entire group "${activeGroup.name}" permanently from the cloud? This will remove all group records, splits, and history for all members.`
+      : `Are you sure you want to LEAVE the group "${activeGroup.name}" permanently? Your profile will be removed from the member list.`;
+    
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setGroupSyncing(true);
+      const groupId = activeGroup.id;
+      
+      // 1. Remove from joined groups list locally
+      const nextJoined = joinedGroups.filter(g => g.id !== groupId);
+      setJoinedGroups(nextJoined);
+      localStorage.setItem('g_split_joined_groups', JSON.stringify(nextJoined));
+      
+      // 2. Clear active group dashboard states
+      setActiveGroup(null);
+      localStorage.removeItem('g_split_active_group');
+      setActiveMember('');
+      localStorage.removeItem('g_split_active_member');
+      
+      // 3. Save updated joined group metadata to user document in the cloud
+      await saveUserSplitStateToCloud(nextJoined, null, '');
+
+      // 4. Perform Firebase cloud updates
+      if (isOwner) {
+        // Owner deletes the entire group document
+        const groupRef = doc(db, 'splitGroups', groupId);
+        await deleteDoc(groupRef);
+      } else {
+        // Non-owner removes themselves from the member list in the cloud group document
+        const updatedMembers = activeGroup.members.filter(m => m !== currentActiveMember);
+        const groupRef = doc(db, 'splitGroups', groupId);
+        await updateDoc(groupRef, {
+          members: updatedMembers
+        });
+      }
+      
+      alert(isOwner ? "Group deleted permanently." : "You have successfully left the group.");
+    } catch (err) {
+      console.error("Failed to delete or leave group:", err);
+      alert("Failed to process request: " + (err.message || "Please check your connection."));
+    } finally {
+      setGroupSyncing(false);
+    }
   };
 
   // GREEDY SPLITTING LEDGER CALCULATOR
@@ -754,12 +803,47 @@ export default function SplitExpense() {
 
       {/* 2. Group info card */}
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '20px', padding: '20px', marginBottom: '16px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ fontSize: '20px', fontWeight: 900, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Users size={20} color="var(--accent)" />
-          <span>{activeGroup.name}</span>
-        </div>
-        <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Group ID: <strong style={{ color: 'var(--text2)' }}>{activeGroup.id}</strong> • Pass: <strong style={{ color: 'var(--text2)' }}>{activeGroup.password}</strong>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ fontSize: '20px', fontWeight: 900, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Users size={20} color="var(--accent)" />
+              <span>{activeGroup.name}</span>
+            </div>
+            <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Group ID: <strong style={{ color: 'var(--text2)' }}>{activeGroup.id}</strong> • Pass: <strong style={{ color: 'var(--text2)' }}>{activeGroup.password}</strong>
+            </div>
+          </div>
+          
+          <button
+            onClick={handleDeleteOrLeaveGroup}
+            style={{
+              background: 'rgba(239, 68, 68, 0.08)',
+              color: 'var(--red)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              borderRadius: '10px',
+              padding: '6px 10px',
+              fontSize: '10px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontFamily: 'inherit',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
+              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+            }}
+          >
+            <Trash2 size={11} />
+            <span>{activeGroup.members?.[0] === currentActiveMember ? 'Delete Group' : 'Leave Group'}</span>
+          </button>
         </div>
 
         {/* Swapping Active simulated user selector */}
