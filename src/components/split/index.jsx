@@ -121,13 +121,11 @@ export default function SplitWrapper({ profileInfo }) {
     setActiveGroup(sanitized);
     localStorage.setItem('g_split_active_group_v2', JSON.stringify(sanitized));
     
-    let nextJoined = [];
-    setJoinedGroups(prev => {
-      const exists = prev.some(g => g.id === sanitized.id);
-      nextJoined = exists ? prev.map(g => g.id === sanitized.id ? sanitized : g) : [...prev, sanitized];
-      localStorage.setItem('g_split_joined_groups_v2', JSON.stringify(nextJoined));
-      return nextJoined;
-    });
+    const exists = joinedGroups.some(g => g.id === sanitized.id);
+    const nextJoined = exists ? joinedGroups.map(g => g.id === sanitized.id ? sanitized : g) : [...joinedGroups, sanitized];
+    
+    setJoinedGroups(nextJoined);
+    localStorage.setItem('g_split_joined_groups_v2', JSON.stringify(nextJoined));
 
     if (currentUser) {
       try { await setDoc(doc(db, 'users', currentUser.uid), { splitGroupsJoinedV2: nextJoined, splitGroupActiveV2: sanitized }, { merge: true }); } catch (err) {}

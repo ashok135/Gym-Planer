@@ -518,7 +518,7 @@ Here is the user's compiled historical and current data. Answer any specific que
   * Shoulders: Last done on ${lastWorkouts.shoulders ? `${lastWorkouts.shoulders.date} (${lastWorkouts.shoulders.details})` : 'never'}
   * Arms: Last done on ${lastWorkouts.arms ? `${lastWorkouts.arms.date} (${lastWorkouts.arms.details})` : 'never'}
 - Budget Tracking:
-  * This Month (${monthKey}): Total spent = ₹${currSpent} (Income = ₹22400)
+  * This Month (${monthKey}): Total spent = ₹${currSpent} (My Personal Monthly Salary/Income = ₹${currIncome})
   * Last Month (${prevMonthKey}): Total spent = ₹${prevSpent}
 - Study Subject Stats & Coverage:
   ${Object.values(subjectStats).map(s => `* ${s.label}: Total hours studied = ${s.totalHours.toFixed(1)} hrs (Last studied: ${s.lastDate})`).join('\n  ')}
