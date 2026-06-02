@@ -704,12 +704,14 @@ export default function SplitExpense() {
     );
   }
 
-  const activeMemberBalance = netBalances[activeMember] || 0;
+  const currentActiveMember = activeMember || (activeGroup?.members?.length > 0 ? activeGroup.members[0] : '');
+
+  const activeMemberBalance = netBalances[currentActiveMember] || 0;
   const activeMemberOwedAmount = simplifiedDebts
-    .filter(d => d.to === activeMember)
+    .filter(d => d.to === currentActiveMember)
     .reduce((sum, d) => sum + d.amount, 0);
   const activeMemberOwesAmount = simplifiedDebts
-    .filter(d => d.from === activeMember)
+    .filter(d => d.from === currentActiveMember)
     .reduce((sum, d) => sum + d.amount, 0);
 
   return (
@@ -777,12 +779,12 @@ export default function SplitExpense() {
             <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase' }}>Acting Profile</div>
             <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--accent)', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Check size={13} />
-              <span>{activeMember}</span>
+              <span>{currentActiveMember}</span>
             </div>
           </div>
           
           <select 
-            value={activeMember} 
+            value={currentActiveMember} 
             onChange={(e) => {
               const val = e.target.value;
               setActiveMember(val);
@@ -995,7 +997,7 @@ export default function SplitExpense() {
                           }}
                         >
                           <span style={{ fontSize: '12px', fontWeight: 700, color: isIncluded ? 'var(--text)' : 'var(--text3)' }}>
-                            {m} {m === activeMember ? '(You)' : ''}
+                            {m} {m === currentActiveMember ? '(You)' : ''}
                           </span>
                           
                           <span style={{ 
@@ -1066,8 +1068,8 @@ export default function SplitExpense() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {simplifiedDebts.map((debt, index) => {
-              const isMyDebt = debt.from === activeMember;
-              const isOwedToMe = debt.to === activeMember;
+              const isMyDebt = debt.from === currentActiveMember;
+              const isOwedToMe = debt.to === currentActiveMember;
               
               return (
                 <div 
