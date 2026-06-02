@@ -255,7 +255,7 @@ export default function SplitExpense() {
     const newExpense = {
       id: `exp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       description: expenseForm.description.trim(), amount: Number(expenseForm.amount),
-      paidBy: payer, category: expenseForm.category,
+      paidBy: payer, addedBy: myName, category: expenseForm.category,
       splitWith: participants, splitAll: splitType === 'everyone',
       date: dayKey(new Date()), time: formatTime(new Date()), timestamp: Date.now(), type: 'expense'
     };
@@ -269,6 +269,11 @@ export default function SplitExpense() {
       paidBy: from, splitWith: [to], date: dayKey(new Date()), time: formatTime(new Date()), timestamp: Date.now(), type: 'settlement'
     };
     await syncGroupData({ ...activeGroup, expenses: [...(activeGroup.expenses || []), settlementExpense] });
+  };
+
+  const handleDeleteExpense = async (expenseId) => {
+    if (!window.confirm("Delete this expense permanently?")) return;
+    await syncGroupData({ ...activeGroup, expenses: (activeGroup.expenses || []).filter(e => e.id !== expenseId) });
   };
 
   const getCategoryDetails = (id) => splitCategories.find(c => c.id === id) || { label: 'Others', emoji: '📦', color: '#94A3B8' };
@@ -685,7 +690,9 @@ export default function SplitExpense() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                     <div style={{ fontSize: '16px', fontWeight: 900, color: isSettle ? '#34D399' : '#fff' }}>₹{e.amount.toLocaleString()}</div>
-                    <button onClick={() => handleDeleteExpense(e.id)} style={{ background: 'transparent', border: 'none', color: 'var(--red)', opacity: 0.5, cursor: 'pointer', padding: '4px', transition: 'opacity 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.5}><Trash2 size={14} /></button>
+                    {(e.addedBy === myName || e.paidBy === myName) && (
+                      <button onClick={() => handleDeleteExpense(e.id)} style={{ background: 'transparent', border: 'none', color: 'var(--red)', opacity: 0.5, cursor: 'pointer', padding: '4px', transition: 'opacity 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.5}><Trash2 size={14} /></button>
+                    )}
                   </div>
                 </div>
               );
