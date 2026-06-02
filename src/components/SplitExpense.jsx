@@ -246,6 +246,20 @@ export default function SplitExpense() {
           matchedGroup = { id: docSnap.id, ...data };
         }
         
+        // 1b. Try lowercased document ID (since IDs are generated in lowercase, e.g., home-8079)
+        if (!matchedGroup && searchName.toLowerCase() !== searchName) {
+          try {
+            const lowerGroupRef = doc(db, 'splitGroups', searchName.toLowerCase());
+            const lowerDocSnap = await getDoc(lowerGroupRef);
+            if (lowerDocSnap.exists()) {
+              const data = lowerDocSnap.data();
+              matchedGroup = { id: lowerDocSnap.id, ...data };
+            }
+          } catch (err) {
+            console.warn("Firestore lowercased document fetch failed:", err);
+          }
+        }
+        
         // 2. Try querying by the 'name' field in Firestore
         if (!matchedGroup) {
           try {
