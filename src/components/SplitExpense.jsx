@@ -29,6 +29,36 @@ export default function SplitExpense({ profileInfo }) {
     return currentUser?.email ? cleanName(currentUser.email.split('@')[0]) : 'me';
   }, [currentUser, profileInfo]);
 
+  // Auto-migrate old email name to custom profile name
+  useEffect(() => {
+    if (!activeGroup || !currentUser) return;
+    const emailName = cleanName(currentUser.email.split('@')[0]);
+    if (myName !== emailName && activeGroup.members.includes(emailName) && !activeGroup.members.includes(myName)) {
+      const migrateName = async () => {
+        try {
+          const newMembers = activeGroup.members.map(m => m === emailName ? myName : m);
+          const newExpenses = (activeGroup.expenses || []).map(e => ({
+            ...e,
+            paidBy: e.paidBy === emailName ? myName : e.paidBy,
+            addedBy: e.addedBy === emailName ? myName : e.addedBy,
+            splitWith: (e.splitWith || []).map(s => s === emailName ? myName : s)
+          }));
+          const updatedGroup = { ...activeGroup, members: newMembers, expenses: newExpenses };
+          setActiveGroup(updatedGroup);
+          localStorage.setItem('g_split_active_group_v2', JSON.stringify(updatedGroup));
+          
+          await updateDoc(doc(db, 'splitGroups', activeGroup.id), {
+            members: newMembers,
+            expenses: newExpenses
+          });
+        } catch (err) {
+          console.error("Migration failed:", err);
+        }
+      };
+      migrateName();
+    }
+  }, [activeGroup, currentUser, myName]);
+
   const [activeGroup, setActiveGroup] = useState(() => {
     try { const saved = localStorage.getItem('g_split_active_group_v2'); return saved ? JSON.parse(saved) : null; } catch (e) { return null; }
   });
