@@ -22,7 +22,7 @@ const formatTime = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2
 export default function SplitExpense() {
   // Get active logged-in user username
   const [currentUser, setCurrentUser] = useState(null);
-  const myName = currentUser?.email ? currentUser.email.split('@')[0] : 'me';
+  const myName = currentUser?.email ? currentUser.email.split('@')[0].toLowerCase() : 'me';
 
   // State Management
   const [activeGroup, setActiveGroup] = useState(() => {
@@ -105,6 +105,16 @@ export default function SplitExpense() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         const updated = { id: docSnap.id, ...data };
+        if (updated.members) {
+          updated.members = Array.from(new Set(updated.members.map(m => m.toLowerCase())));
+        }
+        if (updated.expenses) {
+          updated.expenses = updated.expenses.map(e => ({
+            ...e,
+            paidBy: e.paidBy ? e.paidBy.toLowerCase() : e.paidBy,
+            splitWith: e.splitWith ? Array.from(new Set(e.splitWith.map(m => m.toLowerCase()))) : e.splitWith
+          }));
+        }
         setActiveGroup(updated);
         localStorage.setItem('g_split_active_group', JSON.stringify(updated));
         
@@ -137,6 +147,16 @@ export default function SplitExpense() {
   };
 
   const syncGroupData = async (updatedGroup) => {
+    if (updatedGroup.members) {
+      updatedGroup.members = Array.from(new Set(updatedGroup.members.map(m => m.toLowerCase())));
+    }
+    if (updatedGroup.expenses) {
+      updatedGroup.expenses = updatedGroup.expenses.map(e => ({
+        ...e,
+        paidBy: e.paidBy ? e.paidBy.toLowerCase() : e.paidBy,
+        splitWith: e.splitWith ? Array.from(new Set(e.splitWith.map(m => m.toLowerCase()))) : e.splitWith
+      }));
+    }
     setActiveGroup(updatedGroup);
     localStorage.setItem('g_split_active_group', JSON.stringify(updatedGroup));
     
@@ -231,7 +251,8 @@ export default function SplitExpense() {
       }
 
       // Add myself to members list if not already there
-      const updatedMembers = (matchedGroup.members || []).includes(myName)
+      const lowerMembers = (matchedGroup.members || []).map(m => m.toLowerCase());
+      const updatedMembers = lowerMembers.includes(myName)
         ? (matchedGroup.members || [])
         : [...(matchedGroup.members || []), myName];
 
@@ -355,7 +376,7 @@ export default function SplitExpense() {
   const getGroupLedger = () => {
     if (!activeGroup) return { netBalances: {}, simplifiedDebts: [], totalGroupSpent: 0 };
     
-    const members = activeGroup.members || [];
+    const members = Array.from(new Set((activeGroup.members || []).map(m => m.toLowerCase())));
     const expenses = activeGroup.expenses || [];
     
     const netBalances = {};
@@ -365,11 +386,11 @@ export default function SplitExpense() {
 
     expenses.forEach(e => {
       const amt = Number(e.amount);
-      const paidBy = e.paidBy;
+      const paidBy = (e.paidBy || '').toLowerCase();
       
       // Dynamic split fallback for 'split with everyone'
       const isEveryoneSplit = e.splitAll === true || (e.splitAll !== false && e.type !== 'settlement' && (!e.splitWith || e.splitWith.length >= 2));
-      const splitWith = isEveryoneSplit ? [...members] : (e.splitWith || []);
+      const splitWith = isEveryoneSplit ? [...members] : (e.splitWith || []).map(m => m.toLowerCase());
       
       if (splitWith.length === 0) return;
       const share = amt / splitWith.length;
@@ -941,7 +962,8 @@ export default function SplitExpense() {
             const mName = prompt("Enter new friend's username:");
             if (mName && mName.trim()) {
               const trimmed = mName.trim().toLowerCase();
-              if (activeGroup.members.includes(trimmed)) {
+              const lowerMembers = (activeGroup.members || []).map(m => m.toLowerCase());
+              if (lowerMembers.includes(trimmed)) {
                 alert("This member is already in the group!");
               } else {
                 syncGroupData({
