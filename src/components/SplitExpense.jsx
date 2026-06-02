@@ -283,8 +283,8 @@ export default function SplitExpense() {
       const payer = e.paidBy;
       
       // Resolve participants list
-      const isEveryoneSplit = e.splitAll || (e.type !== 'settlement' && (!e.splitWith || e.splitWith.length >= 2));
-      const participants = isEveryoneSplit ? members : (e.splitWith || []);
+      const isEveryoneSplit = e.splitAll === true;
+      const participants = isEveryoneSplit ? members : (e.splitWith && e.splitWith.length > 0 ? e.splitWith : members);
       
       if (participants.length === 0) return;
       
