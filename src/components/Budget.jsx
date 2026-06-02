@@ -60,7 +60,7 @@ const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,
 const dayKey   = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const formatTime = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, activeRange: propRange }) {
+export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, activeRange: propRange, profileInfo }) {
   const now = new Date();
   const currentMonthKey = monthKey(now);
   const todayKey = dayKey(now);
@@ -1275,7 +1275,7 @@ export default function Budget({ BUDGET, syncBudget, BUDGET_SETTINGS, isReport, 
 
           {/* COLUMN 2: Split Expense */}
           <div style={{ width: '50%', flexShrink: 0, boxSizing: 'border-box', padding: '0' }}>
-            <SplitExpense />
+            <SplitExpense profileInfo={profileInfo} />
           </div>
         </div>
       )}

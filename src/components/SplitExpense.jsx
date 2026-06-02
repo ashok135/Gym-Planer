@@ -22,9 +22,12 @@ const DEFAULT_SPLIT_CATEGORIES = [
   { id: 'others',    label: 'Others',        emoji: '📦', color: '#94A3B8' },
 ];
 
-export default function SplitExpense() {
+export default function SplitExpense({ profileInfo }) {
   const [currentUser, setCurrentUser] = useState(null);
-  const myName = useMemo(() => currentUser?.email ? cleanName(currentUser.email.split('@')[0]) : 'me', [currentUser]);
+  const myName = useMemo(() => {
+    if (profileInfo?.name?.trim()) return cleanName(profileInfo.name);
+    return currentUser?.email ? cleanName(currentUser.email.split('@')[0]) : 'me';
+  }, [currentUser, profileInfo]);
 
   const [activeGroup, setActiveGroup] = useState(() => {
     try { const saved = localStorage.getItem('g_split_active_group_v2'); return saved ? JSON.parse(saved) : null; } catch (e) { return null; }
