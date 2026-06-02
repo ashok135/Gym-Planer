@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, Plus, Trash2, CheckCircle2, CreditCard, ArrowRight, Info, DollarSign,
-  UserCheck, ChevronLeft, X, PieChart, BarChart, List
+  UserCheck, ChevronLeft, X, PieChart, BarChart, List, MoreHorizontal, Calendar as CalendarIcon, Trophy, TrendingUp
 } from 'lucide-react';
 import { doc, setDoc, getDoc, onSnapshot, deleteDoc, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -10,6 +10,8 @@ import { auth, db } from '../firebase';
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const formatTime = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const cleanName = (name) => (name || '').trim().toLowerCase();
+const getMonthStr = (ts) => new Date(ts).toLocaleString('default', { month: 'long', year: 'numeric' });
+const CURRENT_MONTH = getMonthStr(Date.now());
 
 const DEFAULT_SPLIT_CATEGORIES = [
   { id: 'food',      label: 'Food & Dining', emoji: '🍕', color: '#FF6B6B' },
@@ -45,8 +47,17 @@ export default function SplitExpense() {
   
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(CURRENT_MONTH);
   const [splitType, setSplitType] = useState('everyone');
   const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', paidBy: '', category: 'others', splitWith: [] });
+
+  const availableMonths = useMemo(() => {
+    if (!activeGroup?.expenses) return [CURRENT_MONTH];
+    const months = new Set(activeGroup.expenses.map(e => getMonthStr(e.timestamp)));
+    months.add(CURRENT_MONTH);
+    return Array.from(months).sort((a,b) => new Date(b).getTime() - new Date(a).getTime());
+  }, [activeGroup?.expenses]);
 
   // 1. Auth Sync
   useEffect(() => {
@@ -60,26 +71,20 @@ export default function SplitExpense() {
     return () => unsubscribe();
   }, []);
 
-  // 1b. Cloud Sync Joined Groups for New Devices
+  // 1b. Cloud Sync
   useEffect(() => {
     if (!currentUser?.uid) return;
-    const userRef = doc(db, 'users', currentUser.uid);
-    const unsubscribe = onSnapshot(userRef, (docSnap) => {
+    const unsubscribe = onSnapshot(doc(db, 'users', currentUser.uid), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.splitGroupsJoinedV2) {
           setJoinedGroups(data.splitGroupsJoinedV2);
           localStorage.setItem('g_split_joined_groups_v2', JSON.stringify(data.splitGroupsJoinedV2));
         }
-        
-        // Full Real-time Sync across devices:
-        // If active group is cleared on one device (e.g. they left the group or hit back), clear it everywhere.
         if (data.splitGroupActiveV2 === null) {
-          setActiveGroup(null);
-          localStorage.removeItem('g_split_active_group_v2');
+          setActiveGroup(null); localStorage.removeItem('g_split_active_group_v2');
         } else if (data.splitGroupActiveV2) {
-          setActiveGroup(data.splitGroupActiveV2);
-          localStorage.setItem('g_split_active_group_v2', JSON.stringify(data.splitGroupActiveV2));
+          setActiveGroup(data.splitGroupActiveV2); localStorage.setItem('g_split_active_group_v2', JSON.stringify(data.splitGroupActiveV2));
         }
       }
     });
@@ -90,8 +95,7 @@ export default function SplitExpense() {
   useEffect(() => {
     if (!activeGroup?.id) return;
     setGroupSyncing(true);
-    const groupRef = doc(db, 'splitGroups', activeGroup.id);
-    const unsubscribe = onSnapshot(groupRef, (docSnap) => {
+    const unsubscribe = onSnapshot(doc(db, 'splitGroups', activeGroup.id), (docSnap) => {
       if (docSnap.exists()) {
         const rawData = docSnap.data();
         const updated = { 
@@ -103,11 +107,6 @@ export default function SplitExpense() {
         };
         setActiveGroup(updated);
         localStorage.setItem('g_split_active_group_v2', JSON.stringify(updated));
-        setJoinedGroups(prev => {
-          const next = prev.map(g => g.id === docSnap.id ? updated : g);
-          localStorage.setItem('g_split_joined_groups_v2', JSON.stringify(next));
-          return next;
-        });
       }
       setGroupSyncing(false);
     }, () => setGroupSyncing(false));
@@ -159,12 +158,11 @@ export default function SplitExpense() {
     if (!joinForm.name.trim() || !joinForm.password.trim()) return setGroupError('Fill in all fields.');
     try {
       setGroupSyncing(true);
-      const searchName = joinForm.name.trim();
       let matchedGroup = null;
-      const docSnap = await getDoc(doc(db, 'splitGroups', searchName));
+      const docSnap = await getDoc(doc(db, 'splitGroups', joinForm.name.trim()));
       if (docSnap.exists()) matchedGroup = { id: docSnap.id, ...docSnap.data() };
       else {
-        const lowerDocSnap = await getDoc(doc(db, 'splitGroups', searchName.toLowerCase()));
+        const lowerDocSnap = await getDoc(doc(db, 'splitGroups', joinForm.name.trim().toLowerCase()));
         if (lowerDocSnap.exists()) matchedGroup = { id: lowerDocSnap.id, ...lowerDocSnap.data() };
       }
       if (!matchedGroup) return setGroupError("Group ID not found.");
@@ -193,14 +191,17 @@ export default function SplitExpense() {
   };
 
   const getGroupLedger = () => {
-    if (!activeGroup) return { netBalances: {}, simplifiedDebts: [], totalGroupSpent: 0 };
+    if (!activeGroup) return { netBalances: {}, simplifiedDebts: [], totalGroupSpent: 0, filteredExpenses: [] };
     const members = activeGroup.members || [];
-    const expenses = activeGroup.expenses || [];
+    
+    // Filter expenses strictly by the selected month
+    const filteredExpenses = (activeGroup.expenses || []).filter(e => getMonthStr(e.timestamp) === selectedMonth);
+
     const netBalances = {};
     members.forEach(m => { netBalances[m] = 0; });
     let totalGroupSpent = 0;
 
-    expenses.forEach(e => {
+    filteredExpenses.forEach(e => {
       const amt = Number(e.amount);
       const isEveryoneSplit = e.splitAll === true;
       const participants = isEveryoneSplit ? members : (e.splitWith && e.splitWith.length > 0 ? e.splitWith : members);
@@ -230,10 +231,10 @@ export default function SplitExpense() {
       if (cred.val < 0.05) cIdx++;
       if (debt.val < 0.05) dIdx++;
     }
-    return { netBalances, simplifiedDebts, totalGroupSpent };
+    return { netBalances, simplifiedDebts, totalGroupSpent, filteredExpenses };
   };
 
-  const { simplifiedDebts, totalGroupSpent } = getGroupLedger();
+  const { simplifiedDebts, totalGroupSpent, filteredExpenses } = getGroupLedger();
   const myOwedToMe = simplifiedDebts.filter(d => d.to === myName).reduce((sum, d) => sum + d.amount, 0);
   const myOweToOthers = simplifiedDebts.filter(d => d.from === myName).reduce((sum, d) => sum + d.amount, 0);
 
@@ -253,8 +254,7 @@ export default function SplitExpense() {
 
     const newExpense = {
       id: `exp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      description: expenseForm.description.trim(),
-      amount: Number(expenseForm.amount),
+      description: expenseForm.description.trim(), amount: Number(expenseForm.amount),
       paidBy: payer, category: expenseForm.category,
       splitWith: participants, splitAll: splitType === 'everyone',
       date: dayKey(new Date()), time: formatTime(new Date()), timestamp: Date.now(), type: 'expense'
@@ -269,19 +269,6 @@ export default function SplitExpense() {
       paidBy: from, splitWith: [to], date: dayKey(new Date()), time: formatTime(new Date()), timestamp: Date.now(), type: 'settlement'
     };
     await syncGroupData({ ...activeGroup, expenses: [...(activeGroup.expenses || []), settlementExpense] });
-  };
-
-  const getMonthlyReport = () => {
-    if (!activeGroup?.expenses) return {};
-    const report = {};
-    activeGroup.expenses.filter(e => e.type !== 'settlement').forEach(e => {
-      const monthStr = new Date(e.timestamp).toLocaleString('default', { month: 'long', year: 'numeric' });
-      if (!report[monthStr]) report[monthStr] = { total: 0, byCategory: {} };
-      report[monthStr].total += e.amount;
-      const cat = e.category || 'others';
-      report[monthStr].byCategory[cat] = (report[monthStr].byCategory[cat] || 0) + e.amount;
-    });
-    return report;
   };
 
   const getCategoryDetails = (id) => splitCategories.find(c => c.id === id) || { label: 'Others', emoji: '📦', color: '#94A3B8' };
@@ -349,8 +336,107 @@ export default function SplitExpense() {
     );
   }
 
-  const monthlyReport = getMonthlyReport();
+  // --- FULL PAGE REPORT COMPONENT ---
+  if (showReport) {
+    const expensesOnly = filteredExpenses.filter(e => e.type !== 'settlement');
+    const categoryTotals = {};
+    const spenderTotals = {};
+    expensesOnly.forEach(e => {
+      const cat = e.category || 'others';
+      categoryTotals[cat] = (categoryTotals[cat] || 0) + e.amount;
+      spenderTotals[e.paidBy] = (spenderTotals[e.paidBy] || 0) + e.amount;
+    });
+    
+    const topSpender = Object.entries(spenderTotals).sort((a,b)=>b[1]-a[1])[0] || null;
 
+    return (
+      <div className="reveal-slide-up" style={{ position: 'fixed', inset: 0, background: 'var(--bg)', zIndex: 200, overflowY: 'auto' }}>
+        <div style={{ padding: '20px', background: 'var(--bg2)', borderBottom: '1px solid var(--border2)', position: 'sticky', top: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button onClick={() => setShowReport(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: 0 }}><ChevronLeft size={24}/></button>
+          <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 900, color: '#fff' }}>Monthly Analytics</h2>
+          <div style={{width: 24}}></div>
+        </div>
+
+        <div style={{ padding: '24px 20px', paddingBottom: '100px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '24px', fontWeight: 900, color: 'var(--accent)', margin: 0 }}>{selectedMonth}</h3>
+            <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
+              style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', color: 'var(--text)', padding: '8px 12px', borderRadius: '12px', fontWeight: 800, outline: 'none' }}>
+              {availableMonths.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+
+          <div style={{ background: 'linear-gradient(145deg, var(--bg2), var(--bg))', border: '1px solid var(--border2)', borderRadius: '24px', padding: '24px', marginBottom: '24px', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800, marginBottom: '8px' }}>Total Spend for {selectedMonth}</div>
+            <div style={{ fontSize: '36px', fontWeight: 900, color: '#fff' }}>₹{totalGroupSpent.toLocaleString()}</div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '30px' }}>
+            {topSpender && (
+              <div style={{ background: 'rgba(77, 159, 255, 0.05)', border: '1px solid rgba(77, 159, 255, 0.2)', borderRadius: '20px', padding: '20px' }}>
+                <Trophy size={20} color="var(--blue)" style={{ marginBottom: '12px' }} />
+                <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 800 }}>Top Spender</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff', marginTop: '4px' }}>{topSpender[0]}</div>
+                <div style={{ fontSize: '12px', color: 'var(--blue)', fontWeight: 800, marginTop: '2px' }}>₹{topSpender[1].toLocaleString()}</div>
+              </div>
+            )}
+            <div style={{ background: 'rgba(52, 211, 153, 0.05)', border: '1px solid rgba(52, 211, 153, 0.2)', borderRadius: '20px', padding: '20px' }}>
+              <TrendingUp size={20} color="#34D399" style={{ marginBottom: '12px' }} />
+              <div style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 800 }}>Total Debts</div>
+              <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff', marginTop: '4px' }}>{simplifiedDebts.length}</div>
+              <div style={{ fontSize: '12px', color: '#34D399', fontWeight: 800, marginTop: '2px' }}>Requires settling</div>
+            </div>
+          </div>
+
+          <h4 style={{ fontSize: '14px', color: 'var(--text)', fontWeight: 900, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <PieChart size={18} color="var(--accent)" /> Category Breakdown
+          </h4>
+          
+          {Object.keys(categoryTotals).length === 0 ? (
+             <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: '12px', padding: '20px', background: 'var(--bg2)', borderRadius: '16px' }}>No category data found.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg2)', borderRadius: '20px', padding: '20px', border: '1px solid var(--border2)' }}>
+              {Object.entries(categoryTotals).sort((a,b) => b[1]-a[1]).map(([catId, amt]) => {
+                const c = getCategoryDetails(catId);
+                const pct = Math.round((amt / totalGroupSpent) * 100);
+                return (
+                  <div key={catId}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px', fontWeight: 800 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fff' }}><span style={{ fontSize: '16px' }}>{c.emoji}</span> {c.label}</span>
+                      <span style={{ color: 'var(--text2)' }}>₹{amt.toLocaleString()} ({pct}%)</span>
+                    </div>
+                    <div style={{ height: '8px', background: 'var(--bg)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: c.color, borderRadius: '4px' }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          <h4 style={{ fontSize: '14px', color: 'var(--text)', fontWeight: 900, margin: '30px 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Users size={18} color="var(--blue)" /> Who owes whom?
+          </h4>
+          {simplifiedDebts.length === 0 ? (
+            <div style={{ background: 'var(--bg2)', padding: '20px', borderRadius: '16px', textAlign: 'center', color: 'var(--text3)', fontSize: '13px' }}>All settled up for {selectedMonth}!</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {simplifiedDebts.map((debt, i) => (
+                <div key={i} style={{ background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <strong style={{ color: 'var(--red)' }}>{debt.from}</strong> owes <strong style={{ color: 'var(--accent)' }}>{debt.to}</strong>
+                  </div>
+                  <strong style={{ color: '#fff' }}>₹{debt.amount.toLocaleString()}</strong>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- DASHBOARD ---
   return (
     <div className="reveal-fade-in" style={{ padding: '0 20px 40px', fontFamily: 'inherit' }}>
       
@@ -377,14 +463,22 @@ export default function SplitExpense() {
               <span>Pass: <strong style={{ color: 'var(--text)' }}>{activeGroup.password}</strong></span>
             </div>
           </div>
-          <button onClick={handleLeaveOrDeleteGroup} style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--red)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '10px', padding: '8px 14px', fontSize: '11px', fontWeight: 900, cursor: 'pointer' }}>
-            {activeGroup.members?.[0] === myName ? 'Delete Group' : 'Leave'}
-          </button>
         </div>
       </div>
 
+      {/* MONTH SELECTOR FOR FRESH START */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 900, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <CalendarIcon size={18} color="var(--blue)"/> Ledger Month
+        </h3>
+        <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
+          style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', color: 'var(--accent)', padding: '6px 12px', borderRadius: '10px', fontWeight: 900, outline: 'none', cursor: 'pointer' }}>
+          {availableMonths.map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
+      </div>
+
       {/* THREE-COLUMN BALANCES (Total Spend, Owed, Owe) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '24px' }}>
         <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '16px 12px', textAlign: 'center' }}>
           <div style={{ fontSize: '9px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800 }}>Total Spent</div>
           <div style={{ fontSize: '16px', fontWeight: 900, color: '#fff', marginTop: '6px' }}>₹{totalGroupSpent.toLocaleString()}</div>
@@ -400,27 +494,63 @@ export default function SplitExpense() {
       </div>
 
       {/* Action Buttons (Compact UI) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px', gap: '8px', marginBottom: '24px' }}>
         <button onClick={() => setShowAddExpense(true)}
-          style={{ padding: '12px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '14px', fontWeight: 900, fontSize: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-          <Plus size={18} /><span>Expense</span>
+          style={{ padding: '16px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: '14px', fontWeight: 900, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <Plus size={20} /><span>Add Expense</span>
         </button>
-        <button onClick={() => setShowReport(true)}
-          style={{ padding: '12px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', borderRadius: '14px', fontWeight: 900, fontSize: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-          <BarChart size={18} color="var(--blue)" /><span>Reports</span>
-        </button>
-        <button onClick={() => {
-            const mName = prompt("Enter friend's unique lowercase username:");
-            if (mName && mName.trim()) {
-              const trimmed = cleanName(mName);
-              if (activeGroup.members.includes(trimmed)) alert("Member already exists!");
-              else syncGroupData({ ...activeGroup, members: [...activeGroup.members, trimmed] });
-            }
-          }}
-          style={{ padding: '12px', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', borderRadius: '14px', fontWeight: 900, fontSize: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-          <UserCheck size={18} /><span>Add Friend</span>
+        <button onClick={() => setShowMoreMenu(true)}
+          style={{ padding: '16px 0', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', borderRadius: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <MoreHorizontal size={24} />
         </button>
       </div>
+
+      {/* MORE MENU MODAL */}
+      {showMoreMenu && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div className="reveal-slide-up" style={{ background: 'var(--bg)', width: '100%', maxWidth: '400px', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', padding: '24px', border: '1px solid var(--border2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', margin: 0, fontWeight: 900, color: '#fff' }}>More Options</h3>
+              <X size={24} color="var(--text3)" cursor="pointer" onClick={() => setShowMoreMenu(false)} />
+            </div>
+
+            <button onClick={() => { setShowMoreMenu(false); setShowReport(true); }} 
+              style={{ width: '100%', padding: '18px', background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '16px', display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '12px', cursor: 'pointer' }}>
+              <BarChart size={22} color="var(--blue)"/>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '15px', fontWeight: 900, color: '#fff' }}>Analytics & Reports</div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)', fontWeight: 600 }}>Detailed breakdown for {selectedMonth}</div>
+              </div>
+            </button>
+
+            <button onClick={() => {
+                setShowMoreMenu(false);
+                const mName = prompt("Enter friend's unique lowercase username:");
+                if (mName && mName.trim()) {
+                  const trimmed = cleanName(mName);
+                  if (activeGroup.members.includes(trimmed)) alert("Member already exists!");
+                  else syncGroupData({ ...activeGroup, members: [...activeGroup.members, trimmed] });
+                }
+              }} 
+              style={{ width: '100%', padding: '18px', background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '16px', display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '12px', cursor: 'pointer' }}>
+              <UserCheck size={22} color="var(--accent)"/>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '15px', fontWeight: 900, color: '#fff' }}>Add a Friend</div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)', fontWeight: 600 }}>Invite a user to {activeGroup.name}</div>
+              </div>
+            </button>
+
+            <button onClick={() => { setShowMoreMenu(false); handleLeaveOrDeleteGroup(); }} 
+              style={{ width: '100%', padding: '18px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', display: 'flex', gap: '14px', alignItems: 'center', cursor: 'pointer' }}>
+              <Trash2 size={22} color="var(--red)"/>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '15px', fontWeight: 900, color: 'var(--red)' }}>{activeGroup.members?.[0] === myName ? 'Delete Group' : 'Leave Group'}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)', fontWeight: 600 }}>Warning: This action is permanent</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* COMPACT MODAL: ADD EXPENSE */}
       {showAddExpense && (
@@ -492,52 +622,9 @@ export default function SplitExpense() {
         </div>
       )}
 
-      {/* MONTHLY REPORT MODAL */}
-      {showReport && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div className="reveal-scale-in" style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '24px', padding: '20px', width: '100%', maxWidth: '380px', maxHeight: '85vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 900, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}><PieChart size={18} color="var(--blue)" /> Monthly Spend Report</h3>
-              <X size={20} color="var(--text3)" cursor="pointer" onClick={() => setShowReport(false)} />
-            </div>
-            {Object.keys(monthlyReport).length === 0 ? (
-               <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: '12px', padding: '20px' }}>No expenses to analyze yet.</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {Object.entries(monthlyReport).map(([month, data]) => (
-                  <div key={month} style={{ background: 'var(--bg2)', borderRadius: '16px', padding: '16px', border: '1px solid var(--border2)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px', marginBottom: '10px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 900, color: 'var(--accent)' }}>{month}</span>
-                      <span style={{ fontSize: '14px', fontWeight: 900, color: '#fff' }}>₹{data.total.toLocaleString()}</span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {Object.entries(data.byCategory).sort((a,b) => b[1]-a[1]).map(([catId, amt]) => {
-                        const c = getCategoryDetails(catId);
-                        const pct = Math.round((amt / data.total) * 100);
-                        return (
-                          <div key={catId}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px', fontWeight: 600 }}>
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ fontSize: '14px' }}>{c.emoji}</span> {c.label}</span>
-                              <span style={{ color: 'var(--text2)' }}>₹{amt.toLocaleString()} ({pct}%)</span>
-                            </div>
-                            <div style={{ height: '6px', background: 'var(--bg)', borderRadius: '4px', overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${pct}%`, background: c.color, borderRadius: '4px' }} />
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Ledger list */}
       <div style={{ marginBottom: '30px' }}>
-        <div style={{ fontSize: '13px', color: 'var(--text2)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '14px' }}>Group Balances</div>
+        <div style={{ fontSize: '13px', color: 'var(--text2)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '14px' }}>Group Balances ({selectedMonth})</div>
         {simplifiedDebts.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', background: 'rgba(52,211,153,0.05)', borderRadius: '20px', padding: '30px 20px', textAlign: 'center', color: '#34D399', border: '1px solid rgba(52,211,153,0.2)' }}>
             <CheckCircle2 size={24} /> <span style={{ fontWeight: 900, fontSize: '14px' }}>Everyone is fully settled up!</span>
@@ -569,12 +656,12 @@ export default function SplitExpense() {
 
       {/* History */}
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
-        <h4 style={{ fontSize: '13px', color: 'var(--text2)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px' }}>Transaction History</h4>
-        {(!activeGroup.expenses || activeGroup.expenses.length === 0) ? (
-          <div style={{ background: 'var(--bg3)', borderRadius: '20px', padding: '30px 20px', textAlign: 'center', color: 'var(--text3)', fontSize: '13px', border: '1px dashed var(--border2)' }}>No expenses recorded yet. Be the first to start splitting!</div>
+        <h4 style={{ fontSize: '13px', color: 'var(--text2)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px' }}>History ({selectedMonth})</h4>
+        {(!filteredExpenses || filteredExpenses.length === 0) ? (
+          <div style={{ background: 'var(--bg3)', borderRadius: '20px', padding: '30px 20px', textAlign: 'center', color: 'var(--text3)', fontSize: '13px', border: '1px dashed var(--border2)' }}>No expenses recorded for this month.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {[...activeGroup.expenses].reverse().map(e => {
+            {[...filteredExpenses].reverse().map(e => {
               const isSettle = e.type === 'settlement';
               const isEveryone = e.splitAll || (e.splitAll !== false && (e.splitWith || []).length >= 2);
               const catDetails = getCategoryDetails(e.category);
