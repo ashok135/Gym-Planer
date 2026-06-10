@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlusCircle, Handshake, CreditCard, Lightbulb } from 'lucide-react';
+import { PlusCircle, Handshake, CreditCard, Lightbulb, HandCoins } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcon';
 
 export const TransactionModals = ({
@@ -9,16 +9,21 @@ export const TransactionModals = ({
   setShowAddIncome,
   showAddDebt,
   setShowAddDebt,
+  showAddLend,
+  setShowAddLend,
   form,
   setForm,
   incomeForm,
   setIncomeForm,
   debtForm,
   setDebtForm,
+  lendForm,
+  setLendForm,
   CATEGORIES,
   addEntry,
   addIncome,
-  addDebt
+  addDebt,
+  addLend
 }) => {
   return (
     <>
@@ -58,6 +63,7 @@ export const TransactionModals = ({
           </div>
         </div>
       )}
+
       {showAddIncome && (
         <div style={{ margin: '0 20px 24px', background: 'var(--bg3)', borderRadius: '20px', padding: '20px', border: '1px solid rgba(200,241,53,0.2)' }}>
           <div style={{ fontWeight: 700, marginBottom: '16px', fontSize: '15px', color: 'var(--accent)' }}>Add Extra Income</div>
@@ -69,6 +75,7 @@ export const TransactionModals = ({
           </div>
         </div>
       )}
+
       {showAddDebt && (
         <div style={{ margin: '0 20px 24px', background: 'var(--bg3)', borderRadius: '20px', padding: '20px', border: '1px solid rgba(77,159,255,0.3)' }}>
           <div style={{ fontWeight: 700, marginBottom: '16px', fontSize: '15px', color: 'var(--blue)', display: 'flex', alignItems: 'center', gap: '6px' }}><PlusCircle size={18}/> Log Loan / Credit Card spend</div>
@@ -135,6 +142,56 @@ export const TransactionModals = ({
           <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
             <button onClick={addDebt} style={{ flex: 1, padding: '12px', background: 'var(--blue)', color: '#000', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>Save Entry</button>
             <button onClick={() => setShowAddDebt(false)} style={{ flex: 1, padding: '12px', background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border2)', borderRadius: '12px', cursor: 'pointer', fontSize: '13px' }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {showAddLend && (
+        <div style={{ margin: '0 20px 24px', background: 'var(--bg3)', borderRadius: '20px', padding: '20px', border: '1px solid rgba(251,146,60,0.35)' }}>
+          <div style={{ fontWeight: 700, marginBottom: '16px', fontSize: '15px', color: '#FB923C', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <HandCoins size={18}/> Lend Money to Someone
+          </div>
+
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '11px', color: 'var(--text3)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Who are you lending to?</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Karthik (Friend), Brother" 
+              value={lendForm.person} 
+              onChange={e => setLendForm(f => ({ ...f, person: e.target.value }))} 
+              style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' }} 
+            />
+          </div>
+
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '11px', color: 'var(--text3)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Amount (₹)</label>
+            <input 
+              type="number" 
+              placeholder="Amount you are lending" 
+              value={lendForm.amount} 
+              onChange={e => setLendForm(f => ({ ...f, amount: e.target.value }))} 
+              style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' }} 
+            />
+            <span style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontStyle: 'italic' }}>
+              <Lightbulb size={12} color="#FB923C" />
+              <span>Logged as expense. When they return it, income is added back automatically.</span>
+            </span>
+          </div>
+
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '11px', color: 'var(--text3)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Note / Reason</label>
+            <input 
+              type="text" 
+              placeholder="e.g. For travel, emergency, business" 
+              value={lendForm.note} 
+              onChange={e => setLendForm(f => ({ ...f, note: e.target.value }))} 
+              style={{ width: '100%', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: '12px', color: 'var(--text)', fontSize: '14px', boxSizing: 'border-box' }} 
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+            <button onClick={addLend} style={{ flex: 1, padding: '12px', background: '#FB923C', color: '#000', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>Save Lend</button>
+            <button onClick={() => setShowAddLend(false)} style={{ flex: 1, padding: '12px', background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border2)', borderRadius: '12px', cursor: 'pointer', fontSize: '13px' }}>Cancel</button>
           </div>
         </div>
       )}

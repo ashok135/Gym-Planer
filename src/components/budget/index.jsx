@@ -20,13 +20,14 @@ import { TransactionHistoryList } from './TransactionHistoryList';
 import { DayDetailsModal } from './DayDetailsModal';
 
 import { 
-  Pizza, Pill, Car, Gamepad2, Utensils, Dumbbell, Coins, Package
+  Pizza, Pill, Car, Gamepad2, Utensils, Dumbbell, Coins, Package, Plane
 } from 'lucide-react';
 
 const DEFAULT_CATEGORIES = [
   { id: 'food',      label: 'Food',          Icon: Pizza,        emoji: '🍕', color: '#FF6B6B' },
   { id: 'supps',     label: 'Supplements',   Icon: Pill,         emoji: '💊', color: '#C8F135' },
   { id: 'transport', label: 'Transport',     Icon: Car,          emoji: '🚗', color: '#4D9FFF' },
+  { id: 'travel',    label: 'Travel',        Icon: Plane,        emoji: '✈️', color: '#38BDF8' },
   { id: 'entertain', label: 'Entertainment', Icon: Gamepad2,     emoji: '🎮', color: '#A78BFA' },
   { id: 'outside',   label: 'Eating Out',    Icon: Utensils,     emoji: '🍽️', color: '#FB923C' },
   { id: 'gym',       label: 'Gym',           Icon: Dumbbell,     emoji: '🏋️', color: '#34D399' },
@@ -69,6 +70,9 @@ export default function BudgetWrapper({ BUDGET, syncBudget, BUDGET_SETTINGS, isR
   const [showAddDebt, setShowAddDebt] = useState(false);
   const [debtForm, setDebtForm] = useState({ type: 'loan', provider: '', amount: '', dueDate: '', note: '' });
   const [repayForm, setRepayForm] = useState({ debtId: null, amount: '' });
+  const [showAddLend, setShowAddLend] = useState(false);
+  const [lendForm, setLendForm] = useState({ person: '', amount: '', note: '' });
+  const [collectForm, setCollectForm] = useState({ lendId: null, amount: '' });
 
   // --- SUB-TAB & SWIPE GESTURE EXTENSIONS ---
   const [activeSubTab, setActiveSubTab] = useState('my-budget');
@@ -336,6 +340,91 @@ export default function BudgetWrapper({ BUDGET, syncBudget, BUDGET_SETTINGS, isR
     setRepayForm({ debtId: null, amount: '' });
   };
 
+  // --- LEND MONEY (money you gave to someone) ---
+  const addLend = () => {
+    if (!lendForm.amount || isNaN(lendForm.amount) || Number(lendForm.amount) <= 0 || !lendForm.person.trim()) return;
+    const d = new Date(); const mk = monthKey(d); const dk = dayKey(d); const tm = formatTime(d); const ts = d.getTime();
+    const transactionId = (ts + 2).toString();
+    const newLend = {
+      id: ts.toString(),
+      person: lendForm.person.trim(),
+      amount: Number(lendForm.amount),
+      collected: 0,
+      status: 'pending',
+      date: dk,
+      time: tm,
+      timestamp: ts,
+      transactionId,
+      note: lendForm.note ? lendForm.note.trim() : ''
+    };
+    const lendExpense = {
+      id: transactionId,
+      category: 'others',
+      amount: Number(lendForm.amount),
+      note: `Lent to ${lendForm.person.trim()}${lendForm.note ? ': ' + lendForm.note.trim() : ''}`,
+      date: dk, time: tm, timestamp: ts + 2, isLend: true
+    };
+    const targetMonthData = BUDGET?.[mk] || { entries: [], extraIncome: [], debts: [], lends: [] };
+    syncBudget({
+      ...BUDGET,
+      [mk]: {
+        ...targetMonthData,
+        lends: [...(targetMonthData.lends || []), newLend],
+        entries: [...(targetMonthData.entries || []), lendExpense]
+      }
+    });
+    setLendForm({ person: '', amount: '', note: '' });
+    setShowAddLend(false); setSelectedMonth(mk);
+  };
+
+  const collectLend = (lendId, collectAmount, mk) => {
+    if (!collectAmount || isNaN(collectAmount) || Number(collectAmount) <= 0) return;
+    const targetMonth = BUDGET?.[mk]; if (!targetMonth) return;
+    const ts = Date.now(); const dk = dayKey(new Date()); const tm = formatTime(new Date());
+    let lendObj = null;
+    const updatedLends = (targetMonth.lends || []).map(l => {
+      if (l.id === lendId) {
+        const totalCollected = Number(l.collected || 0) + Number(collectAmount);
+        const isFullyCollected = totalCollected >= l.amount;
+        lendObj = { ...l, collected: totalCollected, status: isFullyCollected ? 'returned' : 'pending' };
+        return lendObj;
+      }
+      return l;
+    });
+    if (!lendObj) return;
+    const returnIncome = {
+      id: ts.toString(),
+      label: `${lendObj.person} returned ₹${Number(collectAmount).toLocaleString()}`,
+      amount: Number(collectAmount),
+      date: dk, time: tm, timestamp: ts, isLendReturn: true
+    };
+    syncBudget({
+      ...BUDGET,
+      [mk]: {
+        ...targetMonth,
+        lends: updatedLends,
+        extraIncome: [...(targetMonth.extraIncome || []), returnIncome]
+      }
+    });
+    setCollectForm({ lendId: null, amount: '' });
+  };
+
+  const deleteLend = (lendId, mk) => {
+    const targetMonth = BUDGET?.[mk]; if (!targetMonth) return;
+    const lend = (targetMonth.lends || []).find(l => l.id === lendId);
+    if (!lend) return;
+    syncBudget({
+      ...BUDGET,
+      [mk]: {
+        ...targetMonth,
+        lends: (targetMonth.lends || []).filter(l => l.id !== lendId),
+        entries: (targetMonth.entries || []).filter(e => e.id !== lend.transactionId),
+        extraIncome: (targetMonth.extraIncome || []).filter(i => i.id !== lend.transactionId)
+      }
+    });
+  };
+  // -----------------------------------------------
+
   const deleteDebt = (debtId, mk) => {
     const targetMonth = BUDGET?.[mk]; if (!targetMonth) return;
     const debt = (targetMonth.debts || []).find(d => d.id === debtId);
@@ -355,6 +444,16 @@ export default function BudgetWrapper({ BUDGET, syncBudget, BUDGET_SETTINGS, isR
       }
     });
   };
+
+  // Collect all lends across all months
+  const allLends = [];
+  Object.entries(BUDGET || {}).forEach(([mk, md]) => {
+    (md.lends || []).forEach(l => {
+      allLends.push({ ...l, mk });
+    });
+  });
+  const pendingLends = allLends.filter(l => l.status !== 'returned');
+  const totalLentOut = pendingLends.reduce((sum, l) => sum + (Number(l.amount) - Number(l.collected || 0)), 0);
 
   const historyDataMap = {};
   Object.entries(BUDGET || {}).forEach(([mk, md]) => {
@@ -438,6 +537,7 @@ export default function BudgetWrapper({ BUDGET, syncBudget, BUDGET_SETTINGS, isR
               setShowAdd={setShowAdd}
               setShowAddIncome={setShowAddIncome}
               setShowAddDebt={setShowAddDebt}
+              setShowAddLend={setShowAddLend}
             />
 
             <TransactionModals 
@@ -447,16 +547,21 @@ export default function BudgetWrapper({ BUDGET, syncBudget, BUDGET_SETTINGS, isR
               setShowAddIncome={setShowAddIncome}
               showAddDebt={showAddDebt}
               setShowAddDebt={setShowAddDebt}
+              showAddLend={showAddLend}
+              setShowAddLend={setShowAddLend}
               form={form}
               setForm={setForm}
               incomeForm={incomeForm}
               setIncomeForm={setIncomeForm}
               debtForm={debtForm}
               setDebtForm={setDebtForm}
+              lendForm={lendForm}
+              setLendForm={setLendForm}
               CATEGORIES={CATEGORIES}
               addEntry={addEntry}
               addIncome={addIncome}
               addDebt={addDebt}
+              addLend={addLend}
             />
           </>
         )}
@@ -482,6 +587,12 @@ export default function BudgetWrapper({ BUDGET, syncBudget, BUDGET_SETTINGS, isR
           setRepayForm={setRepayForm}
           repayDebt={repayDebt}
           deleteDebt={deleteDebt}
+          allLends={allLends}
+          totalLentOut={totalLentOut}
+          collectForm={collectForm}
+          setCollectForm={setCollectForm}
+          collectLend={collectLend}
+          deleteLend={deleteLend}
         />
 
         <TransactionHistoryList 
