@@ -86,6 +86,9 @@ export default function App() {
   const [syncError, setSyncError] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedTime, setLastSyncedTime] = useState(null);
+  const [splitCategories, setSplitCategories] = useState(null);
+  const [moodEnergyConfig, setMoodEnergyConfig] = useState(null);
+  const [statusResponses, setStatusResponses] = useState(null);
   const notifTimers = useRef([]);
 
   const [workoutPlans, setWorkoutPlans] = useState(() => {
@@ -237,6 +240,9 @@ export default function App() {
           const lDiet = localStorage.getItem('gdietPlan'); if (lDiet) setDIET_PLAN(JSON.parse(lDiet));
           const lPlans = localStorage.getItem('gworkoutPlans'); if (lPlans) setWorkoutPlans(JSON.parse(lPlans));
           const lProfile = localStorage.getItem('gprofileInfo'); if (lProfile) setProfileInfo(JSON.parse(lProfile));
+          const lSplitCats = localStorage.getItem('g_split_categories'); if (lSplitCats) setSplitCategories(JSON.parse(lSplitCats));
+          const lMoodEnergy = localStorage.getItem('gmood_energy_config'); if (lMoodEnergy) setMoodEnergyConfig(JSON.parse(lMoodEnergy));
+          const lStatusResponses = localStorage.getItem('gstatus_responses_config'); if (lStatusResponses) setStatusResponses(JSON.parse(lStatusResponses));
         } catch (e) {
           console.error("Local cache load failed", e);
         }
@@ -300,6 +306,26 @@ export default function App() {
               localStorage.setItem('gprofileInfo', JSON.stringify(info));
             }
 
+            if (data.splitCategories) {
+              setSplitCategories(data.splitCategories);
+              localStorage.setItem('g_split_categories', JSON.stringify(data.splitCategories));
+              window.dispatchEvent(new Event('splitCategoriesUpdated'));
+            }
+            if (data.moodEnergyConfig) {
+              setMoodEnergyConfig(data.moodEnergyConfig);
+              localStorage.setItem('gmood_energy_config', JSON.stringify(data.moodEnergyConfig));
+              window.dispatchEvent(new Event('moodEnergyConfigUpdated'));
+            }
+            if (data.statusResponses) {
+              setStatusResponses(data.statusResponses);
+              localStorage.setItem('gstatus_responses_config', JSON.stringify(data.statusResponses));
+              window.dispatchEvent(new Event('statusResponsesUpdated'));
+            }
+            if (data.activeTheme) {
+              setActiveTheme(data.activeTheme);
+              localStorage.setItem('gm_active_theme', data.activeTheme);
+            }
+
             // Sync database with localStorage cache
             localStorage.setItem('gdb', JSON.stringify(data.workouts || {}));
             localStorage.setItem('gnames', JSON.stringify(data.names || {}));
@@ -341,7 +367,8 @@ export default function App() {
               'gdb', 'gnames', 'gmeta', 'gfood', 'gschedule', 'gbudget', 
               'gbudgetSettings', 'gstudy', 'gstudySettings', 'gdietPlan', 
               'gworkoutPlans', 'gprofileInfo', 'g_split_active_group', 
-              'g_split_active_member', 'g_split_joined_groups'
+              'g_split_active_member', 'g_split_joined_groups',
+              'g_split_categories', 'gmood_energy_config', 'gstatus_responses_config'
             ];
             keysToRemove.forEach(k => localStorage.removeItem(k));
           }
@@ -427,7 +454,11 @@ export default function App() {
         dietPlan: DIET_PLAN,
         aiSettings: getAiSettingsFromLocalStorage(),
         profileInfo,
-        workoutPlans
+        workoutPlans,
+        splitCategories,
+        moodEnergyConfig,
+        statusResponses,
+        activeTheme
       };
       const mergedPayload = { ...defaultPayload, ...overrideFields };
       const payload = sanitizeForFirestore(mergedPayload);
@@ -499,6 +530,32 @@ export default function App() {
     await saveToFirestore({ profileInfo: newProfile });
   };
 
+  const syncSplitCategories = async (newCats) => {
+    setSplitCategories(newCats);
+    localStorage.setItem('g_split_categories', JSON.stringify(newCats));
+    await saveToFirestore({ splitCategories: newCats });
+  };
+
+  const syncMoodEnergyConfig = async (newCfg) => {
+    setMoodEnergyConfig(newCfg);
+    localStorage.setItem('gmood_energy_config', JSON.stringify(newCfg));
+    await saveToFirestore({ moodEnergyConfig: newCfg });
+    window.dispatchEvent(new Event('moodEnergyConfigUpdated'));
+  };
+
+  const syncStatusResponses = async (newResp) => {
+    setStatusResponses(newResp);
+    localStorage.setItem('gstatus_responses_config', JSON.stringify(newResp));
+    await saveToFirestore({ statusResponses: newResp });
+    window.dispatchEvent(new Event('statusResponsesUpdated'));
+  };
+
+  const syncTheme = async (newTheme) => {
+    setActiveTheme(newTheme);
+    localStorage.setItem('gm_active_theme', newTheme);
+    await saveToFirestore({ activeTheme: newTheme });
+  };
+
 
 
   const handleReset = async (e) => {
@@ -559,7 +616,8 @@ export default function App() {
       'gdb', 'gnames', 'gmeta', 'gfood', 'gschedule', 'gbudget', 
       'gbudgetSettings', 'gstudy', 'gstudySettings', 'gdietPlan', 
       'gworkoutPlans', 'gprofileInfo', 'g_split_active_group', 
-      'g_split_active_member', 'g_split_joined_groups'
+      'g_split_active_member', 'g_split_joined_groups',
+      'g_split_categories', 'gmood_energy_config', 'gstatus_responses_config'
     ];
     keysToRemove.forEach(k => localStorage.removeItem(k));
   };
@@ -633,7 +691,7 @@ export default function App() {
         {activeTab === 'budget'   && <Budget   BUDGET={BUDGET} syncBudget={syncBudget} BUDGET_SETTINGS={BUDGET_SETTINGS} profileInfo={profileInfo} />}
         {activeTab === 'study'    && <Study    STUDY={STUDY} syncStudy={syncStudy} STUDY_SETTINGS={STUDY_SETTINGS} profileInfo={profileInfo} />}
         {activeTab === 'report'   && <Report   DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} SCHEDULE={SCHEDULE} BUDGET={BUDGET} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY={STUDY} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} workoutPlans={workoutPlans} DIET_PLAN={DIET_PLAN} />}
-        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} syncAiSettings={syncAiSettings} profileInfo={profileInfo} syncProfileInfo={syncProfileInfo} workoutPlans={workoutPlans} syncWorkoutPlans={syncWorkoutPlans} DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} user={user} activeTheme={activeTheme} setActiveTheme={setActiveTheme} />}
+        {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} syncAiSettings={syncAiSettings} profileInfo={profileInfo} syncProfileInfo={syncProfileInfo} workoutPlans={workoutPlans} syncWorkoutPlans={syncWorkoutPlans} DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} user={user} activeTheme={activeTheme} setActiveTheme={syncTheme} syncSplitCategories={syncSplitCategories} syncMoodEnergyConfig={syncMoodEnergyConfig} syncStatusResponses={syncStatusResponses} />}
       </div>
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} showNav={showNav} />
       {aiEnabled && <AIChat DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} syncAiSettings={syncAiSettings} profileInfo={profileInfo} workoutPlans={workoutPlans} />}

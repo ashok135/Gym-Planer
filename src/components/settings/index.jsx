@@ -15,7 +15,8 @@ export default function Settings({
   BUDGET_SETTINGS, syncBudget, STUDY_SETTINGS, syncStudy, 
   BUDGET, STUDY, syncAiSettings, profileInfo, syncProfileInfo,
   workoutPlans, syncWorkoutPlans, DIET_PLAN, syncDietPlan, user,
-  activeTheme, setActiveTheme
+  activeTheme, setActiveTheme, syncSplitCategories, syncMoodEnergyConfig,
+  syncStatusResponses
 }) {
   const [localNames, setLocalNames] = useState(NAMES);
 
@@ -52,6 +53,7 @@ export default function Settings({
         BUDGET_SETTINGS={BUDGET_SETTINGS} 
         syncBudget={syncBudget} 
         BUDGET={BUDGET} 
+        syncSplitCategories={syncSplitCategories}
       />
 
       <StudySettings 
@@ -96,7 +98,10 @@ export default function Settings({
           <span>Mood &amp; Energy Slider</span>
         </span>
       }>
-        <MoodEnergySettings />
+        <MoodEnergySettings 
+          syncMoodEnergyConfig={syncMoodEnergyConfig} 
+          syncStatusResponses={syncStatusResponses} 
+        />
       </Accordion>
 
       {/* LOGOUT */}

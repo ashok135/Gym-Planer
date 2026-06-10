@@ -23,7 +23,7 @@ const DEFAULT_SPLIT_CATEGORIES = [
 
 const CAT_COLORS = ['#FF6B6B','#C8F135','#4D9FFF','#A78BFA','#FB923C','#34D399','#94A3B8','#F472B6','#FBBF24'];
 
-export default function FinanceSettings({ BUDGET_SETTINGS, syncBudget, BUDGET }) {
+export default function FinanceSettings({ BUDGET_SETTINGS, syncBudget, BUDGET, syncSplitCategories }) {
   const [localIncome, setLocalIncome] = useState(BUDGET_SETTINGS?.income || 22400);
   const [localCategories, setLocalCategories] = useState(BUDGET_SETTINGS?.categories?.length ? BUDGET_SETTINGS.categories : DEFAULT_CATEGORIES);
   const [budgetMsg, setBudgetMsg] = useState(false);
@@ -76,9 +76,27 @@ export default function FinanceSettings({ BUDGET_SETTINGS, syncBudget, BUDGET })
 
   const saveSplitSettings = () => {
     localStorage.setItem('g_split_categories', JSON.stringify(localSplitCategories));
+    if (syncSplitCategories) {
+      syncSplitCategories(localSplitCategories);
+    }
     setSplitCatMsg(true);
     setTimeout(() => setSplitCatMsg(false), 2000);
   };
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const saved = localStorage.getItem('g_split_categories');
+        if (saved) setLocalSplitCategories(JSON.parse(saved));
+      } catch (e) {}
+    };
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('splitCategoriesUpdated', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('splitCategoriesUpdated', handleStorageChange);
+    };
+  }, []);
 
   return (
     <>

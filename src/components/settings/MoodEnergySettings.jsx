@@ -185,7 +185,7 @@ function StageRow({ stage, index, onChange, defaultImg }) {
 }
 
 /* ─── Main MoodEnergySettings component ─── */
-export default function MoodEnergySettings() {
+export default function MoodEnergySettings({ syncMoodEnergyConfig, syncStatusResponses }) {
   const [saved, setSaved] = useState(false);
 
   // Load from localStorage or use defaults
@@ -214,6 +214,14 @@ export default function MoodEnergySettings() {
   const handleSave = () => {
     saveMoodEnergyConfig({ mood: moodStages, energy: energyStages });
     saveStatusResponses(statusResponses);
+    
+    if (syncMoodEnergyConfig) {
+      syncMoodEnergyConfig({ mood: moodStages, energy: energyStages });
+    }
+    if (syncStatusResponses) {
+      syncStatusResponses(statusResponses);
+    }
+    
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     // Notify SessionMeta to re-read
@@ -227,9 +235,34 @@ export default function MoodEnergySettings() {
     setStatusResponses(DEFAULT_STATUS_RESPONSES);
     saveMoodEnergyConfig({ mood: DEFAULT_MOOD_STAGES, energy: DEFAULT_ENERGY_STAGES });
     saveStatusResponses(DEFAULT_STATUS_RESPONSES);
+    
+    if (syncMoodEnergyConfig) {
+      syncMoodEnergyConfig({ mood: DEFAULT_MOOD_STAGES, energy: DEFAULT_ENERGY_STAGES });
+    }
+    if (syncStatusResponses) {
+      syncStatusResponses(DEFAULT_STATUS_RESPONSES);
+    }
+    
     window.dispatchEvent(new Event('moodEnergyConfigUpdated'));
     window.dispatchEvent(new Event('statusResponsesUpdated'));
   };
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      const cfg = loadMoodEnergyConfig();
+      if (cfg) {
+        if (cfg.mood) setMoodStages(cfg.mood);
+        if (cfg.energy) setEnergyStages(cfg.energy);
+      }
+      setStatusResponses(loadStatusResponses());
+    };
+    window.addEventListener('moodEnergyConfigUpdated', handleUpdate);
+    window.addEventListener('statusResponsesUpdated', handleUpdate);
+    return () => {
+      window.removeEventListener('moodEnergyConfigUpdated', handleUpdate);
+      window.removeEventListener('statusResponsesUpdated', handleUpdate);
+    };
+  }, []);
 
   const labelStyle = {
     display: 'flex',

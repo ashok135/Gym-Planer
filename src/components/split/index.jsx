@@ -82,6 +82,10 @@ export default function SplitWrapper({ profileInfo }) {
         } else if (data.splitGroupActiveV2) {
           setActiveGroup(data.splitGroupActiveV2); localStorage.setItem('g_split_active_group_v2', JSON.stringify(data.splitGroupActiveV2));
         }
+        if (data.splitCategories) {
+          setSplitCategories(data.splitCategories);
+          localStorage.setItem('g_split_categories', JSON.stringify(data.splitCategories));
+        }
       }
     });
     return () => unsubscribe();
