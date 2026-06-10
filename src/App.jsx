@@ -946,3 +946,6 @@ function SyncDebugPanel({ user, syncError, isSyncing, lastSyncedTime, DB, META, 
           </div>
         </div>
       )}
+    </>
+  );
+}
