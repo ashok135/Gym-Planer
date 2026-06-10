@@ -457,7 +457,10 @@ export default function BudgetWrapper({ BUDGET, syncBudget, BUDGET_SETTINGS, isR
 
   const historyDataMap = {};
   Object.entries(BUDGET || {}).forEach(([mk, md]) => {
-    const [y, m] = mk.split('-').map(Number);
+    const parts = mk.split('-');
+    if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return;
+    const y = Number(parts[0]);
+    const m = Number(parts[1]);
     if (!historyStart && !historyEnd && !showAllHistory && mk !== selectedMonth) return;
     if (!historyDataMap[mk]) historyDataMap[mk] = { yr: y, mo: m - 1, days: {} };
     const allItems = [
@@ -471,6 +474,7 @@ export default function BudgetWrapper({ BUDGET, syncBudget, BUDGET_SETTINGS, isR
       })
     ];
     allItems.forEach(e => {
+      if (!e.date) return;
       if (historyStart && e.date < historyStart) return;
       if (historyEnd && e.date > historyEnd) return;
       if (!historyDataMap[mk].days[e.date]) historyDataMap[mk].days[e.date] = { dk: e.date, totalSpent: 0, totalIncome: 0, items: [] };
@@ -482,7 +486,13 @@ export default function BudgetWrapper({ BUDGET, syncBudget, BUDGET_SETTINGS, isR
   });
 
   const sortedHistory = Object.values(historyDataMap).sort((a, b) => (b.yr - a.yr) || (b.mo - a.mo));
-  sortedHistory.forEach(month => { month.dayList = Object.values(month.days).sort((a, b) => b.dk.localeCompare(a.dk)); });
+  sortedHistory.forEach(month => {
+    month.dayList = Object.values(month.days).sort((a, b) => {
+      const ad = a.dk || '';
+      const bd = b.dk || '';
+      return bd.localeCompare(ad);
+    });
+  });
 
   const pieData = CATEGORIES.map(c => ({ name: c.label, value: catTotals[c.id], color: c.color })).filter(d => d.value > 0);
 
@@ -506,12 +516,19 @@ export default function BudgetWrapper({ BUDGET, syncBudget, BUDGET_SETTINGS, isR
                   monthSet.add(mk);
                 }
               });
-              // Sort descending (newest first)
-              const months = Array.from(monthSet).sort((a, b) => b.localeCompare(a)).map(mk => {
-                const [y, m] = mk.split('-').map(Number);
+              // Sort descending (newest first) and map safely
+              const months = Array.from(monthSet).map(mk => {
+                const parts = mk.split('-');
+                if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
+                const y = Number(parts[0]);
+                const m = Number(parts[1]);
                 const d = new Date(y, m - 1, 1);
-                return { mk, label: `${MONTHS[d.getMonth()].slice(0, 3)} ${String(d.getFullYear()).slice(2)}`, hasData: !!(BUDGET?.[mk]?.entries?.length || BUDGET?.[mk]?.extraIncome?.length) };
-              });
+                if (isNaN(d.getTime())) return null;
+                const monthName = MONTHS[d.getMonth()];
+                if (!monthName) return null;
+                return { mk, label: `${monthName.slice(0, 3)} ${String(d.getFullYear()).slice(2)}`, hasData: !!(BUDGET?.[mk]?.entries?.length || BUDGET?.[mk]?.extraIncome?.length) };
+              }).filter(Boolean).sort((a, b) => b.mk.localeCompare(a.mk));
+
               return months.map(m => (
                 <div key={m.mk} onClick={() => setSelectedMonth(m.mk)}
                   style={{ padding: '8px 16px', borderRadius: '20px', fontSize: '12px', whiteSpace: 'nowrap', cursor: 'pointer', background: selectedMonth === m.mk ? 'var(--accent)' : 'var(--bg3)', color: selectedMonth === m.mk ? '#000' : m.hasData ? 'var(--text)' : 'var(--text3)', border: `1px solid ${selectedMonth === m.mk ? 'var(--accent)' : m.hasData ? 'var(--border)' : 'var(--border2)'}`, fontWeight: selectedMonth === m.mk ? 700 : m.hasData ? 600 : 400, position: 'relative' }}>
