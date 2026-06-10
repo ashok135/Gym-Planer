@@ -257,9 +257,13 @@ select.meta-input { appearance: none; }
 .rest-sub{font-size:13px;color:var(--text2)}
 
 /* Sync indicator */
-.sync-status { font-size: 10px; color: var(--text3); position: absolute; top: 10px; right: 20px; display: flex; align-items: center; gap: 4px; }
-.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); }
-.sync-dot.online { background: var(--accent); }
+.sync-indicator-btn:hover {
+  background: var(--bg4) !important;
+  transform: translateY(-1px);
+}
+.sync-indicator-btn:active {
+  transform: translateY(1px);
+}
 
 @keyframes spin {
   to { transform: rotate(360deg); }

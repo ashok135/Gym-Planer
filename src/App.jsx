@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import Auth from './components/layout/Auth';
 import AppHeader from './components/layout/AppHeader';
 import AppBackground from './components/layout/AppBackground';
@@ -219,11 +219,30 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let unsubSnapshot = null;
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if(u) {
+        // Load offline cache immediately to bypass splash screen quickly
         try {
-          const docSnap = await getDoc(doc(db, "users", u.uid));
+          const lDb = localStorage.getItem('gdb'); if (lDb) setDB(JSON.parse(lDb));
+          const lNames = localStorage.getItem('gnames'); if (lNames) setNAMES(JSON.parse(lNames));
+          const lMeta = localStorage.getItem('gmeta'); if (lMeta) setMETA(JSON.parse(lMeta));
+          const lFood = localStorage.getItem('gfood'); if (lFood) setFOOD(JSON.parse(lFood));
+          const lSched = localStorage.getItem('gschedule'); if (lSched) setSCHEDULE(JSON.parse(lSched));
+          const lBudget = localStorage.getItem('gbudget'); if (lBudget) setBUDGET(JSON.parse(lBudget));
+          const lBudgetSet = localStorage.getItem('gbudgetSettings'); if (lBudgetSet) setBUDGET_SETTINGS(JSON.parse(lBudgetSet));
+          const lStudy = localStorage.getItem('gstudy'); if (lStudy) setSTUDY(JSON.parse(lStudy));
+          const lStudySet = localStorage.getItem('gstudySettings'); if (lStudySet) setSTUDY_SETTINGS(JSON.parse(lStudySet));
+          const lDiet = localStorage.getItem('gdietPlan'); if (lDiet) setDIET_PLAN(JSON.parse(lDiet));
+          const lPlans = localStorage.getItem('gworkoutPlans'); if (lPlans) setWorkoutPlans(JSON.parse(lPlans));
+          const lProfile = localStorage.getItem('gprofileInfo'); if (lProfile) setProfileInfo(JSON.parse(lProfile));
+        } catch (e) {
+          console.error("Local cache load failed", e);
+        }
+
+        if (unsubSnapshot) unsubSnapshot();
+        unsubSnapshot = onSnapshot(doc(db, "users", u.uid), (docSnap) => {
           if(docSnap.exists()) {
             const data = docSnap.data();
             setDB(data.workouts || {});
@@ -237,8 +256,6 @@ export default function App() {
               if (updatedFullTime[5] === 2) updatedFullTime[5] = 5;
               if (updatedFullTime[6] === 3) updatedFullTime[6] = 6;
               loadedSched = { ...loadedSched, fullTime: updatedFullTime };
-              localStorage.setItem('gschedule', JSON.stringify(loadedSched));
-              setDoc(doc(db, "users", u.uid), { schedule: loadedSched }, { merge: true }).catch(() => {});
             }
             setSCHEDULE(loadedSched);
             setBUDGET(data.budget || {});
@@ -282,8 +299,20 @@ export default function App() {
               setProfileInfo(info);
               localStorage.setItem('gprofileInfo', JSON.stringify(info));
             }
+
+            // Sync database with localStorage cache
+            localStorage.setItem('gdb', JSON.stringify(data.workouts || {}));
+            localStorage.setItem('gnames', JSON.stringify(data.names || {}));
+            localStorage.setItem('gmeta', JSON.stringify(data.meta || {}));
+            localStorage.setItem('gfood', JSON.stringify(data.food || {}));
+            localStorage.setItem('gschedule', JSON.stringify(loadedSched));
+            localStorage.setItem('gbudget', JSON.stringify(data.budget || {}));
+            localStorage.setItem('gbudgetSettings', JSON.stringify(data.budgetSettings || DEFAULT_BUDGET_SETTINGS));
+            localStorage.setItem('gstudy', JSON.stringify(data.study || {}));
+            localStorage.setItem('gstudySettings', JSON.stringify(data.studySettings || DEFAULT_STUDY_SETTINGS));
+            localStorage.setItem('gdietPlan', JSON.stringify(data.dietPlan || DEFAULT_DIET_PLAN));
           } else {
-            // Document does not exist in cloud - reset to default states so we don't inherit old session data
+            // Reset state if doc snap does not exist
             setDB({});
             setNAMES({});
             setMETA({});
@@ -308,7 +337,6 @@ export default function App() {
               dailySleepTarget: 8
             });
             
-            // Clear local storage keys to ensure clean slate
             const keysToRemove = [
               'gdb', 'gnames', 'gmeta', 'gfood', 'gschedule', 'gbudget', 
               'gbudgetSettings', 'gstudy', 'gstudySettings', 'gdietPlan', 
@@ -317,57 +345,52 @@ export default function App() {
             ];
             keysToRemove.forEach(k => localStorage.removeItem(k));
           }
-        } catch(e) {
-          console.error("Cloud fetch failed, using local", e);
-          setDB(JSON.parse(localStorage.getItem('gdb')||'{}'));
-          setNAMES(JSON.parse(localStorage.getItem('gnames')||'{}'));
-          setMETA(JSON.parse(localStorage.getItem('gmeta')||'{}'));
-          setFOOD(JSON.parse(localStorage.getItem('gfood')||'{}'));
-          let loadedOfflineSched = JSON.parse(localStorage.getItem('gschedule')||'{"fullTime":{},"thisWeek":{}}');
-          if (loadedOfflineSched.fullTime && (loadedOfflineSched.fullTime[4] === 1 || loadedOfflineSched.fullTime[5] === 2 || loadedOfflineSched.fullTime[6] === 3)) {
-            const updatedFullTime = { ...loadedOfflineSched.fullTime };
-            if (updatedFullTime[4] === 1) updatedFullTime[4] = 4;
-            if (updatedFullTime[5] === 2) updatedFullTime[5] = 5;
-            if (updatedFullTime[6] === 3) updatedFullTime[6] = 6;
-            loadedOfflineSched = { ...loadedOfflineSched, fullTime: updatedFullTime };
-            localStorage.setItem('gschedule', JSON.stringify(loadedOfflineSched));
-          }
-          setSCHEDULE(loadedOfflineSched);
-          setBUDGET(JSON.parse(localStorage.getItem('gbudget')||'{}'));
-          setBUDGET_SETTINGS(JSON.parse(localStorage.getItem('gbudgetSettings')||JSON.stringify(DEFAULT_BUDGET_SETTINGS)));
-          setSTUDY(JSON.parse(localStorage.getItem('gstudy')||'{}'));
-          setSTUDY_SETTINGS(JSON.parse(localStorage.getItem('gstudySettings')||JSON.stringify(DEFAULT_STUDY_SETTINGS)));
-          try { const dp = JSON.parse(localStorage.getItem('gdietPlan')); if(dp) setDIET_PLAN(dp); } catch(e) {}
-          try {
-            const savedPlans = JSON.parse(localStorage.getItem('gworkoutPlans'));
-            if (savedPlans) setWorkoutPlans(savedPlans);
-          } catch(e) {}
-
-          try {
-            const saved = JSON.parse(localStorage.getItem('gprofileInfo'));
-            setProfileInfo({
-              name: saved?.name || '',
-              resume: saved?.resume || '',
-              customLifeNotes: saved?.customLifeNotes || '',
-              targetRoles: saved?.targetRoles || ['React Developer', 'WordPress Developer', 'Frontend Developer'],
-              preferredLocations: saved?.preferredLocations || ['Bangalore', 'Chennai', 'Remote'],
-              workTypes: saved?.workTypes || ['Remote', 'Hybrid'],
-              experienceLevel: saved?.experienceLevel || 'Fresher',
-              dailyProteinTarget: Number(saved?.dailyProteinTarget || 100),
-              dailyWaterTarget: Number(saved?.dailyWaterTarget || 4),
-              dailySleepTarget: Number(saved?.dailySleepTarget || 8)
-            });
-          } catch(e) {}
+          setLoading(false);
+        }, (error) => {
+          console.error("Cloud subscription failed", error);
+          setSyncError(error.message || String(error));
+          setLoading(false);
+        });
+      } else {
+        if (unsubSnapshot) {
+          unsubSnapshot();
+          unsubSnapshot = null;
         }
+        // User logged out, clean up states
+        setDB({});
+        setNAMES({});
+        setMETA({});
+        setFOOD({});
+        setSCHEDULE({ fullTime: {}, thisWeek: {} });
+        setBUDGET({});
+        setBUDGET_SETTINGS(DEFAULT_BUDGET_SETTINGS);
+        setSTUDY({});
+        setSTUDY_SETTINGS(DEFAULT_STUDY_SETTINGS);
+        setDIET_PLAN(DEFAULT_DIET_PLAN);
+        setWorkoutPlans(DEFAULT_PLAN);
+        setProfileInfo({
+          name: '',
+          resume: '',
+          customLifeNotes: '',
+          targetRoles: ['React Developer', 'WordPress Developer', 'Frontend Developer'],
+          preferredLocations: ['Bangalore', 'Chennai', 'Remote'],
+          workTypes: ['Remote', 'Hybrid'],
+          experienceLevel: 'Fresher',
+          dailyProteinTarget: 100,
+          dailyWaterTarget: 4,
+          dailySleepTarget: 8
+        });
+        setLoading(false);
       }
-      setLoading(false);
-      // Setup local offline service worker
       if (u && 'serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').catch(() => {});
       }
     });
 
-    return unsub;
+    return () => {
+      unsub();
+      if (unsubSnapshot) unsubSnapshot();
+    };
   }, []);
 
   useEffect(() => {
@@ -596,7 +619,14 @@ export default function App() {
   return (
     <div className="app">
       <AppBackground activeTab={activeTab} />
-      <AppHeader displayName={displayName} dateStr={dateStr} />
+      <AppHeader 
+        displayName={displayName} 
+        dateStr={dateStr} 
+        isSyncing={isSyncing} 
+        syncError={syncError} 
+        lastSyncedTime={lastSyncedTime} 
+        onSync={() => saveToFirestore()} 
+      />
       <div className="screen active" onScroll={handleScroll} style={{paddingBottom:'90px', flex:1, overflowY:'auto'}}>
         {activeTab === 'today'    && <Today    DB={DB} NAMES={NAMES} META={META} syncData={syncData} FOOD={FOOD} SCHEDULE={SCHEDULE} workoutPlans={workoutPlans} />}
         {activeTab === 'diet'     && <Diet     FOOD={FOOD} syncData={syncData} DB={DB} NAMES={NAMES} META={META} profileInfo={profileInfo} DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} syncProfileInfo={syncProfileInfo} />}
