@@ -65,7 +65,7 @@ export default function BudgetWrapper({ BUDGET, syncBudget, BUDGET_SETTINGS, isR
   const [historyStart, setHistoryStart] = useState('');
   const [historyEnd, setHistoryEnd] = useState('');
   const [modalDay, setModalDay] = useState(null);
-  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(true);
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [showAddDebt, setShowAddDebt] = useState(false);
   const [debtForm, setDebtForm] = useState({ type: 'loan', provider: '', amount: '', dueDate: '', note: '' });
@@ -494,11 +494,28 @@ export default function BudgetWrapper({ BUDGET, syncBudget, BUDGET_SETTINGS, isR
         <div style={{ padding: '0 20px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }} className="hide-scroll">
             {(() => {
-              const months = []; for (let i = 0; i < 6; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); const mk = monthKey(d); months.push({ mk, label: `${MONTHS[d.getMonth()].slice(0, 3)} ${String(d.getFullYear()).slice(2)}` }); }
+              // Always show last 6 months + any month that has data
+              const monthSet = new Set();
+              for (let i = 0; i < 6; i++) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                monthSet.add(monthKey(d));
+              }
+              // Add all months from BUDGET that have actual entries or income
+              Object.entries(BUDGET || {}).forEach(([mk, md]) => {
+                if ((md.entries && md.entries.length > 0) || (md.extraIncome && md.extraIncome.length > 0)) {
+                  monthSet.add(mk);
+                }
+              });
+              // Sort descending (newest first)
+              const months = Array.from(monthSet).sort((a, b) => b.localeCompare(a)).map(mk => {
+                const [y, m] = mk.split('-').map(Number);
+                const d = new Date(y, m - 1, 1);
+                return { mk, label: `${MONTHS[d.getMonth()].slice(0, 3)} ${String(d.getFullYear()).slice(2)}`, hasData: !!(BUDGET?.[mk]?.entries?.length || BUDGET?.[mk]?.extraIncome?.length) };
+              });
               return months.map(m => (
                 <div key={m.mk} onClick={() => setSelectedMonth(m.mk)}
-                  style={{ padding: '8px 16px', borderRadius: '20px', fontSize: '12px', whiteSpace: 'nowrap', cursor: 'pointer', background: selectedMonth === m.mk ? 'var(--accent)' : 'var(--bg3)', color: selectedMonth === m.mk ? '#000' : 'var(--text3)', border: '1px solid var(--border2)', fontWeight: selectedMonth === m.mk ? 700 : 400 }}>
-                  {m.label}
+                  style={{ padding: '8px 16px', borderRadius: '20px', fontSize: '12px', whiteSpace: 'nowrap', cursor: 'pointer', background: selectedMonth === m.mk ? 'var(--accent)' : 'var(--bg3)', color: selectedMonth === m.mk ? '#000' : m.hasData ? 'var(--text)' : 'var(--text3)', border: `1px solid ${selectedMonth === m.mk ? 'var(--accent)' : m.hasData ? 'var(--border)' : 'var(--border2)'}`, fontWeight: selectedMonth === m.mk ? 700 : m.hasData ? 600 : 400, position: 'relative' }}>
+                  {m.label}{m.hasData && selectedMonth !== m.mk && <span style={{ position: 'absolute', top: '4px', right: '6px', width: '5px', height: '5px', borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} />}
                 </div>
               ));
             })()}
