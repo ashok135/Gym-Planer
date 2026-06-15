@@ -54,8 +54,8 @@ export default function Today({ DB, NAMES, META, syncData, FOOD, SCHEDULE, worko
   };
   
   let currentPlanId = dow;
-  if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) currentPlanId = SCHEDULE.fullTime[dow];
-  if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[key] !== undefined) currentPlanId = SCHEDULE.thisWeek[key];
+  if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) currentPlanId = Number(SCHEDULE.fullTime[dow]);
+  if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[key] !== undefined) currentPlanId = Number(SCHEDULE.thisWeek[key]);
 
   const fullBodySplit = Array.isArray(workoutPlans) 
     ? workoutPlans.find(p => p.id === 7) 

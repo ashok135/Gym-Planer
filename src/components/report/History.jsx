@@ -42,15 +42,24 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE, workoutPlans 
   
   // Build key set: all days with data + all past Rest Days (last 90 days)
   const baseSet = new Set([...Object.keys(DB), ...Object.keys(META), ...Object.keys(FOOD)]);
+  
+  // Helper: resolve plan for a given day-of-week and dateKey
+  const resolvePlan = (dow, dk) => {
+    let planId = dow;
+    if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) planId = Number(SCHEDULE.fullTime[dow]);
+    if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[dk] !== undefined) planId = Number(SCHEDULE.thisWeek[dk]);
+    // Look up from workoutPlans first, fall back to DEFAULT_PLAN
+    const plan = workoutPlans?.[planId] || DEFAULT_PLAN[planId] || DEFAULT_PLAN[0];
+    return { planId, plan };
+  };
+
   for (let i = 0; i < 90; i++) {
     const d = new Date(now);
     d.setDate(now.getDate() - i);
     const dk = dateKey(d);
     const dow = d.getDay();
-    let planId = dow;
-    if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) planId = SCHEDULE.fullTime[dow];
-    if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[dk] !== undefined) planId = SCHEDULE.thisWeek[dk];
-    if (DEFAULT_PLAN[planId]?.muscles?.length === 0) baseSet.add(dk);
+    const { plan } = resolvePlan(dow, dk);
+    if (plan?.muscles?.length === 0) baseSet.add(dk);
   }
 
   const allKeys = Array.from(baseSet)
@@ -62,11 +71,9 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE, workoutPlans 
       }
       const d = new Date(k);
       const dow = d.getDay();
-      let planId = dow;
-      if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) planId = SCHEDULE.fullTime[dow];
-      if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[k] !== undefined) planId = SCHEDULE.thisWeek[k];
+      const { plan } = resolvePlan(dow, k);
       // Always include Rest Days
-      if (DEFAULT_PLAN[planId]?.muscles?.length === 0) return true;
+      if (plan?.muscles?.length === 0) return true;
       // For workout days, only include if has data
       const vol = getDayVol(DB[k] || {});
       const m = META[k] || {};
@@ -89,10 +96,10 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE, workoutPlans 
     const dow = dd.getDay();
     
     let currentPlanId = dow;
-    if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) currentPlanId = SCHEDULE.fullTime[dow];
-    if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[dk] !== undefined) currentPlanId = SCHEDULE.thisWeek[dk];
+    if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) currentPlanId = Number(SCHEDULE.fullTime[dow]);
+    if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[dk] !== undefined) currentPlanId = Number(SCHEDULE.thisWeek[dk]);
 
-    const plan = DEFAULT_PLAN[currentPlanId] || DEFAULT_PLAN[0];
+    const plan = workoutPlans?.[currentPlanId] || DEFAULT_PLAN[currentPlanId] || DEFAULT_PLAN[0];
     const isRestDay = plan.muscles.length === 0;
     const entry = DB[dk] || {};
     const hasAbs = Object.keys(entry).some(k => k.startsWith('Abs_'));
@@ -142,10 +149,10 @@ export default function History({ DB, NAMES, META, FOOD, SCHEDULE, workoutPlans 
     const dow = d.getDay();
     
     let currentPlanId = dow;
-    if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) currentPlanId = SCHEDULE.fullTime[dow];
-    if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[modalDk] !== undefined) currentPlanId = SCHEDULE.thisWeek[modalDk];
+    if (SCHEDULE?.fullTime && SCHEDULE.fullTime[dow] !== undefined) currentPlanId = Number(SCHEDULE.fullTime[dow]);
+    if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[modalDk] !== undefined) currentPlanId = Number(SCHEDULE.thisWeek[modalDk]);
 
-    const basePlan = DEFAULT_PLAN[currentPlanId] || DEFAULT_PLAN[0];
+    const basePlan = workoutPlans?.[currentPlanId] || DEFAULT_PLAN[currentPlanId] || DEFAULT_PLAN[0];
     const isRestDay = basePlan.muscles.length === 0;
     const plan = { ...basePlan, muscles: [...basePlan.muscles] };
     const entry = DB[modalDk] || {};

@@ -114,8 +114,8 @@ export default function Report({ DB, NAMES, META, FOOD, SCHEDULE, BUDGET, BUDGET
     
     if(timeRange === 'Today') {
       let currentPlanId = d.getDay();
-      if (SCHEDULE?.fullTime && SCHEDULE.fullTime[currentPlanId] !== undefined) currentPlanId = SCHEDULE.fullTime[currentPlanId];
-      if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[k] !== undefined) currentPlanId = SCHEDULE.thisWeek[k];
+      if (SCHEDULE?.fullTime && SCHEDULE.fullTime[currentPlanId] !== undefined) currentPlanId = Number(SCHEDULE.fullTime[currentPlanId]);
+      if (SCHEDULE?.thisWeek && SCHEDULE.thisWeek[k] !== undefined) currentPlanId = Number(SCHEDULE.thisWeek[k]);
 
       const plan = (Array.isArray(workoutPlans) ? workoutPlans.find(p => p.id === currentPlanId) : workoutPlans[currentPlanId]) || (Array.isArray(workoutPlans) ? workoutPlans[0] : Object.values(workoutPlans)[0]) || { muscles: [] };
       

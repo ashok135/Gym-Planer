@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Calendar, Dumbbell } from 'lucide-react';
 import Accordion from '../shared/Accordion';
 import { DAYS_FULL, DEFAULT_PLAN, dateKey, EXERCISE_GIFS } from '../../data';
@@ -18,6 +18,13 @@ export default function WorkoutSettings({ workoutPlans, syncWorkoutPlans, SCHEDU
 
   const [localSchedule, setLocalSchedule] = useState(() => getFullSchedule(SCHEDULE?.fullTime));
   const [schedMsg, setSchedMsg] = useState(false);
+
+  // Keep localSchedule in sync when SCHEDULE prop updates from Firebase
+  useEffect(() => {
+    if (SCHEDULE?.fullTime) {
+      setLocalSchedule(getFullSchedule(SCHEDULE.fullTime));
+    }
+  }, [SCHEDULE]);
   const [showSchedModal, setShowSchedModal] = useState(false);
 
   const [selectedSplitToEdit, setSelectedSplitToEdit] = useState(1);
@@ -192,15 +199,27 @@ export default function WorkoutSettings({ workoutPlans, syncWorkoutPlans, SCHEDU
     try {
       const newSched = { fullTime: { ...(SCHEDULE?.fullTime || {}) }, thisWeek: { ...(SCHEDULE?.thisWeek || {}) } };
       if (type === 'fullTime') {
-        newSched.fullTime = { ...(localSchedule || {}) };
+        // Ensure keys are stored as numbers for consistent lookup
+        const cleanSchedule = {};
+        [1, 2, 3, 4, 5, 6, 0].forEach(dow => {
+          cleanSchedule[dow] = (localSchedule && localSchedule[dow] !== undefined) ? Number(localSchedule[dow]) : dow;
+        });
+        newSched.fullTime = cleanSchedule;
       } else {
+        // Cover the full current week (Monday through Sunday)
+        // Find the Monday of this week first
         const today = new Date();
-        for(let i=0; i<7; i++) {
-          const d = new Date(today);
-          d.setDate(today.getDate() + i);
+        const currentDow = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+        const mondayOffset = currentDow === 0 ? -6 : 1 - currentDow;
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + mondayOffset);
+        
+        for(let i = 0; i < 7; i++) {
+          const d = new Date(monday);
+          d.setDate(monday.getDate() + i);
           const dk = dateKey(d);
           const dow = d.getDay();
-          newSched.thisWeek[dk] = (localSchedule && localSchedule[dow] !== undefined) ? localSchedule[dow] : (DEFAULT_PLAN?.[dow]?.id || dow);
+          newSched.thisWeek[dk] = (localSchedule && localSchedule[dow] !== undefined) ? Number(localSchedule[dow]) : (DEFAULT_PLAN?.[dow]?.id || dow);
         }
       }
       syncData(DB, localNames, META, FOOD, newSched);
