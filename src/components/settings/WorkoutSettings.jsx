@@ -262,6 +262,19 @@ export default function WorkoutSettings({ workoutPlans, syncWorkoutPlans, SCHEDU
             {schedMsg ? 'Saved ✓' : 'Save Schedule'}
           </button>
         </div>
+        {SCHEDULE?.thisWeek && Object.keys(SCHEDULE.thisWeek).length > 0 && (
+          <div style={{ marginTop: '10px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255, 149, 51, 0.08)', border: '1px solid rgba(255, 149, 51, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--orange, #ff9533)' }}>
+              ⚠️ "This Week Only" override is active — it overrides your permanent schedule.
+            </div>
+            <button onClick={() => {
+              const newSched = { fullTime: { ...(SCHEDULE?.fullTime || {}) }, thisWeek: {} };
+              syncData(DB, localNames, META, FOOD, newSched);
+            }} style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(255, 149, 51, 0.15)', border: '1px solid rgba(255, 149, 51, 0.3)', color: 'var(--orange, #ff9533)', fontSize: '10px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              Clear
+            </button>
+          </div>
+        )}
       </Accordion>
 
       {/* 💪 CUSTOM WORKOUT SPLITS BUILDER */}

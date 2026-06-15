@@ -263,6 +263,26 @@ export default function App() {
               if (updatedFullTime[6] === 3) updatedFullTime[6] = 6;
               loadedSched = { ...loadedSched, fullTime: updatedFullTime };
             }
+            // Auto-clean expired thisWeek overrides (before Monday of current week)
+            if (loadedSched.thisWeek && Object.keys(loadedSched.thisWeek).length > 0) {
+              const today = new Date();
+              const currentDow = today.getDay();
+              const mondayOffset = currentDow === 0 ? -6 : 1 - currentDow;
+              const monday = new Date(today);
+              monday.setDate(today.getDate() + mondayOffset);
+              monday.setHours(0, 0, 0, 0);
+              const mondayKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+              const sunday = new Date(monday);
+              sunday.setDate(monday.getDate() + 6);
+              const sundayKey = `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`;
+              const cleanedWeek = {};
+              Object.entries(loadedSched.thisWeek).forEach(([dk, val]) => {
+                if (dk >= mondayKey && dk <= sundayKey) {
+                  cleanedWeek[dk] = val;
+                }
+              });
+              loadedSched = { ...loadedSched, thisWeek: cleanedWeek };
+            }
             setSCHEDULE(loadedSched);
             setBUDGET(data.budget || {});
             setBUDGET_SETTINGS(data.budgetSettings || DEFAULT_BUDGET_SETTINGS);
