@@ -264,8 +264,8 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
   });
   const [openrouterModel, setOpenrouterModel] = useState(() => localStorage.getItem('openrouter_model') || 'openrouter/free');
   const [persona, setPersona] = useState(() => localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
-  const [pineconeKey, setPineconeKey] = useState(() => localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || '');
-  const [pineconeHost, setPineconeHost] = useState(() => localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || '');
+  const [pineconeKey, setPineconeKey] = useState(() => localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || 'pcsk_3vDw8Q_w3YEwdx6NWZVoimY2pyH8Qr6bqh9x9VxiLTdCQ2aR914s65gRszy7YiWbB5p45');
+  const [pineconeHost, setPineconeHost] = useState(() => localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || 'https://dataset-x9w1cez.svc.aped-4627-b74a.pinecone.io');
   const [showKeyInput, setShowKeyInput] = useState(false);
 
   useEffect(() => {
@@ -282,8 +282,8 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
       }
       setOpenrouterModel(localStorage.getItem('openrouter_model') || 'openrouter/free');
       setPersona(localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
-      setPineconeKey(localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || '');
-      setPineconeHost(localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || '');
+      setPineconeKey(localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || 'pcsk_3vDw8Q_w3YEwdx6NWZVoimY2pyH8Qr6bqh9x9VxiLTdCQ2aR914s65gRszy7YiWbB5p45');
+      setPineconeHost(localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || 'https://dataset-x9w1cez.svc.aped-4627-b74a.pinecone.io');
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);

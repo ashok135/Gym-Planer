@@ -455,8 +455,8 @@ export default function App() {
       model: localStorage.getItem('ai_model') || 'gemini-2.5-flash',
       openrouterModel: localStorage.getItem('openrouter_model') || 'openrouter/free',
       persona: localStorage.getItem('ai_persona') || 'Motivational Fitness Coach',
-      pineconeApiKey: localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || '',
-      pineconeHost: localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || ''
+      pineconeApiKey: localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || 'pcsk_3vDw8Q_w3YEwdx6NWZVoimY2pyH8Qr6bqh9x9VxiLTdCQ2aR914s65gRszy7YiWbB5p45',
+      pineconeHost: localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || 'https://dataset-x9w1cez.svc.aped-4627-b74a.pinecone.io'
     };
   };
 

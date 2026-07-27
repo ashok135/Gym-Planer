@@ -18,8 +18,8 @@ export default function AISettings({ syncAiSettings, DB, FOOD, BUDGET, STUDY, NA
   const [localProvider, setLocalProvider] = useState(() => localStorage.getItem('ai_provider') || 'gemini');
   const [localOpenrouterKey, setLocalOpenrouterKey] = useState(() => localStorage.getItem('openrouter_api_key') || '');
   const [localOpenrouterModel, setLocalOpenrouterModel] = useState(() => localStorage.getItem('openrouter_model') || 'openrouter/free');
-  const [localPineconeApiKey, setLocalPineconeApiKey] = useState(() => localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || '');
-  const [localPineconeHost, setLocalPineconeHost] = useState(() => localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || '');
+  const [localPineconeApiKey, setLocalPineconeApiKey] = useState(() => localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || 'pcsk_3vDw8Q_w3YEwdx6NWZVoimY2pyH8Qr6bqh9x9VxiLTdCQ2aR914s65gRszy7YiWbB5p45');
+  const [localPineconeHost, setLocalPineconeHost] = useState(() => localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || 'https://dataset-x9w1cez.svc.aped-4627-b74a.pinecone.io');
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState('');
 
@@ -69,8 +69,8 @@ export default function AISettings({ syncAiSettings, DB, FOOD, BUDGET, STUDY, NA
       setLocalProvider(localStorage.getItem('ai_provider') || 'gemini');
       setLocalOpenrouterKey(localStorage.getItem('openrouter_api_key') || '');
       setLocalOpenrouterModel(localStorage.getItem('openrouter_model') || 'openrouter/free');
-      setLocalPineconeApiKey(localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || '');
-      setLocalPineconeHost(localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || '');
+      setLocalPineconeApiKey(localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || 'pcsk_3vDw8Q_w3YEwdx6NWZVoimY2pyH8Qr6bqh9x9VxiLTdCQ2aR914s65gRszy7YiWbB5p45');
+      setLocalPineconeHost(localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || 'https://dataset-x9w1cez.svc.aped-4627-b74a.pinecone.io');
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
