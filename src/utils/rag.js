@@ -97,7 +97,7 @@ export const generateEmbedding = async (text, apiKey) => {
 // HELPERS: Direct REST calls to Pinecone DB using Namespaces
 // -------------------------------------------------------------
 const upsertToPinecone = async (host, apiKey, vectorId, vector, metadata, namespace) => {
-  const res = await fetch(`${host}/vectors/upsert`, {
+  const res = await fetch(`https://corsproxy.io/?${host}/vectors/upsert`, {
     method: 'POST',
     headers: {
       'Api-Key': apiKey,
@@ -118,7 +118,7 @@ const upsertToPinecone = async (host, apiKey, vectorId, vector, metadata, namesp
 };
 
 const deleteFromPinecone = async (host, apiKey, vectorId, namespace) => {
-  const res = await fetch(`${host}/vectors/delete`, {
+  const res = await fetch(`https://corsproxy.io/?${host}/vectors/delete`, {
     method: 'POST',
     headers: {
       'Api-Key': apiKey,

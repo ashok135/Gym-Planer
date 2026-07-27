@@ -607,7 +607,7 @@ Guidelines for Lucy:
             const queryVector = embedData.embedding?.values;
             
             if (queryVector) {
-              const pineconeRes = await fetch(`${pineconeHost}/query`, {
+              const pineconeRes = await fetch(`https://corsproxy.io/?${pineconeHost}/query`, {
                 method: 'POST',
                 headers: {
                   'Api-Key': pineconeKey,
