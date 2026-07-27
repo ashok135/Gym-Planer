@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Bot } from 'lucide-react';
 import Accordion from '../shared/Accordion';
+import { bulkSyncToPinecone } from '../../utils/rag';
 
-export default function AISettings({ syncAiSettings }) {
+export default function AISettings({ syncAiSettings, DB, FOOD, BUDGET, STUDY, NAMES, userId }) {
   const [localAiEnabled, setLocalAiEnabled] = useState(() => localStorage.getItem('ai_enabled') === 'true');
   const [localAiKey, setLocalAiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
   const [localAiModel, setLocalAiModel] = useState(() => {
@@ -19,6 +20,39 @@ export default function AISettings({ syncAiSettings }) {
   const [localOpenrouterModel, setLocalOpenrouterModel] = useState(() => localStorage.getItem('openrouter_model') || 'openrouter/free');
   const [localPineconeApiKey, setLocalPineconeApiKey] = useState(() => localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || '');
   const [localPineconeHost, setLocalPineconeHost] = useState(() => localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || '');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState('');
+
+  const handleBulkSync = async () => {
+    setIsSyncing(true);
+    setSyncProgress('Initializing bulk sync...');
+
+    const geminiApiKey = localAiKey || localStorage.getItem('gemini_api_key') || '';
+    const pineconeApiKey = localPineconeApiKey || localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || '';
+    const pineconeHost = localPineconeHost || localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || '';
+
+    const config = {
+      pineconeApiKey,
+      pineconeHost,
+      geminiApiKey,
+      userId
+    };
+
+    try {
+      await bulkSyncToPinecone(DB, FOOD, STUDY, BUDGET, config, { namesMap: NAMES }, (current, total, status) => {
+        if (total === 0) {
+          setSyncProgress(status);
+        } else {
+          setSyncProgress(`[${current}/${total}] ${status}`);
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      setSyncProgress(`⚠️ Error: ${err.message || String(err)}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   useEffect(() => {
     const handleStorage = () => {
@@ -195,6 +229,37 @@ export default function AISettings({ syncAiSettings }) {
             }
           }} placeholder="https://your-index.svc.pinecone.io"
             style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }} />
+        </div>
+
+        {/* Bulk Sync Button */}
+        <div style={{ marginTop: '16px', borderTop: '1px dashed var(--border2)', paddingTop: '16px' }}>
+          <button
+            onClick={handleBulkSync}
+            disabled={isSyncing}
+            style={{
+              width: '100%',
+              padding: '12px',
+              background: isSyncing ? 'var(--bg3)' : 'var(--accent)',
+              color: isSyncing ? 'var(--text3)' : '#000',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: isSyncing ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            {isSyncing ? '⏳ Syncing Data...' : '⚡ Sync All Existing Data'}
+          </button>
+          {syncProgress && (
+            <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '8px', textAlign: 'center', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+              {syncProgress}
+            </div>
+          )}
         </div>
       </div>
 

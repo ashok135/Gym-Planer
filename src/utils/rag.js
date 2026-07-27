@@ -194,3 +194,102 @@ export const syncFrontendRAG = async (category, beforeMap, afterMap, config, ext
     }
   }
 };
+
+// -------------------------------------------------------------
+// MAIN EXPORT: Sync all existing logs to Pinecone in a bulk batch
+// -------------------------------------------------------------
+export const bulkSyncToPinecone = async (workouts, food, study, budget, config, extraData = {}, onProgress) => {
+  const { pineconeApiKey, pineconeHost, geminiApiKey, userId } = config;
+  if (!pineconeApiKey || !pineconeHost || !geminiApiKey || !userId) {
+    throw new Error("Missing required Pinecone or Gemini credentials.");
+  }
+
+  const tasks = [];
+
+  // Gather Workouts
+  if (workouts) {
+    Object.entries(workouts).forEach(([date, val]) => {
+      const content = formatWorkoutChunk(date, val, extraData.namesMap);
+      if (content) {
+        tasks.push({
+          vectorId: `${userId}_workout_${date}`,
+          category: 'workout',
+          date,
+          content
+        });
+      }
+    });
+  }
+
+  // Gather Food
+  if (food) {
+    Object.entries(food).forEach(([date, val]) => {
+      const content = formatFoodChunk(date, val);
+      if (content) {
+        tasks.push({
+          vectorId: `${userId}_food_${date}`,
+          category: 'food',
+          date,
+          content
+        });
+      }
+    });
+  }
+
+  // Gather Study
+  if (study) {
+    Object.entries(study).forEach(([date, val]) => {
+      const content = formatStudyChunk(date, val);
+      if (content) {
+        tasks.push({
+          vectorId: `${userId}_study_${date}`,
+          category: 'study',
+          date,
+          content
+        });
+      }
+    });
+  }
+
+  // Gather Budget
+  if (budget) {
+    Object.entries(budget).forEach(([monthKey, val]) => {
+      const content = formatBudgetChunk(monthKey, val);
+      if (content) {
+        tasks.push({
+          vectorId: `${userId}_budget_${monthKey}`,
+          category: 'budget',
+          date: monthKey,
+          content
+        });
+      }
+    });
+  }
+
+  const total = tasks.length;
+  if (total === 0) {
+    if (onProgress) onProgress(0, 0, "No records found to sync.");
+    return;
+  }
+
+  console.log(`[Bulk Sync] Found ${total} items to index into Pinecone namespace "${userId}"`);
+
+  for (let i = 0; i < total; i++) {
+    const task = tasks[i];
+    if (onProgress) onProgress(i + 1, total, `Syncing ${task.category} for ${task.date}...`);
+
+    try {
+      const vector = await generateEmbedding(task.content, geminiApiKey);
+      await upsertToPinecone(pineconeHost, pineconeApiKey, task.vectorId, vector, {
+        userId,
+        category: task.category,
+        date: task.date,
+        content: task.content
+      }, userId);
+    } catch (err) {
+      console.error(`[Bulk Sync] Failed item ${i+1}/${total}:`, err);
+    }
+  }
+
+  if (onProgress) onProgress(total, total, "Sync complete!");
+};

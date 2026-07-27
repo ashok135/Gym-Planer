@@ -66,7 +66,15 @@ export default function Settings({
       <ProfileSettings profileInfo={profileInfo} syncProfileInfo={syncProfileInfo} />
 
       {/* AI COACH */}
-      <AISettings syncAiSettings={syncAiSettings} />
+      <AISettings 
+        syncAiSettings={syncAiSettings} 
+        DB={DB} 
+        FOOD={FOOD} 
+        BUDGET={BUDGET} 
+        STUDY={STUDY} 
+        NAMES={NAMES} 
+        userId={user?.uid} 
+      />
 
       <SystemSettings 
         localNames={localNames}
