@@ -15,6 +15,7 @@ import Study from './components/study';
 import AIChat from './components/AIChat';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { DEFAULT_PLAN, DEFAULT_DIET_PLAN, THEMES } from './data';
+import { syncFrontendRAG } from './utils/rag';
 import './index.css';
 
 const DEFAULT_BUDGET_SETTINGS = { income: 22400, currency: '₹' };
@@ -453,7 +454,9 @@ export default function App() {
       provider: localStorage.getItem('ai_provider') || 'gemini',
       model: localStorage.getItem('ai_model') || 'gemini-2.5-flash',
       openrouterModel: localStorage.getItem('openrouter_model') || 'openrouter/free',
-      persona: localStorage.getItem('ai_persona') || 'Motivational Fitness Coach'
+      persona: localStorage.getItem('ai_persona') || 'Motivational Fitness Coach',
+      pineconeApiKey: localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || '',
+      pineconeHost: localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || ''
     };
   };
 
@@ -500,6 +503,8 @@ export default function App() {
   };
 
   const syncData = async (newDB, newNAMES, newMETA, newFOOD, newSCHEDULE = SCHEDULE) => {
+    const prevDB = DB;
+    const prevFOOD = FOOD;
     setDB(newDB); setNAMES(newNAMES); setMETA(newMETA); setFOOD(newFOOD); setSCHEDULE(newSCHEDULE);
     localStorage.setItem('gdb', JSON.stringify(newDB));
     localStorage.setItem('gnames', JSON.stringify(newNAMES));
@@ -507,20 +512,53 @@ export default function App() {
     localStorage.setItem('gfood', JSON.stringify(newFOOD));
     localStorage.setItem('gschedule', JSON.stringify(newSCHEDULE));
     await saveToFirestore({ workouts: newDB, names: newNAMES, meta: newMETA, food: newFOOD, schedule: newSCHEDULE });
+
+    // Background RAG Sync
+    const aiConfig = getAiSettingsFromLocalStorage();
+    const config = {
+      pineconeApiKey: aiConfig.pineconeApiKey,
+      pineconeHost: aiConfig.pineconeHost,
+      geminiApiKey: aiConfig.apiKey,
+      userId: user?.uid
+    };
+    syncFrontendRAG('workout', prevDB, newDB, config, { namesMap: newNAMES });
+    syncFrontendRAG('food', prevFOOD, newFOOD, config);
   };
 
   const syncBudget = async (newBudget, newSettings = BUDGET_SETTINGS) => {
+    const prevBudget = BUDGET;
     setBUDGET(newBudget); setBUDGET_SETTINGS(newSettings);
     localStorage.setItem('gbudget', JSON.stringify(newBudget));
     localStorage.setItem('gbudgetSettings', JSON.stringify(newSettings));
     await saveToFirestore({ budget: newBudget, budgetSettings: newSettings });
+
+    // Background RAG Sync
+    const aiConfig = getAiSettingsFromLocalStorage();
+    const config = {
+      pineconeApiKey: aiConfig.pineconeApiKey,
+      pineconeHost: aiConfig.pineconeHost,
+      geminiApiKey: aiConfig.apiKey,
+      userId: user?.uid
+    };
+    syncFrontendRAG('budget', prevBudget, newBudget, config);
   };
 
   const syncStudy = async (newStudy, newSettings = STUDY_SETTINGS) => {
+    const prevStudy = STUDY;
     setSTUDY(newStudy); setSTUDY_SETTINGS(newSettings);
     localStorage.setItem('gstudy', JSON.stringify(newStudy));
     localStorage.setItem('gstudySettings', JSON.stringify(newSettings));
     await saveToFirestore({ study: newStudy, studySettings: newSettings });
+
+    // Background RAG Sync
+    const aiConfig = getAiSettingsFromLocalStorage();
+    const config = {
+      pineconeApiKey: aiConfig.pineconeApiKey,
+      pineconeHost: aiConfig.pineconeHost,
+      geminiApiKey: aiConfig.apiKey,
+      userId: user?.uid
+    };
+    syncFrontendRAG('study', prevStudy, newStudy, config);
   };
 
   const syncDietPlan = async (newPlan) => {
@@ -714,7 +752,7 @@ export default function App() {
         {activeTab === 'settings' && <Settings NAMES={NAMES} syncData={syncData} DB={DB} META={META} FOOD={FOOD} handleLogout={handleLogout} SCHEDULE={SCHEDULE} BUDGET_SETTINGS={BUDGET_SETTINGS} syncBudget={syncBudget} STUDY_SETTINGS={STUDY_SETTINGS} syncStudy={syncStudy} BUDGET={BUDGET} STUDY={STUDY} syncAiSettings={syncAiSettings} profileInfo={profileInfo} syncProfileInfo={syncProfileInfo} workoutPlans={workoutPlans} syncWorkoutPlans={syncWorkoutPlans} DIET_PLAN={DIET_PLAN} syncDietPlan={syncDietPlan} user={user} activeTheme={activeTheme} setActiveTheme={syncTheme} syncSplitCategories={syncSplitCategories} syncMoodEnergyConfig={syncMoodEnergyConfig} syncStatusResponses={syncStatusResponses} />}
       </div>
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} showNav={showNav} />
-      {aiEnabled && <AIChat DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} syncAiSettings={syncAiSettings} profileInfo={profileInfo} workoutPlans={workoutPlans} />}
+      {aiEnabled && <AIChat DB={DB} NAMES={NAMES} META={META} FOOD={FOOD} BUDGET={BUDGET} STUDY={STUDY} SCHEDULE={SCHEDULE} syncAiSettings={syncAiSettings} profileInfo={profileInfo} workoutPlans={workoutPlans} userId={user?.uid} />}
       {toast && (
         <div 
           className="lucy-snackbar"

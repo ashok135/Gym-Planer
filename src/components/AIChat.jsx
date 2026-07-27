@@ -244,7 +244,7 @@ const CopyButton = ({ text, isUser }) => {
   );
 };
 
-export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHEDULE, syncAiSettings, profileInfo = { name: '', resume: '' } }) {
+export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHEDULE, syncAiSettings, profileInfo = { name: '', resume: '' }, userId }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'bot', text: "Hi! I'm Lucy 🤖 Ask me anything about your workouts, diet, budget, personal information or study progress!" }
@@ -264,6 +264,8 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
   });
   const [openrouterModel, setOpenrouterModel] = useState(() => localStorage.getItem('openrouter_model') || 'openrouter/free');
   const [persona, setPersona] = useState(() => localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
+  const [pineconeKey, setPineconeKey] = useState(() => localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || '');
+  const [pineconeHost, setPineconeHost] = useState(() => localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || '');
   const [showKeyInput, setShowKeyInput] = useState(false);
 
   useEffect(() => {
@@ -280,6 +282,8 @@ export default function AIChat({ DB, NAMES = {}, META, FOOD, BUDGET, STUDY, SCHE
       }
       setOpenrouterModel(localStorage.getItem('openrouter_model') || 'openrouter/free');
       setPersona(localStorage.getItem('ai_persona') || 'Motivational Fitness Coach');
+      setPineconeKey(localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || '');
+      setPineconeHost(localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || '');
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
@@ -584,7 +588,58 @@ Guidelines for Lucy:
     setMessages(prev => [...prev, { role: 'bot', text: '', streaming: true }]);
 
     try {
-      const context = buildContext();
+      let retrievedContext = '';
+      if (pineconeKey && pineconeHost && apiKey) {
+        try {
+          const embedRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: 'models/text-embedding-004',
+                content: { parts: [{ text: userMsg }] }
+              })
+            }
+          );
+          if (embedRes.ok) {
+            const embedData = await embedRes.json();
+            const queryVector = embedData.embedding?.values;
+            
+            if (queryVector) {
+              const pineconeRes = await fetch(`${pineconeHost}/query`, {
+                method: 'POST',
+                headers: {
+                  'Api-Key': pineconeKey,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  vector: queryVector,
+                  topK: 5,
+                  includeMetadata: true,
+                  namespace: userId || undefined
+                })
+              });
+              if (pineconeRes.ok) {
+                const pineconeData = await pineconeRes.json();
+                const matches = pineconeData.matches || [];
+                if (matches.length > 0) {
+                  retrievedContext = "\n\n=== RETRIEVED HISTORY FROM PINECONE (RELEVANT CONTEXT) ===\n" +
+                    matches.map(m => `[Log Date: ${m.metadata?.date || 'N/A'} | Type: ${m.metadata?.category || 'N/A'}]\n${m.metadata?.content || ''}`).join('\n\n') +
+                    "\n=======================================================\n";
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching Pinecone context:', err);
+        }
+      }
+
+      let context = buildContext();
+      if (retrievedContext) {
+        context += retrievedContext;
+      }
 
       if (provider === 'gemini') {
         const chatContents = [];

@@ -17,6 +17,8 @@ export default function AISettings({ syncAiSettings }) {
   const [localProvider, setLocalProvider] = useState(() => localStorage.getItem('ai_provider') || 'gemini');
   const [localOpenrouterKey, setLocalOpenrouterKey] = useState(() => localStorage.getItem('openrouter_api_key') || '');
   const [localOpenrouterModel, setLocalOpenrouterModel] = useState(() => localStorage.getItem('openrouter_model') || 'openrouter/free');
+  const [localPineconeApiKey, setLocalPineconeApiKey] = useState(() => localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || '');
+  const [localPineconeHost, setLocalPineconeHost] = useState(() => localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || '');
 
   useEffect(() => {
     const handleStorage = () => {
@@ -33,6 +35,8 @@ export default function AISettings({ syncAiSettings }) {
       setLocalProvider(localStorage.getItem('ai_provider') || 'gemini');
       setLocalOpenrouterKey(localStorage.getItem('openrouter_api_key') || '');
       setLocalOpenrouterModel(localStorage.getItem('openrouter_model') || 'openrouter/free');
+      setLocalPineconeApiKey(localStorage.getItem('pinecone_api_key') || import.meta.env.VITE_PINECONE_API_KEY || '');
+      setLocalPineconeHost(localStorage.getItem('pinecone_host') || import.meta.env.VITE_PINECONE_HOST || '');
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
@@ -160,6 +164,39 @@ export default function AISettings({ syncAiSettings }) {
           </div>
         </>
       )}
+
+      {/* Pinecone Vector RAG Config */}
+      <div style={{ marginBottom: '16px', borderTop: '1px dashed var(--border2)', paddingTop: '16px' }}>
+        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent)', marginBottom: '8px' }}>Pinecone RAG Storage (Optional)</div>
+        
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '11px', color: 'var(--text2)', marginBottom: '6px' }}>Pinecone API Key</div>
+          <input type="password" value={localPineconeApiKey} onChange={e => {
+            const val = e.target.value;
+            setLocalPineconeApiKey(val);
+            if (syncAiSettings) {
+              syncAiSettings({ pineconeApiKey: val });
+            } else {
+              updateSetting('pinecone_api_key', val);
+            }
+          }} placeholder="Paste your Pinecone API key here"
+            style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }} />
+        </div>
+
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '11px', color: 'var(--text2)', marginBottom: '6px' }}>Pinecone Index Host URL</div>
+          <input type="text" value={localPineconeHost} onChange={e => {
+            const val = e.target.value;
+            setLocalPineconeHost(val);
+            if (syncAiSettings) {
+              syncAiSettings({ pineconeHost: val });
+            } else {
+              updateSetting('pinecone_host', val);
+            }
+          }} placeholder="https://your-index.svc.pinecone.io"
+            style={{ width: '100%', padding: '10px 12px', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '8px', color: 'var(--text)', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }} />
+        </div>
+      </div>
 
       {/* AI Persona Selector */}
       <div style={{ marginBottom: '12px' }}>
