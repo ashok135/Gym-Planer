@@ -598,7 +598,8 @@ Guidelines for Lucy:
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 model: 'models/gemini-embedding-001',
-                content: { parts: [{ text: userMsg }] }
+                content: { parts: [{ text: userMsg }] },
+                outputDimensionality: 768
               })
             }
           );
